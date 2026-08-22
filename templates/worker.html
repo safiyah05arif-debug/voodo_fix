@@ -117,6 +117,7 @@
     <!-- Proof of Work Closing Modal -->
     <div id="proof-modal" class="hidden fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
         <div class="bg-white rounded-2xl max-w-lg w-full p-5 shadow-2xl flex flex-col gap-4 border border-outline-variant max-h-[90vh] overflow-y-auto">
+            {% csrf_token %}
             <div class="flex justify-between items-center border-b pb-2">
                 <h3 class="font-bold text-base text-on-surface flex items-center gap-2">
                     <span class="material-symbols-outlined text-secondary">task_alt</span>
@@ -175,6 +176,8 @@
 
     <script>
         let currentActiveIssueId = null;
+        let currentActiveWorkerId = null;
+        const assignedWorkerByIssue = {};
         let proofPhotoFile = null;
         let workerLanguage = localStorage.getItem('civix-language') || 'en';
         const workerTranslations = {
@@ -266,6 +269,7 @@
                 }
 
                 issues.slice(0, 10).forEach((iss, index) => {
+                    assignedWorkerByIssue[iss.id] = iss.assigned_to || '';
                     const card = document.createElement('article');
                     card.className = "bg-white border-2 border-outline-variant rounded-2xl p-4 shadow-sm flex flex-col gap-3 relative";
                     
@@ -307,6 +311,7 @@
 
         function openProofModal(id) {
             currentActiveIssueId = id;
+            currentActiveWorkerId = assignedWorkerByIssue[id];
             document.getElementById('proof-modal').classList.remove('hidden');
         }
 
@@ -317,8 +322,11 @@
         async function updateWorkerStatus(issueId, nextStatus) {
             const response = await fetch(`/api/issues/${issueId}/status/`, {
                 method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ status: nextStatus, changed_by: 'Murugan_S' })
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('#proof-modal input[name="csrfmiddlewaretoken"]').value
+                },
+                body: JSON.stringify({ status: nextStatus, changed_by: currentActiveWorkerId || 'field_worker' })
             });
             const data = await response.json();
             if (!response.ok) {
@@ -348,15 +356,23 @@
             formData.append("latitude", "13.0067");
             formData.append("longitude", "80.2574");
             formData.append("notes", document.getElementById('resolution-notes').value);
-            formData.append("worker_id", "Murugan_S");
+            formData.append("worker_id", currentActiveWorkerId || "field_worker_1");
             if (proofPhotoFile) {
                 formData.append("photo", proofPhotoFile, "proof_after.jpg");
             }
 
             try {
-                const res = await fetch(`/api/issues/${currentActiveIssueId}/resolve/`, { method: "PATCH", body: formData });
+                const res = await fetch(`/api/issues/${currentActiveIssueId}/resolve/`, {
+                    method: "PATCH",
+                    headers: { "X-CSRFToken": document.querySelector('#proof-modal input[name="csrfmiddlewaretoken"]').value },
+                    body: formData
+                });
                 const data = await res.json();
-                alert("Ticket successfully resolved and proof stored in Supabase!");
+                if (!res.ok) {
+                    alert(data.error || "Could not resolve this ticket.");
+                    return;
+                }
+                alert(data.message || "Ticket successfully resolved and proof stored in Supabase!");
                 closeProofModal();
                 loadWorkerTasks();
             } catch (err) {
