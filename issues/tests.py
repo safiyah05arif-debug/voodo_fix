@@ -1,4 +1,5 @@
 import os
+import hashlib
 from unittest.mock import patch
 
 from django.test import SimpleTestCase
@@ -71,3 +72,8 @@ class IssueLogicTests(SimpleTestCase):
 		with patch.dict(os.environ, {"AI_PROVIDER": "gemini", "GEMINI_API_KEY": "test-key"}, clear=False):
 			self.assertEqual(ai_vision.classify_issue_image(title_hint="pipe leak"), {"category": "water"})
 		gemini_call.assert_called_once()
+
+	def test_photo_hash_is_stable(self):
+		photo = b"demo-image-bytes"
+		self.assertEqual(hashlib.sha256(photo).hexdigest(), hashlib.sha256(photo).hexdigest())
+		self.assertNotEqual(hashlib.sha256(photo).hexdigest(), hashlib.sha256(b"other-image").hexdigest())

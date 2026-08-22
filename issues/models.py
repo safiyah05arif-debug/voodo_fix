@@ -238,6 +238,10 @@ class Issue(Document):
         max_length=5,
         help_text="List of Supabase Storage URLs for uploaded photos (max 5)",
     )
+    photo_hash = StringField(
+        max_length=64,
+        help_text="SHA-256 hash of the original uploaded photo for duplicate detection",
+    )
 
     # ── Engagement & Deduplication ────────────────────────────────────────────
     upvote_count = IntField(

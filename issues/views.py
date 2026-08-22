@@ -14,6 +14,7 @@ Implements DRF endpoints:
 
 import math
 import datetime
+import hashlib
 from bson import ObjectId
 from pymongo.errors import PyMongoError
 from rest_framework import status, serializers
@@ -168,10 +169,25 @@ class IssueReportView(APIView):
             # 3. Handle Direct Camera Image
             photo_urls = []
             ai_data = None
+            photo_hash = None
             
             if "photo" in request.FILES:
                 photo_file = request.FILES["photo"]
                 photo_bytes = photo_file.read()
+                photo_hash = hashlib.sha256(photo_bytes).hexdigest()
+
+                if not force_submit:
+                    matching_issue = Issue.objects(
+                        photo_hash=photo_hash,
+                        status__in=["submitted", "verified", "assigned", "in_progress", "resolved", "reopened", "escalated"],
+                    ).first()
+                    if matching_issue:
+                        return Response({
+                            "duplicate_detected": True,
+                            "duplicate_type": "photo",
+                            "message": "This photo was already used for an existing issue. Would you like to upvote it instead?",
+                            "nearby_issues": [serialize_issue(matching_issue)],
+                        }, status=status.HTTP_200_OK)
                 
                 # Upload directly to Supabase Storage CDN
                 upload_res = upload_image_bytes(
@@ -211,6 +227,7 @@ class IssueReportView(APIView):
                 issue_type=final_type,
                 severity=final_severity,
                 photo_urls=photo_urls,
+                photo_hash=photo_hash,
                 status="submitted",
             )
 
