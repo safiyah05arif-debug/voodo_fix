@@ -146,6 +146,7 @@
             </div>
 
             <form id="add-worker-form" class="flex flex-col gap-3">
+                {% csrf_token %}
                 <div>
                     <label class="text-xs font-bold uppercase text-on-surface-variant block mb-1">Worker Full Name</label>
                     <input id="worker-name-input" type="text" required aria-label="Worker full name" placeholder="E.g. Selvam Kumar" class="w-full p-2.5 border rounded-xl text-xs outline-none focus:border-primary"/>
@@ -292,7 +293,10 @@
             try {
                 const res = await fetch("/api/users/workers/add/", {
                     method: "POST",
-                    headers: { "Content-Type": "application/json" },
+                    headers: {
+                        "Content-Type": "application/json",
+                        "X-CSRFToken": document.querySelector('#add-worker-form input[name="csrfmiddlewaretoken"]').value
+                    },
                     body: JSON.stringify({ full_name, phone, department, zone })
                 });
                 const data = await res.json();
