@@ -1,5 +1,9 @@
+import os
+from unittest.mock import patch
+
 from django.test import SimpleTestCase
 
+from civix_backend import ai_vision
 from issues.models import Issue
 from issues.views import IssueStatusView, haversine_distance, location_coordinates
 
@@ -60,3 +64,10 @@ class IssueLogicTests(SimpleTestCase):
 		self.assertEqual(IssueStatusView.allowed_transitions["submitted"], {"verified", "assigned"})
 		self.assertEqual(IssueStatusView.allowed_transitions["in_progress"], {"resolved"})
 		self.assertEqual(IssueStatusView.allowed_transitions["citizen_verified"], {"closed"})
+
+	@patch.object(ai_vision, "_call_openai_vision", side_effect=AssertionError("OpenAI should not be called"))
+	@patch.object(ai_vision, "_call_gemini_vision", return_value={"category": "water"})
+	def test_gemini_provider_is_selected(self, gemini_call, _openai_call):
+		with patch.dict(os.environ, {"AI_PROVIDER": "gemini", "GEMINI_API_KEY": "test-key"}, clear=False):
+			self.assertEqual(ai_vision.classify_issue_image(title_hint="pipe leak"), {"category": "water"})
+		gemini_call.assert_called_once()

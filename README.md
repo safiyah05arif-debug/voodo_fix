@@ -72,6 +72,12 @@ pip install -r requirements.txt
 # 2. Configure credentials in .env
 # (MONGODB_URI, SUPABASE_URL, SUPABASE_SECRET_KEY, etc.)
 
+# Free AI option: create a Gemini API key in Google AI Studio, then set:
+# AI_PROVIDER=gemini
+# GEMINI_API_KEY=your-key
+# GEMINI_MODEL=gemini-2.0-flash
+# OpenAI is optional; the app falls back to local heuristics if AI quota is unavailable.
+
 # 3. Test MongoDB Atlas Connection
 python test_connection.py
 

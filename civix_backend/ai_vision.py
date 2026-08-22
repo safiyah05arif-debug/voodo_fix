@@ -29,21 +29,20 @@ def classify_issue_image(image_bytes=None, image_url=None, title_hint=""):
     openai_key = os.getenv("OPENAI_API_KEY", "")
     gemini_key = os.getenv("GEMINI_API_KEY", "")
 
-    # 1. Try OpenAI if valid key provided
-    if openai_key and not openai_key.startswith("sk-your") and "insufficient_quota" not in openai_key:
-        try:
-            return _call_openai_vision(image_bytes, image_url, title_hint, openai_key)
-        except Exception as e:
-            pass
+    providers = {
+        "openai": (openai_key, _call_openai_vision),
+        "gemini": (gemini_key, _call_gemini_vision),
+    }
+    selected = providers.get(ai_provider)
+    if selected:
+        api_key, provider_call = selected
+        if api_key and not api_key.startswith(("sk-your", "your-gemini")) and "insufficient_quota" not in api_key:
+            try:
+                return provider_call(image_bytes, image_url, title_hint, api_key)
+            except Exception:
+                pass
 
-    # 2. Try Gemini if valid key provided
-    if gemini_key and not gemini_key.startswith("your-gemini"):
-        try:
-            return _call_gemini_vision(image_bytes, image_url, title_hint, gemini_key)
-        except Exception as e:
-            pass
-
-    # 3. Intelligent Heuristic & Feature Classifier
+    # Intelligent Heuristic & Feature Classifier
     return _heuristic_classifier(title_hint, image_bytes)
 
 
@@ -93,7 +92,8 @@ def _call_openai_vision(image_bytes, image_url, title_hint, api_key):
 
 
 def _call_gemini_vision(image_bytes, image_url, title_hint, api_key):
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
+    model = os.getenv("GEMINI_MODEL", "gemini-2.0-flash")
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
     prompt = (
         "Analyze this urban civic hazard photo. Respond ONLY in valid JSON format: "
         "{\"category\": \"road|water|waste|electricity|drainage|public_safety\", "
@@ -116,7 +116,7 @@ def _call_gemini_vision(image_bytes, image_url, title_hint, api_key):
             if text.startswith("json"):
                 text = text[4:]
         parsed = json.loads(text.strip())
-        parsed["raw_response"] = {"model": "gemini-1.5-flash", "cloud": "Google AI Live"}
+        parsed["raw_response"] = {"model": model, "cloud": "Google AI Live"}
         return parsed
     raise ValueError(data.get("error", {}).get("message", "Gemini Vision error"))
 
