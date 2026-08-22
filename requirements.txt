@@ -1,0 +1,12 @@
+# CIVIX (FixMyCity) — Python Dependencies
+# Install with: pip install -r requirements.txt
+
+Django==6.0.7
+djangorestframework==3.18.0
+django-cors-headers==4.9.0
+mongoengine==0.29.3
+pymongo==4.17.0
+python-dotenv==1.2.3
+dnspython==2.8.0
+supabase==2.31.0
+storage3==2.31.0
