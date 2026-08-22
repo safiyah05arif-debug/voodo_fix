@@ -438,11 +438,12 @@ class Issue(Document):
         Serialize this issue as a GeoJSON Feature for Leaflet rendering.
         Used by the heatmap API endpoint.
         """
+        coordinates = self.location.get("coordinates") if isinstance(self.location, dict) else self.location
         return {
             "type": "Feature",
             "geometry": {
                 "type": "Point",
-                "coordinates": self.location["coordinates"],
+                "coordinates": coordinates,
             },
             "properties": {
                 "id": str(self.id),

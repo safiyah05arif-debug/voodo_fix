@@ -162,12 +162,6 @@ class UserRegisterView(MongoSafeAPIView):
         request.session["civix_role"] = user.role
         request.session["civix_department"] = user.department or ""
 
-        # Award first report badge
-        first_badge = Badge.objects(slug="first_report").first()
-        if first_badge:
-            user.award_badge(first_badge)
-            user.save()
-
         return Response({
             "success": True,
             "message": "Citizen account created successfully! +50 Welcome Points awarded.",

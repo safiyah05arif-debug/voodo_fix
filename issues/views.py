@@ -20,9 +20,10 @@ from rest_framework import status, serializers
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
+from mongoengine.errors import NotUniqueError
 
 from issues.models import Issue, AIClassification, ResolutionProof, StatusChange, IssueUpvote, IssueVerification, EscalationLog
-from users.models import CivixUser
+from users.models import Badge, CivixUser
 from civix_backend.storage import upload_image_bytes
 from civix_backend.ai_vision import classify_issue_image
 
@@ -40,9 +41,14 @@ def haversine_distance(lat1, lon1, lat2, lon2):
     return R * c
 
 
+def location_coordinates(location):
+    """Return a PointField value as [longitude, latitude]."""
+    return location.get("coordinates") if isinstance(location, dict) else location
+
+
 def serialize_issue(issue):
     """Convert MongoEngine Issue document to JSON-friendly dict."""
-    coordinates = issue.location.get("coordinates") if isinstance(issue.location, dict) else issue.location
+    coordinates = location_coordinates(issue.location)
     return {
         "id": str(issue.id),
         "title": issue.title,
@@ -224,6 +230,9 @@ class IssueReportView(APIView):
             if user:
                 user.add_points(20)
                 user.reports_submitted += 1
+                first_badge = Badge.objects(slug="first_report").first()
+                if first_badge:
+                    user.award_badge(first_badge)
                 user.save()
 
             return Response({
@@ -298,7 +307,7 @@ class IssueUpvoteView(APIView):
         if not issue:
             return Response({"error": "Issue not found"}, status=status.HTTP_404_NOT_FOUND)
 
-        if user_id in issue.upvoted_by:
+        if user_id in (issue.upvoted_by or []):
             return Response({"message": "You have already upvoted this issue!", "upvote_count": issue.upvote_count}, status=status.HTTP_200_OK)
 
         issue.upvoted_by.append(user_id)
@@ -307,8 +316,13 @@ class IssueUpvoteView(APIView):
 
         try:
             IssueUpvote(issue_id=str(issue.id), user_id=user_id).save()
-        except Exception:
-            pass
+        except NotUniqueError:
+            return Response({"message": "You have already upvoted this issue!", "upvote_count": issue.upvote_count}, status=status.HTTP_200_OK)
+
+        user = CivixUser.objects(id=user_id).first() if len(user_id) == 24 else None
+        if user:
+            user.upvotes_given += 1
+            user.save()
 
         return Response({
             "success": True,
@@ -326,14 +340,17 @@ class IssueResolveView(APIView):
         if not issue:
             return Response({"error": "Issue not found"}, status=status.HTTP_404_NOT_FOUND)
 
-        worker_lat = float(request.data.get("latitude", 0.0))
-        worker_lng = float(request.data.get("longitude", 0.0))
+        try:
+            worker_lat = float(request.data["latitude"])
+            worker_lng = float(request.data["longitude"])
+        except (KeyError, TypeError, ValueError):
+            return Response({"error": "Valid worker latitude and longitude are required."}, status=status.HTTP_400_BAD_REQUEST)
         notes = request.data.get("notes", "Work completed")
         worker_id = request.data.get("worker_id", "field_worker_1")
 
-        issue_lng, issue_lat = issue.location["coordinates"]
-        dist = haversine_distance(worker_lat, worker_lng, issue_lat, issue_lng) if worker_lat and worker_lng else 0.0
-        geo_verified = dist <= 100.0 or (worker_lat == 0.0)
+        issue_lng, issue_lat = location_coordinates(issue.location)
+        dist = haversine_distance(worker_lat, worker_lng, issue_lat, issue_lng)
+        geo_verified = dist <= 100.0
 
         photo_url = "https://xvnrvhoelkqkeltwepew.supabase.co/storage/v1/object/public/civix-uploads/issues/sample_after.png"
         if "photo" in request.FILES:
@@ -388,8 +405,13 @@ class IssueVerifyView(APIView):
                 is_fixed=is_fixed,
                 comment=comment
             ).save()
-        except Exception:
-            pass
+        except NotUniqueError:
+            return Response({"error": "You have already verified this issue."}, status=status.HTTP_409_CONFLICT)
+
+        user = CivixUser.objects(id=user_id).first() if len(user_id) == 24 else None
+        if user:
+            user.verifications_done += 1
+            user.save()
 
         if is_fixed:
             issue.add_status_change(to_status="citizen_verified", changed_by=user_id, reason="Citizen verified fix")
