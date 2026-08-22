@@ -1,22 +1,33 @@
 """
-URL configuration for civix_backend project.
-
-The `urlpatterns` list routes URLs to views. For more information please see:
-    https://docs.djangoproject.com/en/5.2/topics/http/urls/
-Examples:
-Function views
-    1. Add an import:  from my_app import views
-    2. Add a URL to urlpatterns:  path('', views.home, name='home')
-Class-based views
-    1. Add an import:  from other_app.views import Home
-    2. Add a URL to urlpatterns:  path('', Home.as_view(), name='home')
-Including another URLconf
-    1. Import the include() function: from django.urls import include, path
-    2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
+CIVIX — Master URL Configuration
+==================================
+Routes API endpoints and serves frontend portal templates.
 """
+
 from django.contrib import admin
-from django.urls import path
+from django.urls import path, include
+from django.shortcuts import render
+
+def citizen_portal_view(request):
+    return render(request, "citizen.html")
+
+def worker_portal_view(request):
+    return render(request, "worker.html")
+
+def officer_portal_view(request):
+    return render(request, "officer.html")
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
+    # Admin
+    path("admin/", admin.site.urls),
+
+    # Frontend Portals
+    path("", citizen_portal_view, name="home"),
+    path("citizen/", citizen_portal_view, name="citizen-portal"),
+    path("worker/", worker_portal_view, name="worker-portal"),
+    path("officer/", officer_portal_view, name="officer-portal"),
+
+    # REST APIs
+    path("api/issues/", include("issues.urls")),
+    path("api/users/", include("users.urls")),
 ]

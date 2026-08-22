@@ -10,3 +10,4 @@ python-dotenv==1.2.3
 dnspython==2.8.0
 supabase==2.31.0
 storage3==2.31.0
+requests==2.34.2
