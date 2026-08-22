@@ -350,7 +350,12 @@ class IssueResolveView(APIView):
             return Response({"error": "Valid worker latitude and longitude are required."}, status=status.HTTP_400_BAD_REQUEST)
         notes = request.data.get("notes", "Work completed")
         worker_id = request.data.get("worker_id", "field_worker_1")
-        if issue.assigned_to and issue.assigned_to != worker_id:
+        session_id = session_user_id(request, "")
+        worker = CivixUser.objects(id=session_id).first() if len(session_id) == 24 else None
+        valid_worker_ids = {session_id, worker_id}
+        if worker:
+            valid_worker_ids.update({worker.full_name, worker.phone})
+        if issue.assigned_to and issue.assigned_to not in valid_worker_ids:
             return Response({"error": "Only the assigned worker can resolve this issue."}, status=status.HTTP_403_FORBIDDEN)
 
         issue_lng, issue_lat = location_coordinates(issue.location)
@@ -512,7 +517,12 @@ class NearbyIssuesView(IssueListView):
 
 class TaskAssignedView(IssueListView):
     def get(self, request):
-        query = {"assigned_to": session_user_id(request, request.query_params.get("worker_id", ""))}
+        user_id = session_user_id(request, request.query_params.get("worker_id", ""))
+        worker = CivixUser.objects(id=user_id).first() if len(user_id) == 24 else None
+        assigned_values = [user_id]
+        if worker:
+            assigned_values.extend([worker.full_name, worker.phone])
+        query = {"assigned_to__in": assigned_values}
         category = _department_category(request.query_params.get("department_id") or request.query_params.get("department"))
         if category:
             query["category"] = category

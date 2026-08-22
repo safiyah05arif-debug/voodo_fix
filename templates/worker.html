@@ -258,7 +258,7 @@
 
         async function loadWorkerTasks() {
             try {
-                const res = await fetch("/api/issues/");
+                const res = await fetch("/api/tasks/assigned/");
                 const issues = await res.json();
                 const container = document.getElementById('worker-tasks-list');
                 container.innerHTML = "";
@@ -320,6 +320,7 @@
         }
 
         async function updateWorkerStatus(issueId, nextStatus) {
+            currentActiveWorkerId = assignedWorkerByIssue[issueId] || null;
             const response = await fetch(`/api/issues/${issueId}/status/`, {
                 method: 'PATCH',
                 headers: {
