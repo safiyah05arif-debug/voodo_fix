@@ -42,6 +42,14 @@
         .pulse-red { animation: pulse-red 1.5s infinite; }
         @keyframes pulse-red { 0%, 100% { opacity: 1; color: #ba1a1a; } 50% { opacity: .4; color: #ba1a1a; } }
         #officer-map { width: 100%; height: 100%; z-index: 10; }
+        .high-contrast, .high-contrast main, .high-contrast header, .high-contrast section,
+        .high-contrast .bg-white, .high-contrast .bg-surface-container-low { background-color: #000 !important; color: #fff !important; }
+        .high-contrast * { border-color: #ffff00 !important; }
+        .high-contrast button, .high-contrast input, .high-contrast select { background: #000 !important; color: #fff !important; }
+        .high-contrast .text-primary, .high-contrast .text-on-surface-variant { color: #ffff00 !important; }
+        .high-contrast .bg-primary { background-color: #000 !important; color: #ffff00 !important; }
+        .high-contrast a { color: #00ffff !important; }
+        .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
     </style>
 </head>
 <body class="bg-surface text-on-surface h-full font-sans overflow-hidden flex flex-col">
@@ -49,41 +57,51 @@
     <!-- Top Command Navigation Bar -->
     <header class="bg-primary text-white border-b border-primary-container px-6 py-3 flex justify-between items-center z-40 shrink-0 shadow-md">
         <div class="flex items-center gap-4">
-            <div class="font-black text-2xl tracking-wider text-white">CIVIX COMMAND</div>
+            <div class="font-black text-2xl tracking-wider text-white" id="officer-title">CIVIX COMMAND</div>
             <span class="bg-white/20 text-xs px-2.5 py-0.5 rounded-full font-bold">Zone 5 • Chennai Central</span>
         </div>
-        <div class="flex items-center gap-6 text-xs">
-            <div class="flex items-center gap-2">
-                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
-                <span>System Health: Live (MongoDB Atlas + Vision AI)</span>
-            </div>
+        <div class="flex items-center gap-4 text-xs">
+            <!-- Add Field Worker Trigger Button -->
+            <button onclick="openWorkerModal()" class="bg-secondary text-white px-3.5 py-1.5 rounded-xl font-bold flex items-center gap-1.5 shadow-sm hover:bg-secondary-container hover:text-on-secondary-container transition-all">
+                <span class="material-symbols-outlined text-sm">person_add</span>
+                <span>+ Provision Field Worker</span>
+            </button>
             <div class="flex items-center gap-3 border-l border-white/20 pl-4">
+                <button id="officer-lang-en" type="button" aria-label="Switch interface language to English" class="underline">EN</button>
+                <button id="officer-lang-ta" type="button" aria-label="தமிழில் இடைமுகத்தை மாற்றவும்">தமிழ்</button>
+                <button id="officer-contrast" type="button" aria-pressed="false" aria-label="Toggle high contrast mode">◐</button>
+                <button type="button" onclick="setOfficerFontSize('100%')" aria-label="Use normal text size">A</button>
+                <button type="button" onclick="setOfficerFontSize('115%')" aria-label="Increase text size">A+</button>
+                <button type="button" onclick="setOfficerFontSize('130%')" aria-label="Use largest text size">A++</button>
+                <button id="officer-read-aloud" type="button" aria-pressed="false" aria-label="Read command center aloud">🔊 <span id="officer-read-label">Read aloud</span></button>
                 <a href="/citizen/" class="underline hover:text-secondary-container">Citizen Portal</a>
                 <span>|</span>
                 <a href="/worker/" class="underline hover:text-secondary-container">Worker View</a>
+                <span>|</span>
+                <a href="/login/" class="underline hover:text-secondary-container">Logout</a>
             </div>
         </div>
     </header>
 
     <!-- Main Command Body (Split-Pane) -->
-    <div class="flex-1 flex flex-col overflow-hidden">
+    <main class="flex-1 flex flex-col overflow-hidden">
 
         <!-- KPI Metrics Banner -->
         <div class="p-4 grid grid-cols-4 gap-4 bg-white border-b border-outline-variant shrink-0 shadow-sm">
             <div class="bg-surface-container-low p-3.5 rounded-xl border border-outline-variant">
-                <span class="text-xs text-on-surface-variant font-bold uppercase tracking-wider block">Total Active Issues</span>
+                <span class="text-xs text-on-surface-variant font-bold uppercase tracking-wider block" id="officer-total-label">Total Active Issues</span>
                 <div class="font-mono text-3xl font-black text-primary mt-1" id="kpi-total">25</div>
             </div>
             <div class="bg-red-50 p-3.5 rounded-xl border border-red-200">
-                <span class="text-xs text-red-700 font-bold uppercase tracking-wider block">🔴 Critical Urgency</span>
+                <span class="text-xs text-red-700 font-bold uppercase tracking-wider block" id="officer-critical-label">🔴 Critical Urgency</span>
                 <div class="font-mono text-3xl font-black text-red-600 mt-1" id="kpi-critical">10</div>
             </div>
             <div class="bg-amber-50 p-3.5 rounded-xl border border-amber-200">
-                <span class="text-xs text-amber-800 font-bold uppercase tracking-wider block">⚠️ SLA Breached</span>
+                <span class="text-xs text-amber-800 font-bold uppercase tracking-wider block" id="officer-sla-label">⚠️ SLA Breached</span>
                 <div class="font-mono text-3xl font-black text-amber-700 mt-1 pulse-red" id="kpi-sla">22</div>
             </div>
             <div class="bg-emerald-50 p-3.5 rounded-xl border border-emerald-200">
-                <span class="text-xs text-emerald-800 font-bold uppercase tracking-wider block">✅ Resolved Today</span>
+                <span class="text-xs text-emerald-800 font-bold uppercase tracking-wider block" id="officer-resolved-label">✅ Resolved Today</span>
                 <div class="font-mono text-3xl font-black text-emerald-700 mt-1" id="kpi-resolved">12</div>
             </div>
         </div>
@@ -95,7 +113,7 @@
             <div class="flex-1 relative bg-surface-container-low overflow-hidden">
                 <div id="officer-map"></div>
                 <div class="absolute top-4 right-4 bg-white/90 backdrop-blur-md p-3 rounded-xl shadow-lg border border-outline-variant z-20 text-xs flex flex-col gap-1.5">
-                    <span class="font-bold text-on-surface mb-1">Severity Heatmap Layers</span>
+                    <span class="font-bold text-on-surface mb-1" id="officer-heatmap-label">Severity Heatmap Layers</span>
                     <label class="flex items-center gap-2"><span class="w-3 h-3 rounded-full bg-red-600"></span> Critical (24h SLA)</label>
                     <label class="flex items-center gap-2"><span class="w-3 h-3 rounded-full bg-amber-500"></span> High (48h SLA)</label>
                     <label class="flex items-center gap-2"><span class="w-3 h-3 rounded-full bg-emerald-600"></span> Resolved</label>
@@ -105,7 +123,7 @@
             <!-- Right: Master Ticket Queue -->
             <div class="w-[460px] bg-white border-l border-outline-variant flex flex-col h-full shrink-0 shadow-lg">
                 <div class="p-4 border-b border-outline-variant bg-surface-container-low sticky top-0 z-20 flex justify-between items-center">
-                    <h3 class="font-bold text-base text-on-surface">Master Ticket Queue</h3>
+                    <h3 class="font-bold text-base text-on-surface" id="officer-queue-title">Master Ticket Queue</h3>
                     <span class="text-xs bg-primary/10 text-primary font-bold px-2 py-0.5 rounded-md">Sorted by Priority Score</span>
                 </div>
                 <div id="master-ticket-queue" class="flex-1 overflow-y-auto p-4 space-y-4">
@@ -114,22 +132,201 @@
             </div>
 
         </div>
+    </main>
+
+    <!-- OFFICER MODAL: ADD / PROVISION FIELD WORKER -->
+    <div id="add-worker-modal" class="hidden fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl flex flex-col gap-4 border border-outline-variant">
+            <div class="flex justify-between items-center border-b pb-2">
+                <h3 class="font-bold text-base text-on-surface flex items-center gap-2">
+                    <span class="material-symbols-outlined text-primary">person_add</span>
+                    <span>Provision New Field Worker</span>
+                </h3>
+                <button onclick="closeWorkerModal()" class="text-on-surface-variant p-1" aria-label="Close add worker dialog">✕</button>
+            </div>
+
+            <form id="add-worker-form" class="flex flex-col gap-3">
+                <div>
+                    <label class="text-xs font-bold uppercase text-on-surface-variant block mb-1">Worker Full Name</label>
+                    <input id="worker-name-input" type="text" required aria-label="Worker full name" placeholder="E.g. Selvam Kumar" class="w-full p-2.5 border rounded-xl text-xs outline-none focus:border-primary"/>
+                </div>
+                <div>
+                    <label class="text-xs font-bold uppercase text-on-surface-variant block mb-1">Mobile Phone Number</label>
+                    <div class="flex gap-2">
+                        <span class="p-2.5 border rounded-xl bg-surface-container text-xs font-bold text-on-surface">+91</span>
+                        <input id="worker-phone-input" type="tel" required aria-label="Worker mobile phone number" placeholder="9876543219" class="flex-1 p-2.5 border rounded-xl text-xs font-mono font-bold outline-none focus:border-primary"/>
+                    </div>
+                </div>
+                <div>
+                    <label class="text-xs font-bold uppercase text-on-surface-variant block mb-1">Municipal Department</label>
+                    <select id="worker-dept-input" class="w-full p-2.5 border rounded-xl bg-white text-xs font-semibold outline-none focus:border-primary">
+                        <option value="Roads & Maintenance">Roads & Maintenance (Potholes, Pavers)</option>
+                        <option value="Water & Sewage">Water & Sewage (Pipes, Drainage)</option>
+                        <option value="Solid Waste Management">Solid Waste Management (Garbage)</option>
+                        <option value="Electrical & Power">Electrical & Power (Streetlights, Wiring)</option>
+                        <option value="Public Safety & Disaster">Public Safety & Disaster Response</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="text-xs font-bold uppercase text-on-surface-variant block mb-1">Assigned Zone</label>
+                    <select id="worker-zone-input" class="w-full p-2.5 border rounded-xl bg-white text-xs font-semibold outline-none focus:border-primary">
+                        <option value="Zone 5 - Adyar">Zone 5 - Adyar</option>
+                        <option value="Zone 8 - Anna Nagar">Zone 8 - Anna Nagar</option>
+                        <option value="Zone 9 - Teynampet">Zone 9 - Teynampet</option>
+                        <option value="Zone 10 - Kodambakkam">Zone 10 - Kodambakkam</option>
+                    </select>
+                </div>
+                <button type="submit" class="w-full bg-primary text-white py-3 rounded-xl font-bold text-xs shadow-md hover:bg-primary-container active:scale-98 transition-all flex items-center justify-center gap-1.5 mt-2">
+                    <span class="material-symbols-outlined text-base">verified</span>
+                    <span>Create Worker Account & Enable Dispatch</span>
+                </button>
+            </form>
+        </div>
     </div>
+
+    <div id="officer-live-region" class="sr-only" role="status" aria-live="polite"></div>
 
     <script>
         let officerMapInstance = null;
+        let workerOptionsList = [];
+        let officerLanguage = localStorage.getItem('civix-language') || 'en';
+        const officerTranslations = {
+            en: {
+                title: 'CIVIX COMMAND', total: 'Total Active Issues', critical: '🔴 Critical Urgency', sla: '⚠️ SLA Breached', resolved: '✅ Resolved Today', heatmap: 'Severity Heatmap Layers', queue: 'Master Ticket Queue',
+                read: 'Read aloud', stop: 'Stop reading', prompt: 'Command center. Review the severity heatmap and assign workers to the highest priority tickets.', started: 'Read aloud started', stopped: 'Read aloud stopped', priority: 'Priority Score', slaStatus: 'SLA Status', breached: 'BREACHED', onTrack: 'ON TRACK', assign: 'Assign Worker...'
+            },
+            ta: {
+                title: 'சிவிக்ஸ் கட்டுப்பாட்டு மையம்', total: 'செயலில் உள்ள மொத்த புகார்கள்', critical: '🔴 மிக அவசரம்', sla: '⚠️ SLA மீறப்பட்டது', resolved: '✅ இன்று தீர்க்கப்பட்டவை', heatmap: 'தீவிர வரைபட அடுக்குகள்', queue: 'முக்கிய புகார் வரிசை',
+                read: 'வாசிக்கவும்', stop: 'வாசிப்பை நிறுத்தவும்', prompt: 'கட்டுப்பாட்டு மையம். தீவிர வரைபடத்தைப் பார்த்து, அதிக முன்னுரிமை புகார்களுக்கு பணியாளர்களை ஒதுக்கவும்.', started: 'குரல் வாசிப்பு தொடங்கியது', stopped: 'குரல் வாசிப்பு நிறுத்தப்பட்டது', priority: 'முன்னுரிமை மதிப்பெண்', slaStatus: 'SLA நிலை', breached: 'மீறப்பட்டது', onTrack: 'சரியான நிலையில்', assign: 'பணியாளரை ஒதுக்கவும்...'
+            }
+        };
+
+        function announceOfficer(message) {
+            document.getElementById('officer-live-region').textContent = message;
+        }
+
+        function setOfficerLanguage(language) {
+            officerLanguage = language;
+            localStorage.setItem('civix-language', language);
+            const t = officerTranslations[language];
+            const labels = {
+                'officer-title': t.title, 'officer-total-label': t.total, 'officer-critical-label': t.critical,
+                'officer-sla-label': t.sla, 'officer-resolved-label': t.resolved, 'officer-heatmap-label': t.heatmap, 'officer-queue-title': t.queue
+            };
+            Object.entries(labels).forEach(([id, text]) => { document.getElementById(id).textContent = text; });
+            document.documentElement.lang = language === 'ta' ? 'ta' : 'en';
+            document.getElementById('officer-lang-en').className = language === 'en' ? 'underline font-bold' : '';
+            document.getElementById('officer-lang-ta').className = language === 'ta' ? 'underline font-bold' : '';
+            updateOfficerReadButton('speechSynthesis' in window && window.speechSynthesis.speaking);
+        }
+
+        function setOfficerFontSize(scale) {
+            document.documentElement.style.fontSize = scale;
+            localStorage.setItem('civix-font-size', scale);
+            announceOfficer(officerLanguage === 'ta' ? 'எழுத்து அளவு மாற்றப்பட்டது' : 'Text size changed');
+        }
+
+        function updateOfficerReadButton(isReading) {
+            const label = isReading ? officerTranslations[officerLanguage].stop : officerTranslations[officerLanguage].read;
+            document.getElementById('officer-read-label').textContent = label;
+            document.getElementById('officer-read-aloud').setAttribute('aria-label', label);
+            document.getElementById('officer-read-aloud').setAttribute('aria-pressed', String(isReading));
+        }
+
+        function readOfficerQueue() {
+            if (!('speechSynthesis' in window)) {
+                announceOfficer(officerLanguage === 'ta' ? 'இந்த உலாவியில் குரல் வாசிப்பு ஆதரிக்கப்படவில்லை.' : 'Speech synthesis is not supported in this browser.');
+                return;
+            }
+            if (window.speechSynthesis.speaking) {
+                window.speechSynthesis.cancel();
+                updateOfficerReadButton(false);
+                announceOfficer(officerTranslations[officerLanguage].stopped);
+                return;
+            }
+            const text = officerTranslations[officerLanguage].prompt + ' ' + document.getElementById('master-ticket-queue').innerText;
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = officerLanguage === 'ta' ? 'ta-IN' : 'en-US';
+            utterance.rate = 0.95;
+            utterance.onstart = () => { updateOfficerReadButton(true); announceOfficer(officerTranslations[officerLanguage].started); };
+            utterance.onend = () => updateOfficerReadButton(false);
+            utterance.onerror = () => updateOfficerReadButton(false);
+            window.speechSynthesis.speak(utterance);
+        }
+
+        document.getElementById('officer-lang-en').addEventListener('click', () => setOfficerLanguage('en'));
+        document.getElementById('officer-lang-ta').addEventListener('click', () => setOfficerLanguage('ta'));
+        document.getElementById('officer-contrast').addEventListener('click', () => {
+            const enabled = document.body.classList.toggle('high-contrast');
+            localStorage.setItem('civix-contrast', enabled ? 'on' : 'off');
+            document.getElementById('officer-contrast').setAttribute('aria-pressed', String(enabled));
+        });
+        document.getElementById('officer-read-aloud').addEventListener('click', readOfficerQueue);
+
+        function openWorkerModal() {
+            document.getElementById('add-worker-modal').classList.remove('hidden');
+        }
+
+        function closeWorkerModal() {
+            document.getElementById('add-worker-modal').classList.add('hidden');
+        }
+
+        // Fetch registered workers list for dropdowns
+        async function fetchWorkers() {
+            try {
+                const res = await fetch("/api/users/workers/");
+                workerOptionsList = await res.json();
+            } catch (e) {
+                console.error("Worker fetch failed", e);
+            }
+        }
+
+        // Add new field worker
+        document.getElementById('add-worker-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const full_name = document.getElementById('worker-name-input').value;
+            const phone = document.getElementById('worker-phone-input').value;
+            const department = document.getElementById('worker-dept-input').value;
+            const zone = document.getElementById('worker-zone-input').value;
+
+            try {
+                const res = await fetch("/api/users/workers/add/", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ full_name, phone, department, zone })
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    alert(data.message);
+                    closeWorkerModal();
+                    await fetchWorkers();
+                    initOfficerCommand();
+                } else {
+                    alert(data.error || "Failed to add worker");
+                }
+            } catch (err) {
+                alert("Error adding worker: " + err);
+            }
+        });
 
         async function initOfficerCommand() {
-            // 1. Initialize Leaflet Map
-            officerMapInstance = L.map('officer-map').setView([13.0450, 80.2400], 12);
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 18 }).addTo(officerMapInstance);
+            await fetchWorkers();
 
-            // 2. Fetch Tickets from API
+            if (!officerMapInstance) {
+                officerMapInstance = L.map('officer-map').setView([13.0450, 80.2400], 12);
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 18 }).addTo(officerMapInstance);
+            }
+
             try {
                 const res = await fetch("/api/issues/");
                 const issues = await res.json();
                 const queueContainer = document.getElementById('master-ticket-queue');
                 queueContainer.innerHTML = "";
+
+                if (!res.ok || !Array.isArray(issues)) {
+                    queueContainer.innerHTML = `<p class="text-sm text-on-surface-variant p-3">${issues.error || 'Ticket data is temporarily unavailable.'}</p>`;
+                    return;
+                }
 
                 const heatPoints = [];
 
@@ -139,7 +336,6 @@
                     const isCritical = iss.severity === 'critical';
                     const markerColor = isCritical ? '#ba1a1a' : (iss.severity === 'high' ? '#f59e0b' : '#006e25');
 
-                    // Add Map Marker
                     L.circleMarker([lat, lng], {
                         color: markerColor,
                         fillColor: markerColor,
@@ -155,7 +351,14 @@
 
                     heatPoints.push([lat, lng, isCritical ? 1.0 : 0.6]);
 
-                    // Add Ticket Card to Right Queue
+                    // Generate Dynamic Worker Dropdown Options
+                    let workerOptionsHtml = `<option value="">${officerTranslations[officerLanguage].assign}</option>`;
+                    workerOptionsList.forEach(w => {
+                        const selected = iss.assigned_to === w.name || iss.assigned_to === w.phone ? 'selected' : '';
+                        workerOptionsHtml += `<option value="${w.name}" ${selected}>${w.name} (${w.department})</option>`;
+                    });
+
+                    // Add Ticket Card to Queue
                     const card = document.createElement('div');
                     card.className = `bg-white border-2 ${isCritical ? 'border-red-400' : 'border-outline-variant'} rounded-xl p-3.5 shadow-sm flex flex-col gap-2 hover:shadow-md transition-shadow`;
                     card.innerHTML = `
@@ -168,14 +371,12 @@
                             <span class="material-symbols-outlined text-xs">location_on</span> ${iss.address}
                         </p>
                         <div class="grid grid-cols-2 gap-2 bg-surface-container-low p-2 rounded-lg text-xs">
-                            <div><span class="text-[10px] uppercase text-outline block">Priority Score</span><span class="font-mono font-bold text-primary">${iss.priority_score}</span></div>
-                            <div><span class="text-[10px] uppercase text-outline block">SLA Status</span><span class="font-mono font-bold ${iss.sla_breached ? 'pulse-red' : 'text-emerald-700'}">${iss.sla_breached ? 'BREACHED' : 'ON TRACK'}</span></div>
+                            <div><span class="text-[10px] uppercase text-outline block">${officerTranslations[officerLanguage].priority}</span><span class="font-mono font-bold text-primary">${iss.priority_score}</span></div>
+                            <div><span class="text-[10px] uppercase text-outline block">${officerTranslations[officerLanguage].slaStatus}</span><span class="font-mono font-bold ${iss.sla_breached ? 'pulse-red' : 'text-emerald-700'}">${iss.sla_breached ? officerTranslations[officerLanguage].breached : officerTranslations[officerLanguage].onTrack}</span></div>
                         </div>
                         <div class="pt-2 border-t flex justify-between items-center text-xs">
-                            <select onchange="assignWorker('${iss.id}', this.value)" class="text-xs p-1.5 border rounded bg-white font-semibold outline-none focus:border-primary">
-                                <option value="">Assign Worker...</option>
-                                <option value="Murugan S" ${iss.assigned_to === 'Murugan S' ? 'selected' : ''}>Murugan S. (Roads)</option>
-                                <option value="Lakshmi N" ${iss.assigned_to === 'Lakshmi N' ? 'selected' : ''}>Lakshmi N. (Water)</option>
+                            <select onchange="assignWorker('${iss.id}', this.value)" class="text-xs p-1.5 border rounded bg-white font-semibold outline-none focus:border-primary max-w-[260px]">
+                                ${workerOptionsHtml}
                             </select>
                             <span class="text-[11px] text-outline">${iss.upvote_count} Upvotes</span>
                         </div>
@@ -183,7 +384,6 @@
                     queueContainer.appendChild(card);
                 });
 
-                // Add Heatmap Layer
                 if (window.L.heatLayer && heatPoints.length > 0) {
                     L.heatLayer(heatPoints, { radius: 25, blur: 15, maxZoom: 14 }).addTo(officerMapInstance);
                 }
@@ -203,7 +403,15 @@
             alert(`Task assigned to ${workerName}!`);
         }
 
-        window.addEventListener('DOMContentLoaded', initOfficerCommand);
+        window.addEventListener('DOMContentLoaded', () => {
+            setOfficerLanguage(officerLanguage);
+            if (localStorage.getItem('civix-contrast') === 'on') {
+                document.body.classList.add('high-contrast');
+                document.getElementById('officer-contrast').setAttribute('aria-pressed', 'true');
+            }
+            if (localStorage.getItem('civix-font-size')) setOfficerFontSize(localStorage.getItem('civix-font-size'));
+            initOfficerCommand();
+        });
     </script>
 </body>
 </html>

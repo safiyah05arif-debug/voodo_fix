@@ -52,6 +52,7 @@ MIDDLEWARE = [
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
+    "users.middleware.RoleAccessMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
@@ -110,6 +111,8 @@ if MONGODB_URI:
         db=MONGODB_NAME,
         host=MONGODB_URI,
         alias="default",
+        serverSelectionTimeoutMS=5000,
+        connectTimeoutMS=5000,
     )
     print(f"[CIVIX] Connected to MongoDB Atlas -- database: {MONGODB_NAME}")
 else:
@@ -119,6 +122,8 @@ else:
         host="localhost",
         port=27017,
         alias="default",
+        serverSelectionTimeoutMS=5000,
+        connectTimeoutMS=5000,
     )
     print(f"[CIVIX] WARNING: No MONGODB_URI found -- using local MongoDB: {MONGODB_NAME}")
 

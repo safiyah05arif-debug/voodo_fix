@@ -8,6 +8,9 @@ from issues.views import (
     IssueResolveView,
     IssueVerifyView,
     IssueAssignView,
+    IssueStatusView,
+    MyReportsView, NearbyIssuesView, TaskAssignedView, IssueDetailsView, IssueProofView,
+    DepartmentMasterView, SLABreachesView, OverrideDepartmentView, EscalateIssueView, DeleteIssueView,
 )
 
 urlpatterns = [
@@ -19,4 +22,17 @@ urlpatterns = [
     path("<str:issue_id>/resolve/", IssueResolveView.as_view(), name="issue-resolve"),
     path("<str:issue_id>/verify/", IssueVerifyView.as_view(), name="issue-verify"),
     path("<str:issue_id>/assign/", IssueAssignView.as_view(), name="issue-assign"),
+    path("<str:issue_id>/status/", IssueStatusView.as_view(), name="issue-status"),
+    path("my-reports/", MyReportsView.as_view(), name="my-reports"),
+    path("nearby/", NearbyIssuesView.as_view(), name="nearby-issues"),
+    path("department-master/", DepartmentMasterView.as_view(), name="department-master"),
+    path("sla/breaches/", SLABreachesView.as_view(), name="sla-breaches"),
+    path("dashboard/heatmap/", HeatmapGeoJSONView.as_view(), name="dashboard-heatmap"),
+    path("tasks/assigned/", TaskAssignedView.as_view(), name="assigned-tasks"),
+    path("tasks/<str:issue_id>/details/", IssueDetailsView.as_view(), name="task-details"),
+    path("tasks/<str:issue_id>/status/", IssueStatusView.as_view(), name="task-status"),
+    path("tasks/<str:issue_id>/proof/", IssueProofView.as_view(), name="task-proof"),
+    path("<str:issue_id>/override-department/", OverrideDepartmentView.as_view(), name="override-department"),
+    path("sla/<str:issue_id>/escalate/", EscalateIssueView.as_view(), name="escalate-issue"),
+    path("admin/issues/<str:issue_id>/", DeleteIssueView.as_view(), name="delete-issue"),
 ]

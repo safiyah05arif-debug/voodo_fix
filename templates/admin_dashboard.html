@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>CIVIX - System Admin</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="min-h-screen bg-slate-100 text-slate-900 font-sans">
+    <header class="bg-slate-950 text-white px-6 py-4 flex flex-wrap gap-4 items-center justify-between">
+        <div><p class="text-xs uppercase tracking-widest text-cyan-300">CIVIX</p><h1 class="text-xl font-bold">System Administration</h1></div>
+        <nav class="flex gap-4 text-sm"><a href="/citizen/" class="underline">Citizen</a><a href="/officer/" class="underline">Command</a><a href="/worker/" class="underline">Worker</a></nav>
+    </header>
+    <main class="max-w-6xl mx-auto p-6 space-y-6">
+        <section id="metric-grid" class="grid grid-cols-2 md:grid-cols-5 gap-3" aria-label="Platform health metrics"></section>
+        <section class="grid lg:grid-cols-2 gap-6">
+            <div class="bg-white border border-slate-200 p-5 rounded-lg shadow-sm">
+                <h2 class="font-bold text-lg mb-4">Issue Status Distribution</h2>
+                <div id="status-list" class="space-y-2" aria-live="polite"></div>
+            </div>
+            <form id="config-form" class="bg-white border border-slate-200 p-5 rounded-lg shadow-sm space-y-4">
+                <h2 class="font-bold text-lg">Department Configuration</h2>
+                <label class="block text-sm font-semibold">Critical SLA hours<input id="critical-sla" type="number" min="1" class="mt-1 w-full border rounded p-2"></label>
+                <label class="block text-sm font-semibold">High SLA hours<input id="high-sla" type="number" min="1" class="mt-1 w-full border rounded p-2"></label>
+                <label class="block text-sm font-semibold">Upvote priority weight<input id="upvote-weight" type="number" min="0" class="mt-1 w-full border rounded p-2"></label>
+                <button class="bg-cyan-700 text-white px-4 py-2 rounded font-bold" type="submit">Save Configuration</button>
+                <p id="config-status" class="text-sm" role="status"></p>
+            </form>
+        </section>
+    </main>
+    <script>
+        const metricLabels = [['total_issues', 'Total Issues'], ['resolved_count', 'Resolved'], ['resolution_rate', 'Resolution Rate'], ['average_turnaround_hours', 'Avg Turnaround (h)'], ['active_field_workers', 'Active Workers']];
+        async function loadAdmin() {
+            const [metricsResponse, configResponse] = await Promise.all([fetch('/api/users/admin/metrics/'), fetch('/api/users/admin/config/')]);
+            const metrics = await metricsResponse.json();
+            const config = await configResponse.json();
+            if (!metricsResponse.ok || !configResponse.ok) throw new Error(metrics.error || config.error || 'Admin data unavailable');
+            document.getElementById('metric-grid').innerHTML = metricLabels.map(([key, label]) => `<article class="bg-white border border-slate-200 p-4 rounded-lg"><p class="text-xs uppercase text-slate-500">${label}</p><strong class="text-2xl">${metrics[key]}${key === 'resolution_rate' ? '%' : ''}</strong></article>`).join('');
+            document.getElementById('status-list').innerHTML = Object.entries(metrics.status_counts).map(([status, count]) => `<div class="flex justify-between border-b py-2"><span>${status.replace('_', ' ')}</span><strong>${count}</strong></div>`).join('') || '<p>No issues found.</p>';
+            document.getElementById('critical-sla').value = config.sla_deadlines.critical || 24;
+            document.getElementById('high-sla').value = config.sla_deadlines.high || 48;
+            document.getElementById('upvote-weight').value = config.priority_weights.upvotes || 20;
+        }
+        document.getElementById('config-form').addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const response = await fetch('/api/users/admin/config/', { method: 'PATCH', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ sla_deadlines: {critical: Number(document.getElementById('critical-sla').value), high: Number(document.getElementById('high-sla').value)}, priority_weights: {upvotes: Number(document.getElementById('upvote-weight').value)} }) });
+            const data = await response.json();
+            document.getElementById('config-status').textContent = response.ok ? 'Configuration saved.' : (data.error || 'Could not save configuration.');
+        });
+        loadAdmin().catch((error) => { document.getElementById('config-status').textContent = error.message; });
+    </script>
+</body>
+</html>

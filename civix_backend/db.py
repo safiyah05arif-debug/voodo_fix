@@ -32,7 +32,7 @@ def get_client():
     global _client
     if _client is None:
         uri = os.getenv("MONGODB_URI", "mongodb://localhost:27017")
-        _client = MongoClient(uri)
+        _client = MongoClient(uri, serverSelectionTimeoutMS=5000, connectTimeoutMS=5000)
     return _client
 
 

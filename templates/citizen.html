@@ -47,9 +47,15 @@
         .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
         .tab-content { display: none; }
         .tab-content.active { display: flex; }
-        .high-contrast { background-color: #000000 !important; color: #ffff00 !important; }
+        .high-contrast, .high-contrast main, .high-contrast nav, .high-contrast section,
+        .high-contrast .bg-white, .high-contrast .bg-surface-container-low { background-color: #000 !important; color: #fff !important; }
         .high-contrast * { border-color: #ffff00 !important; }
+        .high-contrast button, .high-contrast select, .high-contrast textarea { background: #000 !important; color: #fff !important; }
+        .high-contrast .text-primary, .high-contrast .text-on-surface-variant, .high-contrast .text-outline { color: #ffff00 !important; }
+        .high-contrast .bg-primary { background-color: #000 !important; color: #ffff00 !important; }
+        .high-contrast a { color: #00ffff !important; }
         #leaflet-map-nearby { height: 260px; border-radius: 0.75rem; z-index: 10; }
+        .sr-only-focusable:focus { position: static; width: auto; height: auto; margin: 0; overflow: visible; clip: auto; }
     </style>
 </head>
 <body class="bg-surface text-on-surface min-h-screen flex flex-col font-sans pb-24 transition-all">
@@ -58,37 +64,37 @@
     <header class="bg-primary text-on-primary py-2 px-4 flex justify-between items-center text-xs font-semibold shadow-sm z-50">
         <div class="flex items-center gap-2">
             <span class="material-symbols-outlined text-sm">language</span>
-            <button id="lang-en" onclick="setLanguage('en')" class="underline font-bold">EN</button>
-            <span>/</span>
-            <button id="lang-ta" onclick="setLanguage('ta')" class="hover:underline">தமிழ் (TA)</button>
+            <button id="lang-en" onclick="setLanguage('en')" class="underline font-bold" aria-label="Switch interface language to English">EN</button>
+            <span aria-hidden="true">/</span>
+            <button id="lang-ta" onclick="setLanguage('ta')" class="hover:underline" aria-label="தமிழில் இடைமுகத்தை மாற்றவும்">தமிழ் (TA)</button>
         </div>
         <div class="flex items-center gap-3">
-            <button id="btn-contrast" class="flex items-center gap-1 hover:text-secondary-container transition-colors">
+            <button id="btn-contrast" type="button" class="flex items-center gap-1 hover:text-secondary-container transition-colors" aria-pressed="false" aria-label="Toggle high contrast mode">
                 <span class="material-symbols-outlined text-sm">contrast</span>
                 <span id="txt-contrast">Contrast</span>
             </button>
             <div class="flex items-center gap-1 border-l border-white/30 pl-2">
-                <button onclick="setFontSize('100%')" class="px-1 py-0.5 rounded hover:bg-white/20">A</button>
-                <button onclick="setFontSize('115%')" class="px-1 py-0.5 rounded hover:bg-white/20 font-bold">A+</button>
-                <button onclick="setFontSize('130%')" class="px-1 py-0.5 rounded hover:bg-white/20 text-sm font-black">A++</button>
+                <button type="button" onclick="setFontSize('100%')" class="px-1 py-0.5 rounded hover:bg-white/20" aria-label="Use normal text size">A</button>
+                <button type="button" onclick="setFontSize('115%')" class="px-1 py-0.5 rounded hover:bg-white/20 font-bold" aria-label="Increase text size">A+</button>
+                <button type="button" onclick="setFontSize('130%')" class="px-1 py-0.5 rounded hover:bg-white/20 text-sm font-black" aria-label="Use largest text size">A++</button>
             </div>
             <!-- Portal Switcher Links -->
             <div class="flex items-center gap-1 border-l border-white/30 pl-2">
-                <a href="/worker/" class="hover:underline opacity-90">Worker</a>
-                <span>|</span>
-                <a href="/officer/" class="hover:underline opacity-90">Command</a>
-                <span>|</span>
-                <a href="/login/" class="hover:underline opacity-90">Logout</a>
+                <a href="/worker/" class="hover:underline opacity-90" data-i18n="worker">Worker</a>
+                <span aria-hidden="true">|</span>
+                <a href="/officer/" class="hover:underline opacity-90" data-i18n="command">Command</a>
+                <span aria-hidden="true">|</span>
+                <a href="/login/" class="hover:underline opacity-90" data-i18n="logout">Logout</a>
             </div>
         </div>
     </header>
 
     <!-- Top App Navigation -->
-    <div class="flex justify-between items-center px-4 py-3 bg-white border-b border-outline-variant max-w-4xl w-full mx-auto">
+    <nav aria-label="Primary navigation" class="flex justify-between items-center px-4 py-3 bg-white border-b border-outline-variant max-w-4xl w-full mx-auto">
         <div class="flex items-center gap-2">
             <div class="w-9 h-9 rounded-full bg-primary text-white flex items-center justify-center font-black text-lg">C</div>
             <h1 class="font-extrabold text-2xl tracking-tight text-primary">CIVIX</h1>
-            <span class="text-xs bg-primary/10 text-primary font-bold px-2 py-0.5 rounded-full" id="role-pill">Citizen</span>
+            <span class="text-xs bg-primary/10 text-primary font-bold px-2 py-0.5 rounded-full" id="role-pill" data-i18n="citizen">Citizen</span>
         </div>
         <div class="flex items-center gap-3">
             <div class="flex items-center gap-1.5 bg-secondary/10 text-secondary px-3 py-1 rounded-full text-xs font-bold">
@@ -96,11 +102,12 @@
                 <span id="user-points-pill">1,240 Pts</span>
             </div>
             <!-- Read Aloud Text-to-Speech Trigger -->
-            <button id="btn-read-aloud" title="Read Aloud Instructions (TTS)" class="p-2 rounded-full hover:bg-surface-container text-primary flex items-center justify-center">
-                <span class="material-symbols-outlined text-2xl">volume_up</span>
+            <button id="btn-read-aloud" type="button" title="Read Aloud Instructions (TTS)" aria-label="Read reporting instructions aloud" aria-pressed="false" class="px-2 py-1 rounded hover:bg-surface-container text-primary flex items-center justify-center gap-1">
+                <span id="read-aloud-icon" class="material-symbols-outlined text-2xl">volume_up</span>
+                <span data-i18n="readAloud">Read aloud</span>
             </button>
         </div>
-    </div>
+    </nav>
 
     <!-- Main Mobile Container -->
     <main class="flex-1 w-full max-w-4xl mx-auto px-4 py-4">
@@ -130,30 +137,32 @@
             <div class="flex items-center justify-between bg-surface-container-low px-3.5 py-2 rounded-xl border border-outline-variant text-xs">
                 <div class="flex items-center gap-2">
                     <span id="gps-pulse" class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                    <span id="gps-coords-text" class="font-mono font-bold text-on-surface">GPS: 13.0067° N, 80.2574° E</span>
+                    <span id="gps-coords-text" class="font-mono font-bold text-on-surface" aria-live="polite">GPS: 13.0067° N, 80.2574° E</span>
                 </div>
-                <span id="gps-accuracy-badge" class="bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-md text-[11px]">Acc: ±4m</span>
+                    <span id="gps-accuracy-badge" class="bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-md text-[11px]">Acc: ±4m</span>
             </div>
 
             <!-- In-Browser Direct Camera Viewfinder -->
             <div class="relative w-full aspect-[4/3] bg-black rounded-2xl overflow-hidden shadow-inner border border-outline-variant flex items-center justify-center">
                 <video id="camera-stream" autoplay playsinline class="w-full h-full object-cover"></video>
                 <canvas id="snapshot-canvas" class="hidden"></canvas>
-                <img id="captured-preview" class="hidden w-full h-full object-cover"/>
+                <img id="captured-preview" alt="Captured civic issue preview" class="hidden w-full h-full object-cover"/>
 
                 <!-- Camera Overlay HUD -->
                 <div class="absolute top-3 left-3 bg-black/60 backdrop-blur-md text-white text-xs px-2.5 py-1 rounded-full flex items-center gap-1.5 border border-white/20">
                     <span class="material-symbols-outlined text-sm text-emerald-400">videocam</span>
-                    <span id="camera-status-tag">Live Viewfinder</span>
+                    <span id="camera-status-tag" data-i18n="cameraReady">Live Viewfinder</span>
                 </div>
 
                 <!-- Shutter Trigger -->
                 <div class="absolute bottom-3 inset-x-0 flex justify-center items-center gap-6">
-                    <button id="btn-retake" type="button" class="hidden bg-white/20 backdrop-blur-md text-white p-3 rounded-full hover:bg-white/30">
+                    <button id="btn-retake" type="button" aria-label="Retake photo" class="hidden bg-white/20 backdrop-blur-md text-white px-3 py-2 rounded hover:bg-white/30 flex items-center gap-1">
                         <span class="material-symbols-outlined">refresh</span>
+                        <span data-i18n="retake">Retake</span>
                     </button>
-                    <button id="btn-capture" type="button" class="w-16 h-16 rounded-full border-4 border-white bg-red-600 active:scale-95 transition-transform shadow-2xl flex items-center justify-center group">
+                    <button id="btn-capture" type="button" aria-label="Take photo" class="w-16 h-16 rounded-full border-4 border-white bg-red-600 active:scale-95 transition-transform shadow-2xl flex items-center justify-center gap-1 group">
                         <div class="w-12 h-12 rounded-full bg-white/30 group-hover:scale-110 transition-transform"></div>
+                        <span class="sr-only" data-i18n="takePhoto">Take photo</span>
                     </button>
                 </div>
             </div>
@@ -171,11 +180,11 @@
                 <div class="grid grid-cols-2 gap-2 text-xs">
                     <div class="bg-white p-2 rounded-lg border">
                         <span class="text-[10px] text-outline uppercase block">Detected Category</span>
-                        <span id="ai-category-val" class="font-bold text-primary capitalize">Road & Pavement</span>
+                        <span id="ai-category-val" class="font-bold text-primary capitalize" aria-live="polite">Road & Pavement</span>
                     </div>
                     <div class="bg-white p-2 rounded-lg border">
                         <span class="text-[10px] text-outline uppercase block">Severity Level</span>
-                        <span id="ai-severity-val" class="font-bold text-red-600 capitalize">Critical (24h SLA)</span>
+                        <span id="ai-severity-val" class="font-bold text-red-600 capitalize" aria-live="polite">Critical (24h SLA)</span>
                     </div>
                 </div>
                 <p id="ai-title-suggestion" class="text-xs text-on-surface-variant italic font-medium"></p>
@@ -185,27 +194,28 @@
             <div class="flex flex-col gap-1 text-xs">
                 <label class="font-bold uppercase text-on-surface-variant" id="lbl-category">Category</label>
                 <select id="issue-category-select" class="p-3 border border-outline-variant rounded-xl bg-white text-sm font-semibold outline-none focus:border-primary">
-                    <option value="road">Roads & Pavements (Potholes, Footpath)</option>
-                    <option value="water">Water Supply (Pipe Leaks, Contamination)</option>
-                    <option value="waste">Waste Management (Garbage, Dumps)</option>
-                    <option value="electricity">Electricity (Streetlights, Transformers)</option>
-                    <option value="drainage">Drainage & Sewage (Waterlogging, Flooding)</option>
-                    <option value="public_safety">Public Safety (Open Manholes, Signals)</option>
-                    <option value="environment">Environment & Parks</option>
-                    <option value="other">Other Civic Issues</option>
+                    <option value="road" data-i18n="roadOption">Roads & Pavements (Potholes, Footpath)</option>
+                    <option value="water" data-i18n="waterOption">Water Supply (Pipe Leaks, Contamination)</option>
+                    <option value="waste" data-i18n="wasteOption">Waste Management (Garbage, Dumps)</option>
+                    <option value="electricity" data-i18n="electricityOption">Electricity (Streetlights, Transformers)</option>
+                    <option value="drainage" data-i18n="drainageOption">Drainage & Sewage (Waterlogging, Flooding)</option>
+                    <option value="public_safety" data-i18n="safetyOption">Public Safety (Open Manholes, Signals)</option>
+                    <option value="environment" data-i18n="environmentOption">Environment & Parks</option>
+                    <option value="other" data-i18n="otherOption">Other Civic Issues</option>
                 </select>
             </div>
 
             <!-- Voice & Description Input -->
             <div class="flex flex-col gap-1.5">
                 <div class="flex justify-between items-center text-xs">
-                    <label class="font-bold uppercase text-on-surface-variant" id="lbl-description">Voice / Text Description</label>
+                    <label class="font-bold uppercase text-on-surface-variant" id="lbl-description" for="issue-description">Voice / Text Description</label>
                     <span id="mic-status-label" class="text-primary font-bold">Tap mic to speak (EN/TA)</span>
                 </div>
                 <div class="relative">
-                    <textarea id="issue-description" rows="2" class="w-full bg-white border border-outline-variant rounded-xl p-3 pr-14 text-sm text-on-surface outline-none focus:border-primary focus:ring-1 focus:ring-primary resize-none" placeholder="E.g. Deep pothole causing two-wheeler accidents near the junction..."></textarea>
-                    <button id="btn-speech-rec" type="button" title="Speak in Tamil/English" class="absolute bottom-2.5 right-2.5 bg-primary/10 text-primary hover:bg-primary hover:text-white p-2.5 rounded-full transition-all flex items-center justify-center">
+                    <textarea id="issue-description" rows="2" class="w-full bg-white border border-outline-variant rounded-xl p-3 pr-14 text-sm text-on-surface outline-none focus:border-primary focus:ring-1 focus:ring-primary resize-none" placeholder="E.g. Deep pothole causing two-wheeler accidents near the junction..." aria-label="Issue description"></textarea>
+                    <button id="btn-speech-rec" type="button" title="Speak in Tamil/English" aria-label="Speak description in Tamil or English" class="absolute bottom-2.5 right-2.5 bg-primary/10 text-primary hover:bg-primary hover:text-white px-2.5 py-2 rounded transition-all flex items-center justify-center gap-1">
                         <span class="material-symbols-outlined text-xl">mic</span>
+                        <span data-i18n="speak">Speak</span>
                     </button>
                 </div>
             </div>
@@ -260,12 +270,14 @@
 
     </main>
 
+    <div id="status-live-region" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
+
     <!-- Spatial Deduplication Prompt Modal -->
-    <div id="dedup-modal" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+    <div id="dedup-modal" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="dedup-title">
         <div class="bg-white rounded-2xl max-w-md w-full p-5 shadow-2xl flex flex-col gap-3 border border-outline-variant">
             <div class="flex items-center gap-2 text-amber-600 font-bold text-sm">
                 <span class="material-symbols-outlined">warning</span>
-                <span>Similar Issue Found Nearby (Within 50m)</span>
+                <span id="dedup-title" data-i18n="similarIssue">Similar Issue Found Nearby (Within 50m)</span>
             </div>
             <p class="text-xs text-on-surface-variant">A citizen already reported this complaint nearby. Upvote it to increase priority instead of creating duplicates!</p>
             <div id="dedup-card-slot" class="border border-outline-variant rounded-xl p-3 bg-surface-container-low text-xs"></div>
@@ -298,6 +310,9 @@
                 micStatus: "Tap mic to speak (EN/TA)",
                 nearbyHeader: "Live Tickets Nearby (50m - 5km)",
                 earnedBadges: "Earned Civic Badges",
+                citizen: "Citizen", cameraReady: "Live Viewfinder", worker: "Worker", command: "Command", logout: "Logout", readAloud: "Read aloud", stopReadAloud: "Stop reading", retake: "Retake", speak: "Speak",
+                roadOption: "Roads & Pavements (Potholes, Footpath)", waterOption: "Water Supply (Pipe Leaks, Contamination)", wasteOption: "Waste Management (Garbage, Dumps)", electricityOption: "Electricity (Streetlights, Transformers)", drainageOption: "Drainage & Sewage (Waterlogging, Flooding)", safetyOption: "Public Safety (Open Manholes, Signals)", environmentOption: "Environment & Parks", otherOption: "Other Civic Issues", takePhoto: "Take photo", descriptionPlaceholder: "E.g. Deep pothole causing two-wheeler accidents near the junction...", gps: "GPS", accuracy: "Acc:", cameraDemo: "Camera Demo Ready",
+                similarIssue: "Similar Issue Found Nearby (Within 50m)", listening: "Listening...", transcribed: "Transcribed!", ready: "Tap mic to speak (EN/TA)", speechUnavailable: "Voice input is unavailable; type your description.",
                 speechPrompt: "Welcome to CIVIX. Point your camera at the civic issue, tap the red capture button to take a photo and lock your GPS location, then speak or type your description."
             },
             ta: {
@@ -311,12 +326,16 @@
                 micStatus: "பேச மைக் பொத்தானை அழுத்தவும்",
                 nearbyHeader: "அருகிலுள்ள நேரடி புகார்கள் (50மீ - 5கிமீ)",
                 earnedBadges: "பெற்ற பேட்ஜ்கள்",
+                citizen: "குடிமகன்", cameraReady: "நேரடி காட்சி", worker: "பணியாளர்", command: "கட்டுப்பாடு", logout: "வெளியேறு", readAloud: "வாசிக்கவும்", stopReadAloud: "வாசிப்பை நிறுத்தவும்", retake: "மீண்டும் எடுக்கவும்", speak: "பேசவும்",
+                roadOption: "சாலைகள் மற்றும் நடைபாதைகள்", waterOption: "குடிநீர் வழங்கல்", wasteOption: "கழிவு மேலாண்மை", electricityOption: "மின்சாரம்", drainageOption: "வடிகால் மற்றும் கழிவுநீர்", safetyOption: "பொது பாதுகாப்பு", environmentOption: "சுற்றுச்சூழல் மற்றும் பூங்காக்கள்", otherOption: "பிற குடிமைப் பிரச்சினைகள்", takePhoto: "புகைப்படம் எடுக்கவும்", descriptionPlaceholder: "எ.கா. சந்திப்பிற்கு அருகில் ஆழமான பள்ளத்தால் இருசக்கர வாகன விபத்துகள்...", gps: "ஜிபிஎஸ்", accuracy: "துல்லியம்:", cameraDemo: "கேமரா சோதனைக்கு தயார்",
+                similarIssue: "அருகில் இதே போன்ற புகார் உள்ளது (50 மீட்டருக்குள்)", listening: "கேட்கிறது...", transcribed: "உரையாக மாற்றப்பட்டது!", ready: "பேச மைக் பொத்தானை அழுத்தவும்", speechUnavailable: "குரல் உள்ளீடு கிடைக்கவில்லை; உங்கள் விளக்கத்தைத் தட்டச்சு செய்யவும்.",
                 speechPrompt: "சிவிக்ஸ் தளத்திற்கு வரவேற்கிறோம். சிக்கலை நோக்கி கேமராவைத் திருப்பி, புகைப்படத்தைப் பிடித்து, உங்கள் இருப்பிடத்தை பதிவு செய்ய சிவப்பு பொத்தானை அழுத்தவும்."
             }
         };
 
         function setLanguage(lang) {
             currentLang = lang;
+            localStorage.setItem('civix-language', lang);
             const t = translations[lang];
             document.getElementById('txt-tab-report').textContent = t.tabReport;
             document.getElementById('txt-tab-nearby').textContent = t.tabNearby;
@@ -328,23 +347,41 @@
             document.getElementById('mic-status-label').textContent = t.micStatus;
             document.getElementById('txt-nearby-header').textContent = t.nearbyHeader;
             document.getElementById('txt-earned-badges').textContent = t.earnedBadges;
+            document.getElementById('btn-capture').setAttribute('aria-label', t.takePhoto);
+            document.getElementById('issue-description').setAttribute('placeholder', t.descriptionPlaceholder);
+            updateGpsLabels();
+            document.querySelectorAll('[data-i18n]').forEach((element) => {
+                if (t[element.dataset.i18n]) element.textContent = t[element.dataset.i18n];
+            });
+            if (typeof readAloudButton !== 'undefined') {
+                updateReadAloudButton('speechSynthesis' in window && window.speechSynthesis.speaking);
+            }
+            document.documentElement.lang = lang === 'ta' ? 'ta' : 'en';
 
             document.getElementById('lang-en').className = lang === 'en' ? 'underline font-bold' : 'hover:underline';
             document.getElementById('lang-ta').className = lang === 'ta' ? 'underline font-bold' : 'hover:underline';
         }
 
         // 1. Text-to-Speech (Read Aloud)
-        document.getElementById('btn-read-aloud').addEventListener('click', () => {
-            if ('speechSynthesis' in window) {
+        const readAloudButton = document.getElementById('btn-read-aloud');
+        const readAloudIcon = document.getElementById('read-aloud-icon');
+
+        function updateReadAloudButton(isReading) {
+            const label = isReading ? translations[currentLang].stopReadAloud : translations[currentLang].readAloud;
+            readAloudButton.querySelector('[data-i18n="readAloud"]').textContent = label;
+            readAloudButton.title = label;
+            readAloudButton.setAttribute('aria-label', label);
+            readAloudButton.setAttribute('aria-pressed', String(isReading));
+            readAloudIcon.textContent = isReading ? 'stop_circle' : 'volume_up';
+        }
+
+        readAloudButton.addEventListener('click', () => {
+            if ('speechSynthesis' in window && window.speechSynthesis.speaking) {
                 window.speechSynthesis.cancel();
-                const text = translations[currentLang].speechPrompt;
-                const utterance = new SpeechSynthesisUtterance(text);
-                utterance.lang = currentLang === 'ta' ? 'ta-IN' : 'en-US';
-                utterance.rate = 0.95;
-                window.speechSynthesis.speak(utterance);
-            } else {
-                alert("Speech Synthesis is not supported in this browser.");
+                updateReadAloudButton(false);
+                return;
             }
+            speakText(translations[currentLang].speechPrompt);
         });
 
         // 2. Direct Camera Stream
@@ -362,7 +399,7 @@
                 videoElem.srcObject = stream;
             } catch (err) {
                 console.warn("Camera access warning:", err);
-                document.getElementById('camera-status-tag').textContent = "Camera Demo Ready";
+                document.getElementById('camera-status-tag').textContent = translations[currentLang].cameraDemo;
             }
         }
 
@@ -426,8 +463,7 @@
                     (pos) => {
                         currentLat = pos.coords.latitude;
                         currentLng = pos.coords.longitude;
-                        document.getElementById('gps-coords-text').textContent = `GPS: ${currentLat.toFixed(4)}° N, ${currentLng.toFixed(4)}° E`;
-                        document.getElementById('gps-accuracy-badge').textContent = `Acc: ±${Math.round(pos.coords.accuracy)}m`;
+                        updateGpsLabels(pos.coords.accuracy);
                     },
                     (err) => console.warn("GPS info:", err),
                     { enableHighAccuracy: true }
@@ -435,10 +471,21 @@
             }
         }
 
+        function updateGpsLabels(accuracy = 4) {
+            const t = translations[currentLang];
+            document.getElementById('gps-coords-text').textContent = `${t.gps}: ${currentLat.toFixed(4)}° N, ${currentLng.toFixed(4)}° E`;
+            document.getElementById('gps-accuracy-badge').textContent = `${t.accuracy} ±${Math.round(accuracy)}m`;
+        }
+
         // 4. Voice-To-Text (SpeechRecognition in EN & TA)
         const btnSpeech = document.getElementById('btn-speech-rec');
         const descInput = document.getElementById('issue-description');
         let recognition = null;
+        let inputMethod = 'direct_camera';
+
+        function announce(message) {
+            document.getElementById('status-live-region').textContent = message;
+        }
 
         if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
             const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -450,8 +497,10 @@
                 recognition.lang = currentLang === 'ta' ? 'ta-IN' : 'en-IN';
                 try {
                     recognition.start();
+                    inputMethod = currentLang === 'ta' ? 'voice_ta' : 'voice_en';
                     btnSpeech.classList.add('bg-red-500', 'text-white', 'animate-pulse');
-                    document.getElementById('mic-status-label').textContent = "Listening...";
+                    document.getElementById('mic-status-label').textContent = translations[currentLang].listening;
+                    announce(translations[currentLang].listening);
                 } catch (e) {
                     recognition.stop();
                 }
@@ -461,17 +510,25 @@
                 const text = evt.results[0][0].transcript;
                 descInput.value = (descInput.value + ' ' + text).trim();
                 btnSpeech.classList.remove('bg-red-500', 'text-white', 'animate-pulse');
-                document.getElementById('mic-status-label').textContent = "Transcribed!";
+                document.getElementById('mic-status-label').textContent = translations[currentLang].transcribed;
+                announce(translations[currentLang].transcribed);
+                speakText(text);
             };
 
             recognition.onerror = () => {
                 btnSpeech.classList.remove('bg-red-500', 'text-white', 'animate-pulse');
-                document.getElementById('mic-status-label').textContent = "Tap mic to speak (EN/TA)";
+                document.getElementById('mic-status-label').textContent = translations[currentLang].ready;
             };
 
             recognition.onend = () => {
                 btnSpeech.classList.remove('bg-red-500', 'text-white', 'animate-pulse');
             };
+        } else {
+            btnSpeech.disabled = true;
+            btnSpeech.classList.add('opacity-50', 'cursor-not-allowed');
+            btnSpeech.title = translations[currentLang].speechUnavailable;
+            btnSpeech.setAttribute('aria-label', translations[currentLang].speechUnavailable);
+            document.getElementById('mic-status-label').textContent = translations[currentLang].speechUnavailable;
         }
 
         // 5. Submit Report
@@ -481,7 +538,7 @@
             formData.append("longitude", currentLng);
             formData.append("description", descInput.value);
             formData.append("category", document.getElementById('issue-category-select').value);
-            formData.append("input_method", "direct_camera");
+            formData.append("input_method", inputMethod);
 
             if (capturedPhotoBlob) {
                 formData.append("photo", capturedPhotoBlob, "camera_snap.jpg");
@@ -501,19 +558,25 @@
                     
                     document.getElementById('btn-upvote-existing').onclick = async () => {
                         await fetch(`/api/issues/${dup.id}/upvote/`, { method: "POST" });
-                        alert("Upvoted existing complaint! Points awarded.");
-                        location.reload();
+                        speakText(currentLang === 'ta' ? "ஏற்கனவே உள்ள புகாருக்கு வாக்களிக்கப்பட்டது." : "Existing complaint upvoted.");
+                        setTimeout(() => location.reload(), 1200);
                     };
 
                     document.getElementById('btn-force-submit').onclick = async () => {
-                        formData.append("force_submit", "true");
-                        await fetch("/api/issues/report/", { method: "POST", body: formData });
-                        alert("Issue reported successfully!");
-                        location.reload();
+                        const forcedFormData = new FormData();
+                        formData.forEach((value, key) => forcedFormData.append(key, value));
+                        forcedFormData.set("force_submit", "true");
+                        const forcedRes = await fetch("/api/issues/report/", { method: "POST", body: forcedFormData });
+                        const forcedData = await forcedRes.json();
+                        if (!forcedRes.ok || !forcedData.success) {
+                            throw new Error(forcedData.error || "Could not submit the report.");
+                        }
+                        speakText(currentLang === 'ta' ? "புகார் வெற்றிகரமாக பதிவு செய்யப்பட்டது." : "Issue reported successfully.");
+                        setTimeout(() => location.reload(), 1200);
                     };
                 } else {
-                    alert("Issue reported successfully! +20 Civic Points Earned.");
-                    location.reload();
+                    speakText(currentLang === 'ta' ? "புகார் வெற்றிகரமாக பதிவு செய்யப்பட்டது. 20 புள்ளிகள் கிடைத்தன." : "Issue reported successfully. 20 civic points earned.");
+                    setTimeout(() => location.reload(), 1200);
                 }
             } catch (err) {
                 alert("Error submitting report: " + err);
@@ -527,6 +590,11 @@
                 const issues = await res.json();
                 const container = document.getElementById('nearby-feed-list');
                 container.innerHTML = "";
+
+                if (!res.ok || !Array.isArray(issues)) {
+                    container.innerHTML = `<p class="text-sm text-on-surface-variant p-3">${issues.error || 'Issue data is temporarily unavailable.'}</p>`;
+                    return;
+                }
 
                 if (!mapInstance) {
                     mapInstance = L.map('leaflet-map-nearby').setView([13.0400, 80.2400], 12);
@@ -548,6 +616,10 @@
                         </div>
                         <h4 class="font-bold text-sm text-on-surface">${iss.title}</h4>
                         <p class="text-xs text-on-surface-variant line-clamp-1">${iss.address}</p>
+                        <div class="flex items-center gap-1 text-[10px] font-bold uppercase" aria-label="Issue status timeline">
+                            ${['submitted', 'assigned', 'in_progress', 'resolved'].map((status) => `<span class="px-1.5 py-1 rounded ${iss.status === status || (status === 'submitted' && ['assigned', 'in_progress', 'resolved', 'citizen_verified'].includes(iss.status)) || (status === 'assigned' && ['in_progress', 'resolved', 'citizen_verified'].includes(iss.status)) || (status === 'in_progress' && ['resolved', 'citizen_verified'].includes(iss.status)) ? 'bg-secondary text-white' : 'bg-surface-container text-outline'}">${status.replace('_', ' ')}</span>`).join('<span class="text-outline">›</span>')}
+                        </div>
+                        ${iss.status === 'resolved' ? `<div class="flex gap-2"><button onclick="verifyIssue('${iss.id}', true)" class="flex-1 bg-secondary text-white py-2 rounded-lg font-bold text-xs">✓ Fixed</button><button onclick="verifyIssue('${iss.id}', false)" class="flex-1 bg-error-container text-error py-2 rounded-lg font-bold text-xs">Needs repair</button></div>` : ''}
                         <div class="flex justify-between items-center pt-2 border-t border-outline-variant/60 text-xs">
                             <button onclick="upvoteIssue('${iss.id}')" class="text-primary font-bold flex items-center gap-1 hover:bg-primary/10 px-2 py-1 rounded">
                                 <span class="material-symbols-outlined text-base">thumb_up</span> ${iss.upvote_count} Upvotes
@@ -591,6 +663,21 @@
             loadNearbyFeed();
         }
 
+        async function verifyIssue(id, isFixed) {
+            const response = await fetch(`/api/issues/${id}/verify/`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ is_fixed: isFixed, user_id: 'citizen_anonymous' })
+            });
+            const data = await response.json();
+            if (!response.ok) {
+                alert(data.error || 'Could not submit verification.');
+                return;
+            }
+            speakText(currentLang === 'ta' ? 'சரிபார்ப்பு பதிவு செய்யப்பட்டது.' : 'Repair verification submitted.');
+            loadNearbyFeed();
+        }
+
         // 7. Tab Switching
         document.querySelectorAll('.tab-btn').forEach(btn => {
             btn.addEventListener('click', () => {
@@ -610,14 +697,59 @@
         });
 
         document.getElementById('btn-contrast').addEventListener('click', () => {
-            document.body.classList.toggle('high-contrast');
+            const enabled = document.body.classList.toggle('high-contrast');
+            localStorage.setItem('civix-contrast', enabled ? 'on' : 'off');
+            document.getElementById('btn-contrast').setAttribute('aria-pressed', String(enabled));
+            announce(enabled ? (currentLang === 'ta' ? 'மாறுபட்ட காட்சி இயக்கப்பட்டது' : 'High contrast enabled') : (currentLang === 'ta' ? 'மாறுபட்ட காட்சி முடக்கப்பட்டது' : 'High contrast disabled'));
         });
 
         function setFontSize(scale) {
-            document.body.style.fontSize = scale;
+            document.documentElement.style.fontSize = scale;
+            localStorage.setItem('civix-font-size', scale);
+            announce(currentLang === 'ta' ? 'எழுத்து அளவு மாற்றப்பட்டது' : 'Text size changed');
+        }
+
+        let availableVoices = [];
+
+        function loadSpeechVoices() {
+            if ('speechSynthesis' in window) availableVoices = window.speechSynthesis.getVoices();
+        }
+
+        if ('speechSynthesis' in window) {
+            loadSpeechVoices();
+            window.speechSynthesis.addEventListener('voiceschanged', loadSpeechVoices);
+        }
+
+        function speakText(text) {
+            if (!('speechSynthesis' in window)) {
+                announce(currentLang === 'ta' ? "இந்த உலாவியில் குரல் வாசிப்பு ஆதரிக்கப்படவில்லை." : "Speech synthesis is not supported in this browser.");
+                return;
+            }
+            window.speechSynthesis.cancel();
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = currentLang === 'ta' ? 'ta-IN' : 'en-US';
+            utterance.rate = 0.95;
+            const languagePrefix = currentLang === 'ta' ? 'ta' : 'en';
+            utterance.voice = availableVoices.find((voice) => voice.lang.toLowerCase().startsWith(languagePrefix)) || null;
+            utterance.onstart = () => {
+                updateReadAloudButton(true);
+                announce(currentLang === 'ta' ? 'குரல் வாசிப்பு தொடங்கியது' : 'Read aloud started');
+            };
+            utterance.onend = () => updateReadAloudButton(false);
+            utterance.onerror = () => {
+                updateReadAloudButton(false);
+                announce(currentLang === 'ta' ? 'குரல் வாசிப்பு தோல்வியடைந்தது' : 'Read aloud failed');
+            };
+            window.speechSynthesis.speak(utterance);
         }
 
         window.addEventListener('DOMContentLoaded', () => {
+            setLanguage(localStorage.getItem('civix-language') || 'en');
+            if (localStorage.getItem('civix-contrast') === 'on') {
+                document.body.classList.add('high-contrast');
+                document.getElementById('btn-contrast').setAttribute('aria-pressed', 'true');
+            }
+            if (localStorage.getItem('civix-font-size')) setFontSize(localStorage.getItem('civix-font-size'));
             initCamera();
             initGPS();
             loadNearbyFeed();
