@@ -66,19 +66,19 @@
         <div class="p-4 grid grid-cols-4 gap-4 bg-white border-b border-outline-variant shrink-0 shadow-sm">
             <div class="bg-surface-container-low p-3.5 rounded-xl border border-outline-variant">
                 <span class="text-xs text-on-surface-variant font-bold uppercase tracking-wider block" id="officer-total-label">Total Active Issues</span>
-                <div class="font-mono text-3xl font-black text-primary mt-1" id="kpi-total">25</div>
+                <div class="font-mono text-3xl font-black text-primary mt-1" id="kpi-total">0</div>
             </div>
             <div class="bg-red-50 p-3.5 rounded-xl border border-red-200">
                 <span class="text-xs text-red-700 font-bold uppercase tracking-wider block" id="officer-critical-label">🔴 Critical Urgency</span>
-                <div class="font-mono text-3xl font-black text-red-600 mt-1" id="kpi-critical">10</div>
+                <div class="font-mono text-3xl font-black text-red-600 mt-1" id="kpi-critical">0</div>
             </div>
             <div class="bg-amber-50 p-3.5 rounded-xl border border-amber-200">
                 <span class="text-xs text-amber-800 font-bold uppercase tracking-wider block" id="officer-sla-label">⚠️ SLA Breached</span>
-                <div class="font-mono text-3xl font-black text-amber-700 mt-1 pulse-red" id="kpi-sla">22</div>
+                <div class="font-mono text-3xl font-black text-amber-700 mt-1 pulse-red" id="kpi-sla">0</div>
             </div>
             <div class="bg-emerald-50 p-3.5 rounded-xl border border-emerald-200">
                 <span class="text-xs text-emerald-800 font-bold uppercase tracking-wider block" id="officer-resolved-label">✅ Resolved Today</span>
-                <div class="font-mono text-3xl font-black text-emerald-700 mt-1" id="kpi-resolved">12</div>
+                <div class="font-mono text-3xl font-black text-emerald-700 mt-1" id="kpi-resolved">0</div>
             </div>
         </div>
 
@@ -307,6 +307,14 @@
                     queueContainer.innerHTML = `<p class="text-sm text-on-surface-variant p-3">${issues.error || 'Ticket data is temporarily unavailable.'}</p>`;
                     return;
                 }
+
+                const terminalStatuses = new Set(['resolved', 'citizen_verified', 'closed']);
+                const activeIssues = issues.filter(issue => !terminalStatuses.has(issue.status));
+                const today = new Date().toDateString();
+                document.getElementById('kpi-total').textContent = activeIssues.length;
+                document.getElementById('kpi-critical').textContent = activeIssues.filter(issue => issue.severity === 'critical').length;
+                document.getElementById('kpi-sla').textContent = activeIssues.filter(issue => issue.sla_breached).length;
+                document.getElementById('kpi-resolved').textContent = issues.filter(issue => issue.resolved_at && new Date(issue.resolved_at).toDateString() === today).length;
 
                 const heatPoints = [];
 

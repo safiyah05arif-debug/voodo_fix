@@ -21,6 +21,8 @@ from issues.models import Issue, EscalationLog
 
 from users.models import CivixUser, Badge, AccessibilityPreferences
 
+RESOLVED_STATUSES = {"resolved", "citizen_verified", "closed"}
+
 
 def hash_pw(password):
     return hashlib.sha256(password.encode("utf-8")).hexdigest()
@@ -275,14 +277,15 @@ class AdminMetricsView(MongoSafeAPIView):
         status_counts = {}
         for issue in issues:
             status_counts[issue.status] = status_counts.get(issue.status, 0) + 1
-        resolved = [issue for issue in issues if issue.resolved_at and issue.created_at]
-        average_hours = sum((issue.resolved_at - issue.created_at).total_seconds() for issue in resolved) / 3600 / len(resolved) if resolved else 0
+        resolved_issues = [issue for issue in issues if issue.status in RESOLVED_STATUSES]
+        resolved_with_dates = [issue for issue in resolved_issues if issue.resolved_at and issue.created_at]
+        average_hours = sum((issue.resolved_at - issue.created_at).total_seconds() for issue in resolved_with_dates) / 3600 / len(resolved_with_dates) if resolved_with_dates else 0
         workers = CivixUser.objects(role="field_worker").count()
         return Response({
             "total_issues": len(issues),
             "status_counts": status_counts,
-            "resolved_count": status_counts.get("resolved", 0) + status_counts.get("citizen_verified", 0),
-            "resolution_rate": round((len(resolved) / len(issues)) * 100, 1) if issues else 0,
+            "resolved_count": len(resolved_issues),
+            "resolution_rate": round((len(resolved_issues) / len(issues)) * 100, 1) if issues else 0,
             "average_turnaround_hours": round(average_hours, 1),
             "active_field_workers": workers,
         })
@@ -315,7 +318,7 @@ class AdminAnalyticsView(MongoSafeAPIView):
         for issue in Issue.objects.only("category", "status", "sla_breached"):
             bucket = by_department.setdefault(issue.category, {"total": 0, "resolved": 0, "sla_breaches": 0})
             bucket["total"] += 1
-            bucket["resolved"] += issue.status in ("resolved", "citizen_verified", "closed")
+            bucket["resolved"] += issue.status in RESOLVED_STATUSES
             bucket["sla_breaches"] += bool(issue.sla_breached)
         data["departments"] = by_department
         return Response(data)
