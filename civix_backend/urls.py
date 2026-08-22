@@ -8,6 +8,9 @@ from django.contrib import admin
 from django.urls import path, include
 from django.shortcuts import render
 
+def login_view(request):
+    return render(request, "login.html")
+
 def citizen_portal_view(request):
     return render(request, "citizen.html")
 
@@ -22,7 +25,8 @@ urlpatterns = [
     path("admin/", admin.site.urls),
 
     # Frontend Portals
-    path("", citizen_portal_view, name="home"),
+    path("", login_view, name="login-page"),
+    path("login/", login_view, name="login"),
     path("citizen/", citizen_portal_view, name="citizen-portal"),
     path("worker/", worker_portal_view, name="worker-portal"),
     path("officer/", officer_portal_view, name="officer-portal"),

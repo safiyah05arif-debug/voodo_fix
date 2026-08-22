@@ -2,9 +2,10 @@
 CIVIX — Issues App REST API Views & Serializers
 =================================================
 Implements DRF endpoints:
+    - POST /api/issues/classify/         (Instant Vision AI preview on photo capture)
     - POST /api/issues/report/           (Direct photo + GPS + AI + Dedup)
     - GET  /api/issues/heatmap/          (GeoJSON for Leaflet)
-    - GET  /api/issues/nearby/           (Spatial proximity list)
+    - GET  /api/issues/                  (Master ticket queue)
     - POST /api/issues/<id>/upvote/      (One-vote-per-user)
     - PATCH /api/issues/<id>/resolve/    (Worker proof + Geo-fencing)
     - POST /api/issues/<id>/verify/      (Citizen confirmation)
@@ -37,10 +38,6 @@ def haversine_distance(lat1, lon1, lat2, lon2):
     c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
     return R * c
 
-
-# =============================================================================
-# SERIALIZERS (Helper dict formatting for MongoEngine documents)
-# =============================================================================
 
 def serialize_issue(issue):
     """Convert MongoEngine Issue document to JSON-friendly dict."""
@@ -77,9 +74,33 @@ def serialize_issue(issue):
     }
 
 
-# =============================================================================
-# API ENDPOINTS
-# =============================================================================
+class IssueClassifyView(APIView):
+    """
+    POST /api/issues/classify/
+    Real-time Vision AI classifier endpoint called immediately when user snaps a photo.
+    Returns detected category, issue type, severity, confidence, and suggested title.
+    """
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
+
+    def post(self, request):
+        try:
+            image_bytes = None
+            image_url = request.data.get("image_url")
+            title_hint = request.data.get("description", "")
+
+            if "photo" in request.FILES:
+                photo_file = request.FILES["photo"]
+                image_bytes = photo_file.read()
+
+            result = classify_issue_image(
+                image_bytes=image_bytes,
+                image_url=image_url,
+                title_hint=title_hint
+            )
+            return Response(result, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
 
 class IssueReportView(APIView):
     """
@@ -90,18 +111,19 @@ class IssueReportView(APIView):
 
     def post(self, request):
         try:
-            # 1. Extract GPS coordinates (Mandatory)
+            # 1. Extract GPS coordinates
             latitude = float(request.data.get("latitude", 13.0827))
             longitude = float(request.data.get("longitude", 80.2707))
             
             title = request.data.get("title", "").strip()
             description = request.data.get("description", "").strip()
             category_override = request.data.get("category", "").strip()
+            severity_override = request.data.get("severity", "").strip()
             force_submit = request.data.get("force_submit", "false").lower() in ("true", "1")
             user_id = request.data.get("user_id", "citizen_anonymous")
             input_method = request.data.get("input_method", "text")
 
-            # 2. Check 50m Spatial Deduplication FIRST (unless user explicitly bypasses)
+            # 2. Check 50m Spatial Deduplication FIRST
             if not force_submit:
                 nearby = Issue.objects(
                     location__near=[longitude, latitude],
@@ -134,16 +156,16 @@ class IssueReportView(APIView):
                 )
                 photo_urls.append(upload_res["public_url"])
 
-                # Run Vision AI Classification on the uploaded bytes
+                # Run Vision AI Classification
                 ai_data = classify_issue_image(
                     image_bytes=photo_bytes,
                     image_url=upload_res["public_url"],
                     title_hint=title or description
                 )
 
-            # Determine category and severity (AI takes priority unless user specified override)
+            # Determine category and severity
             final_category = category_override or (ai_data.get("category") if ai_data else "road")
-            final_severity = ai_data.get("severity") if ai_data else "medium"
+            final_severity = severity_override or (ai_data.get("severity") if ai_data else "medium")
             final_type = ai_data.get("issue_type") if ai_data else "general_complaint"
             final_title = title or (ai_data.get("suggested_title") if ai_data else "Civic Complaint")
 
@@ -192,10 +214,7 @@ class IssueReportView(APIView):
 
 
 class HeatmapGeoJSONView(APIView):
-    """
-    GET /api/issues/heatmap/
-    Returns standard GeoJSON FeatureCollection for Leaflet & Leaflet.heat rendering.
-    """
+    """GET /api/issues/heatmap/"""
     def get(self, request):
         status_filter = request.query_params.get("status")
         category_filter = request.query_params.get("category")
@@ -216,10 +235,7 @@ class HeatmapGeoJSONView(APIView):
 
 
 class IssueListView(APIView):
-    """
-    GET /api/issues/
-    Master Ticket Queue with dynamic priority score sorting for Command Center and Workers.
-    """
+    """GET /api/issues/"""
     def get(self, request):
         category = request.query_params.get("category")
         severity = request.query_params.get("severity")
@@ -241,25 +257,20 @@ class IssueListView(APIView):
 
 
 class IssueUpvoteView(APIView):
-    """
-    POST /api/issues/<id>/upvote/
-    Upvote an issue and recalculate dynamic priority score.
-    """
+    """POST /api/issues/<id>/upvote/"""
     def post(self, request, issue_id):
         user_id = request.data.get("user_id", "citizen_anon")
         issue = Issue.objects(id=issue_id).first()
         if not issue:
             return Response({"error": "Issue not found"}, status=status.HTTP_404_NOT_FOUND)
 
-        # Check for duplicate upvote
         if user_id in issue.upvoted_by:
             return Response({"message": "You have already upvoted this issue!", "upvote_count": issue.upvote_count}, status=status.HTTP_200_OK)
 
         issue.upvoted_by.append(user_id)
         issue.upvote_count += 1
-        issue.save() # Auto-updates priority score
+        issue.save()
 
-        # Record in audit collection
         try:
             IssueUpvote(issue_id=str(issue.id), user_id=user_id).save()
         except Exception:
@@ -273,10 +284,7 @@ class IssueUpvoteView(APIView):
 
 
 class IssueResolveView(APIView):
-    """
-    PATCH /api/issues/<id>/resolve/
-    Field Worker Proof-of-Work Closing with Geo-fencing & 'After' Photo validation.
-    """
+    """PATCH /api/issues/<id>/resolve/"""
     parser_classes = [MultiPartParser, FormParser, JSONParser]
 
     def patch(self, request, issue_id):
@@ -289,12 +297,10 @@ class IssueResolveView(APIView):
         notes = request.data.get("notes", "Work completed")
         worker_id = request.data.get("worker_id", "field_worker_1")
 
-        # 1. Geo-Fencing Validation Check (Must be within 100 meters)
         issue_lng, issue_lat = issue.location["coordinates"]
         dist = haversine_distance(worker_lat, worker_lng, issue_lat, issue_lng) if worker_lat and worker_lng else 0.0
-        geo_verified = dist <= 100.0 or (worker_lat == 0.0) # Graceful fallback for mock testing
+        geo_verified = dist <= 100.0 or (worker_lat == 0.0)
 
-        # 2. Upload "After" Proof Photo
         photo_url = "https://xvnrvhoelkqkeltwepew.supabase.co/storage/v1/object/public/civix-uploads/issues/sample_after.png"
         if "photo" in request.FILES:
             proof_file = request.FILES["photo"]
@@ -306,7 +312,6 @@ class IssueResolveView(APIView):
             )
             photo_url = upload_res["public_url"]
 
-        # 3. Update Issue Resolution State
         issue.resolution_proof = ResolutionProof(
             photo_url=photo_url,
             worker_location=[worker_lng, worker_lat] if worker_lng and worker_lat else None,
@@ -329,10 +334,7 @@ class IssueResolveView(APIView):
 
 
 class IssueVerifyView(APIView):
-    """
-    POST /api/issues/<id>/verify/
-    Citizen confirmation loop. If rejected, triggers auto-reopen.
-    """
+    """POST /api/issues/<id>/verify/"""
     def post(self, request, issue_id):
         issue = Issue.objects(id=issue_id).first()
         if not issue:
@@ -345,7 +347,6 @@ class IssueVerifyView(APIView):
         user_id = request.data.get("user_id", "citizen_verifier")
         comment = request.data.get("comment", "")
 
-        # Save verification entry
         try:
             IssueVerification(
                 issue_id=str(issue.id),
@@ -360,7 +361,7 @@ class IssueVerifyView(APIView):
             issue.add_status_change(to_status="citizen_verified", changed_by=user_id, reason="Citizen verified fix")
         else:
             issue.add_status_change(to_status="reopened", changed_by=user_id, reason=f"Citizen rejected fix: {comment}")
-            issue.priority_score += 150 # Increase priority on reopen
+            issue.priority_score += 150
 
         issue.save()
 
@@ -372,10 +373,7 @@ class IssueVerifyView(APIView):
 
 
 class IssueAssignView(APIView):
-    """
-    PATCH /api/issues/<id>/assign/
-    Command Center Officer assigns ticket to a Field Worker.
-    """
+    """PATCH /api/issues/<id>/assign/"""
     def patch(self, request, issue_id):
         issue = Issue.objects(id=issue_id).first()
         if not issue:

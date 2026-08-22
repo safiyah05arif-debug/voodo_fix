@@ -58,9 +58,9 @@
     <header class="bg-primary text-on-primary py-2 px-4 flex justify-between items-center text-xs font-semibold shadow-sm z-50">
         <div class="flex items-center gap-2">
             <span class="material-symbols-outlined text-sm">language</span>
-            <button id="lang-en" class="underline font-bold">EN</button>
+            <button id="lang-en" onclick="setLanguage('en')" class="underline font-bold">EN</button>
             <span>/</span>
-            <button id="lang-ta" class="hover:underline">தமிழ் (TA)</button>
+            <button id="lang-ta" onclick="setLanguage('ta')" class="hover:underline">தமிழ் (TA)</button>
         </div>
         <div class="flex items-center gap-3">
             <button id="btn-contrast" class="flex items-center gap-1 hover:text-secondary-container transition-colors">
@@ -77,6 +77,8 @@
                 <a href="/worker/" class="hover:underline opacity-90">Worker</a>
                 <span>|</span>
                 <a href="/officer/" class="hover:underline opacity-90">Command</a>
+                <span>|</span>
+                <a href="/login/" class="hover:underline opacity-90">Logout</a>
             </div>
         </div>
     </header>
@@ -86,15 +88,16 @@
         <div class="flex items-center gap-2">
             <div class="w-9 h-9 rounded-full bg-primary text-white flex items-center justify-center font-black text-lg">C</div>
             <h1 class="font-extrabold text-2xl tracking-tight text-primary">CIVIX</h1>
-            <span class="text-xs bg-primary/10 text-primary font-bold px-2 py-0.5 rounded-full">Citizen</span>
+            <span class="text-xs bg-primary/10 text-primary font-bold px-2 py-0.5 rounded-full" id="role-pill">Citizen</span>
         </div>
         <div class="flex items-center gap-3">
             <div class="flex items-center gap-1.5 bg-secondary/10 text-secondary px-3 py-1 rounded-full text-xs font-bold">
                 <span class="material-symbols-outlined text-sm">stars</span>
                 <span id="user-points-pill">1,240 Pts</span>
             </div>
-            <button id="btn-voice-assist" title="Voice Instructions" class="p-2 rounded-full hover:bg-surface-container text-primary">
-                <span class="material-symbols-outlined">volume_up</span>
+            <!-- Read Aloud Text-to-Speech Trigger -->
+            <button id="btn-read-aloud" title="Read Aloud Instructions (TTS)" class="p-2 rounded-full hover:bg-surface-container text-primary flex items-center justify-center">
+                <span class="material-symbols-outlined text-2xl">volume_up</span>
             </button>
         </div>
     </div>
@@ -155,27 +158,53 @@
                 </div>
             </div>
 
-            <!-- AI Classification Live Shimmer Card (Hidden until photo taken) -->
-            <div id="ai-status-card" class="hidden bg-primary/5 border border-primary/20 rounded-xl p-3.5 flex items-start gap-3">
-                <span class="material-symbols-outlined text-primary text-xl animate-spin">smart_toy</span>
-                <div class="flex-1 text-xs">
-                    <div class="font-bold text-primary flex items-center gap-2">
-                        <span>AI Vision Classifier</span>
-                        <span id="ai-confidence-badge" class="bg-primary text-white px-1.5 py-0.2 rounded text-[10px]">94% Confidence</span>
+            <!-- Live AI Vision Detection Result HUD -->
+            <div id="ai-status-card" class="hidden bg-primary/5 border border-primary/20 rounded-xl p-3.5 flex flex-col gap-2">
+                <div class="flex items-center justify-between text-xs">
+                    <div class="font-bold text-primary flex items-center gap-1.5">
+                        <span class="material-symbols-outlined text-base">smart_toy</span>
+                        <span id="ai-model-tag">Vision AI Classifier</span>
                     </div>
-                    <p id="ai-detection-text" class="text-on-surface-variant mt-0.5">Scanning image for civic hazard signatures...</p>
+                    <span id="ai-confidence-badge" class="bg-primary text-white font-bold px-2 py-0.5 rounded-full text-[10px]">94% Confidence</span>
                 </div>
+                
+                <div class="grid grid-cols-2 gap-2 text-xs">
+                    <div class="bg-white p-2 rounded-lg border">
+                        <span class="text-[10px] text-outline uppercase block">Detected Category</span>
+                        <span id="ai-category-val" class="font-bold text-primary capitalize">Road & Pavement</span>
+                    </div>
+                    <div class="bg-white p-2 rounded-lg border">
+                        <span class="text-[10px] text-outline uppercase block">Severity Level</span>
+                        <span id="ai-severity-val" class="font-bold text-red-600 capitalize">Critical (24h SLA)</span>
+                    </div>
+                </div>
+                <p id="ai-title-suggestion" class="text-xs text-on-surface-variant italic font-medium"></p>
+            </div>
+
+            <!-- Category Manual Override Dropdown -->
+            <div class="flex flex-col gap-1 text-xs">
+                <label class="font-bold uppercase text-on-surface-variant" id="lbl-category">Category</label>
+                <select id="issue-category-select" class="p-3 border border-outline-variant rounded-xl bg-white text-sm font-semibold outline-none focus:border-primary">
+                    <option value="road">Roads & Pavements (Potholes, Footpath)</option>
+                    <option value="water">Water Supply (Pipe Leaks, Contamination)</option>
+                    <option value="waste">Waste Management (Garbage, Dumps)</option>
+                    <option value="electricity">Electricity (Streetlights, Transformers)</option>
+                    <option value="drainage">Drainage & Sewage (Waterlogging, Flooding)</option>
+                    <option value="public_safety">Public Safety (Open Manholes, Signals)</option>
+                    <option value="environment">Environment & Parks</option>
+                    <option value="other">Other Civic Issues</option>
+                </select>
             </div>
 
             <!-- Voice & Description Input -->
             <div class="flex flex-col gap-1.5">
-                <label class="text-xs font-bold uppercase text-on-surface-variant flex justify-between">
-                    <span id="lbl-description">Voice / Text Description</span>
-                    <span class="text-primary font-normal">Tamil or English</span>
-                </label>
+                <div class="flex justify-between items-center text-xs">
+                    <label class="font-bold uppercase text-on-surface-variant" id="lbl-description">Voice / Text Description</label>
+                    <span id="mic-status-label" class="text-primary font-bold">Tap mic to speak (EN/TA)</span>
+                </div>
                 <div class="relative">
-                    <textarea id="issue-description" rows="2" class="w-full bg-white border border-outline-variant rounded-xl p-3 pr-12 text-sm text-on-surface outline-none focus:border-primary focus:ring-1 focus:ring-primary resize-none" placeholder="E.g. Deep pothole causing heavy traffic..."></textarea>
-                    <button id="btn-speech-rec" type="button" title="Speak in Tamil/English" class="absolute bottom-2.5 right-2.5 text-primary hover:bg-primary/10 p-2 rounded-full transition-colors">
+                    <textarea id="issue-description" rows="2" class="w-full bg-white border border-outline-variant rounded-xl p-3 pr-14 text-sm text-on-surface outline-none focus:border-primary focus:ring-1 focus:ring-primary resize-none" placeholder="E.g. Deep pothole causing two-wheeler accidents near the junction..."></textarea>
+                    <button id="btn-speech-rec" type="button" title="Speak in Tamil/English" class="absolute bottom-2.5 right-2.5 bg-primary/10 text-primary hover:bg-primary hover:text-white p-2.5 rounded-full transition-all flex items-center justify-center">
                         <span class="material-symbols-outlined text-xl">mic</span>
                     </button>
                 </div>
@@ -194,7 +223,7 @@
         <section id="tab-nearby" class="tab-content flex-col gap-4">
             <div id="leaflet-map-nearby"></div>
             <div class="flex justify-between items-center mt-1">
-                <h3 class="font-bold text-sm text-on-surface">Live Tickets Nearby (50m - 5km)</h3>
+                <h3 class="font-bold text-sm text-on-surface" id="txt-nearby-header">Live Tickets Nearby (50m - 5km)</h3>
                 <span class="text-xs text-primary font-bold">25 Active in Ward</span>
             </div>
             <div id="nearby-feed-list" class="flex flex-col gap-3">
@@ -208,22 +237,22 @@
         <section id="tab-impact" class="tab-content flex-col gap-4">
             <!-- Points Card -->
             <div class="bg-gradient-to-r from-primary to-primary-container text-white p-5 rounded-2xl shadow-lg relative overflow-hidden">
-                <div class="text-xs uppercase font-bold tracking-wider opacity-80">Your Civic Standing</div>
+                <div class="text-xs uppercase font-bold tracking-wider opacity-80" id="txt-impact-rank">Your Civic Standing</div>
                 <div class="flex items-center gap-3 my-2">
                     <span class="material-symbols-outlined text-4xl text-amber-300">stars</span>
                     <span id="impact-points" class="font-mono text-3xl font-black">1,240</span>
-                    <span class="text-xs bg-white/20 px-2 py-0.5 rounded-full font-bold">Level 6 Watchdog</span>
+                    <span class="text-xs bg-white/20 px-2.5 py-0.5 rounded-full font-bold">Level 6 Watchdog</span>
                 </div>
                 <div class="w-full bg-black/20 h-2 rounded-full mt-2 overflow-hidden">
                     <div class="bg-amber-300 h-full rounded-full" style="width: 78%"></div>
                 </div>
                 <div class="text-[11px] opacity-80 mt-1 flex justify-between">
-                    <span>Rank: Zone Top 5%</span>
+                    <span>Rank: Zone 5 Top 5%</span>
                     <span>260 pts to Level 7</span>
                 </div>
             </div>
 
-            <h3 class="font-bold text-sm text-on-surface mt-1">Earned Badges</h3>
+            <h3 class="font-bold text-sm text-on-surface mt-1" id="txt-earned-badges">Earned Civic Badges</h3>
             <div id="badges-grid" class="grid grid-cols-2 gap-3">
                 <!-- Populated dynamically -->
             </div>
@@ -238,7 +267,7 @@
                 <span class="material-symbols-outlined">warning</span>
                 <span>Similar Issue Found Nearby (Within 50m)</span>
             </div>
-            <p class="text-xs text-on-surface-variant">A neighbor already reported a similar complaint at this exact spot. Upvote it to increase priority instead of creating duplicates!</p>
+            <p class="text-xs text-on-surface-variant">A citizen already reported this complaint nearby. Upvote it to increase priority instead of creating duplicates!</p>
             <div id="dedup-card-slot" class="border border-outline-variant rounded-xl p-3 bg-surface-container-low text-xs"></div>
             <div class="flex gap-2 mt-2">
                 <button id="btn-upvote-existing" class="flex-1 bg-secondary text-white py-2.5 rounded-xl font-bold text-xs">👍 Upvote Existing</button>
@@ -248,16 +277,77 @@
     </div>
 
     <!-- ================================================================= -->
-    <!-- CLIENT JAVASCRIPT: CAMERA + GPS + API INTEGRATION                 -->
+    <!-- CLIENT JAVASCRIPT: CAMERA + GPS + AI PREVIEW + WEB SPEECH         -->
     <!-- ================================================================= -->
     <script>
-        // State
         let currentLat = 13.0067, currentLng = 80.2574;
         let capturedPhotoBlob = null;
         let mapInstance = null;
         let currentLang = 'en';
 
-        // 1. In-Browser Direct Camera Stream
+        // Translation Dictionary (English & Tamil)
+        const translations = {
+            en: {
+                tabReport: "Report Issue",
+                tabNearby: "Nearby & Upvote",
+                tabImpact: "My Impact",
+                categoryLbl: "Category",
+                descLbl: "Voice / Text Description",
+                submitBtn: "Submit Report",
+                contrast: "Contrast",
+                micStatus: "Tap mic to speak (EN/TA)",
+                nearbyHeader: "Live Tickets Nearby (50m - 5km)",
+                earnedBadges: "Earned Civic Badges",
+                speechPrompt: "Welcome to CIVIX. Point your camera at the civic issue, tap the red capture button to take a photo and lock your GPS location, then speak or type your description."
+            },
+            ta: {
+                tabReport: "புகார் பதிவு",
+                tabNearby: "அருகிலுள்ள புகார்கள்",
+                tabImpact: "எனது பங்களிப்பு",
+                categoryLbl: "புகார் வகை",
+                descLbl: "குரல் / உரை விளக்கம்",
+                submitBtn: "புகாரை சமர்ப்பிக்கவும்",
+                contrast: "மாறுபாடு",
+                micStatus: "பேச மைக் பொத்தானை அழுத்தவும்",
+                nearbyHeader: "அருகிலுள்ள நேரடி புகார்கள் (50மீ - 5கிமீ)",
+                earnedBadges: "பெற்ற பேட்ஜ்கள்",
+                speechPrompt: "சிவிக்ஸ் தளத்திற்கு வரவேற்கிறோம். சிக்கலை நோக்கி கேமராவைத் திருப்பி, புகைப்படத்தைப் பிடித்து, உங்கள் இருப்பிடத்தை பதிவு செய்ய சிவப்பு பொத்தானை அழுத்தவும்."
+            }
+        };
+
+        function setLanguage(lang) {
+            currentLang = lang;
+            const t = translations[lang];
+            document.getElementById('txt-tab-report').textContent = t.tabReport;
+            document.getElementById('txt-tab-nearby').textContent = t.tabNearby;
+            document.getElementById('txt-tab-impact').textContent = t.tabImpact;
+            document.getElementById('lbl-category').textContent = t.categoryLbl;
+            document.getElementById('lbl-description').textContent = t.descLbl;
+            document.getElementById('btn-submit-text').textContent = t.submitBtn;
+            document.getElementById('txt-contrast').textContent = t.contrast;
+            document.getElementById('mic-status-label').textContent = t.micStatus;
+            document.getElementById('txt-nearby-header').textContent = t.nearbyHeader;
+            document.getElementById('txt-earned-badges').textContent = t.earnedBadges;
+
+            document.getElementById('lang-en').className = lang === 'en' ? 'underline font-bold' : 'hover:underline';
+            document.getElementById('lang-ta').className = lang === 'ta' ? 'underline font-bold' : 'hover:underline';
+        }
+
+        // 1. Text-to-Speech (Read Aloud)
+        document.getElementById('btn-read-aloud').addEventListener('click', () => {
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+                const text = translations[currentLang].speechPrompt;
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = currentLang === 'ta' ? 'ta-IN' : 'en-US';
+                utterance.rate = 0.95;
+                window.speechSynthesis.speak(utterance);
+            } else {
+                alert("Speech Synthesis is not supported in this browser.");
+            }
+        });
+
+        // 2. Direct Camera Stream
         const videoElem = document.getElementById('camera-stream');
         const canvasElem = document.getElementById('snapshot-canvas');
         const previewElem = document.getElementById('captured-preview');
@@ -271,19 +361,18 @@
                 });
                 videoElem.srcObject = stream;
             } catch (err) {
-                console.warn("Camera fallback:", err);
-                document.getElementById('camera-status-tag').textContent = "Camera Demo Mode";
+                console.warn("Camera access warning:", err);
+                document.getElementById('camera-status-tag').textContent = "Camera Demo Ready";
             }
         }
 
-        btnCapture.addEventListener('click', () => {
-            // Atomic Snapshot
+        btnCapture.addEventListener('click', async () => {
             canvasElem.width = videoElem.videoWidth || 640;
             canvasElem.height = videoElem.videoHeight || 480;
             const ctx = canvasElem.getContext('2d');
             ctx.drawImage(videoElem, 0, 0, canvasElem.width, canvasElem.height);
             
-            canvasElem.toBlob((blob) => {
+            canvasElem.toBlob(async (blob) => {
                 capturedPhotoBlob = blob;
                 previewElem.src = URL.createObjectURL(blob);
                 previewElem.classList.remove('hidden');
@@ -291,9 +380,33 @@
                 btnRetake.classList.remove('hidden');
                 btnCapture.classList.add('hidden');
 
-                // Simulate/Show AI Classification HUD
+                // Immediate Live Vision AI Classification Call
                 document.getElementById('ai-status-card').classList.remove('hidden');
-                document.getElementById('ai-detection-text').textContent = "AI detected: High Severity Road / Surface Hazard (Simulated/Vision Model)";
+                document.getElementById('ai-category-val').textContent = "Analyzing Photo...";
+                
+                try {
+                    const aiForm = new FormData();
+                    aiForm.append("photo", blob, "preview.jpg");
+                    aiForm.append("description", document.getElementById('issue-description').value);
+
+                    const aiRes = await fetch("/api/issues/classify/", { method: "POST", body: aiForm });
+                    const aiData = await aiRes.json();
+
+                    if (aiData.category) {
+                        document.getElementById('ai-category-val').textContent = aiData.category.toUpperCase();
+                        document.getElementById('ai-severity-val').textContent = `${aiData.severity.toUpperCase()} (${aiData.issue_type || ''})`;
+                        document.getElementById('ai-confidence-badge').textContent = `${Math.round(aiData.confidence * 100)}% Confidence`;
+                        document.getElementById('ai-title-suggestion').textContent = `Suggested: "${aiData.suggested_title}"`;
+                        
+                        // Auto-select category in dropdown
+                        const catSelect = document.getElementById('issue-category-select');
+                        if (catSelect.querySelector(`option[value="${aiData.category}"]`)) {
+                            catSelect.value = aiData.category;
+                        }
+                    }
+                } catch (e) {
+                    console.error("AI preview error:", e);
+                }
             }, 'image/jpeg', 0.85);
         });
 
@@ -306,7 +419,7 @@
             document.getElementById('ai-status-card').classList.add('hidden');
         });
 
-        // 2. Real-Time Geolocation Tracker
+        // 3. Continuous Geolocation Tracker
         function initGPS() {
             if ("geolocation" in navigator) {
                 navigator.geolocation.watchPosition(
@@ -316,42 +429,58 @@
                         document.getElementById('gps-coords-text').textContent = `GPS: ${currentLat.toFixed(4)}° N, ${currentLng.toFixed(4)}° E`;
                         document.getElementById('gps-accuracy-badge').textContent = `Acc: ±${Math.round(pos.coords.accuracy)}m`;
                     },
-                    (err) => console.warn("GPS error:", err),
+                    (err) => console.warn("GPS info:", err),
                     { enableHighAccuracy: true }
                 );
             }
         }
 
-        // 3. Web Speech API (Voice-To-Text in Tamil & English)
+        // 4. Voice-To-Text (SpeechRecognition in EN & TA)
         const btnSpeech = document.getElementById('btn-speech-rec');
         const descInput = document.getElementById('issue-description');
+        let recognition = null;
+
         if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
             const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
-            const recognition = new SpeechRec();
+            recognition = new SpeechRec();
             recognition.continuous = false;
             recognition.interimResults = false;
 
             btnSpeech.addEventListener('click', () => {
                 recognition.lang = currentLang === 'ta' ? 'ta-IN' : 'en-IN';
-                recognition.start();
-                btnSpeech.classList.add('text-red-500', 'animate-pulse');
+                try {
+                    recognition.start();
+                    btnSpeech.classList.add('bg-red-500', 'text-white', 'animate-pulse');
+                    document.getElementById('mic-status-label').textContent = "Listening...";
+                } catch (e) {
+                    recognition.stop();
+                }
             });
 
             recognition.onresult = (evt) => {
                 const text = evt.results[0][0].transcript;
                 descInput.value = (descInput.value + ' ' + text).trim();
-                btnSpeech.classList.remove('text-red-500', 'animate-pulse');
+                btnSpeech.classList.remove('bg-red-500', 'text-white', 'animate-pulse');
+                document.getElementById('mic-status-label').textContent = "Transcribed!";
             };
 
-            recognition.onerror = () => btnSpeech.classList.remove('text-red-500', 'animate-pulse');
+            recognition.onerror = () => {
+                btnSpeech.classList.remove('bg-red-500', 'text-white', 'animate-pulse');
+                document.getElementById('mic-status-label').textContent = "Tap mic to speak (EN/TA)";
+            };
+
+            recognition.onend = () => {
+                btnSpeech.classList.remove('bg-red-500', 'text-white', 'animate-pulse');
+            };
         }
 
-        // 4. Report Submission
+        // 5. Submit Report
         document.getElementById('btn-submit-report').addEventListener('click', async () => {
             const formData = new FormData();
             formData.append("latitude", currentLat);
             formData.append("longitude", currentLng);
             formData.append("description", descInput.value);
+            formData.append("category", document.getElementById('issue-category-select').value);
             formData.append("input_method", "direct_camera");
 
             if (capturedPhotoBlob) {
@@ -363,17 +492,16 @@
                 const data = await res.json();
 
                 if (data.duplicate_detected) {
-                    // Show Deduplication Modal
                     const dup = data.nearby_issues[0];
                     document.getElementById('dedup-card-slot').innerHTML = `
                         <div class="font-bold text-on-surface">${dup.title}</div>
-                        <div class="text-outline text-[11px]">${dup.address} • Priority: ${dup.priority_score}</div>
+                        <div class="text-outline text-[11px]">${dup.address} • Priority Score: ${dup.priority_score}</div>
                     `;
                     document.getElementById('dedup-modal').classList.remove('hidden');
                     
                     document.getElementById('btn-upvote-existing').onclick = async () => {
                         await fetch(`/api/issues/${dup.id}/upvote/`, { method: "POST" });
-                        alert("Upvoted! Thank you for reducing duplicate tickets.");
+                        alert("Upvoted existing complaint! Points awarded.");
                         location.reload();
                     };
 
@@ -388,11 +516,11 @@
                     location.reload();
                 }
             } catch (err) {
-                alert("Error submitting: " + err);
+                alert("Error submitting report: " + err);
             }
         });
 
-        // 5. Load Nearby Issues & Map
+        // 6. Nearby Feed & Badges Loader
         async function loadNearbyFeed() {
             try {
                 const res = await fetch("/api/issues/");
@@ -406,13 +534,11 @@
                 }
 
                 issues.forEach(iss => {
-                    // Add Pin to Map
                     const markerColor = iss.severity === 'critical' ? 'red' : iss.severity === 'high' ? 'orange' : 'green';
                     L.circleMarker([iss.location.latitude, iss.location.longitude], {
                         color: markerColor, radius: 7, fillOpacity: 0.8
-                    }).addTo(mapInstance).bindPopup(`<b>${iss.title}</b><br>${iss.severity.toUpperCase()} • Priority: ${iss.priority_score}`);
+                    }).addTo(mapInstance).bindPopup(`<b>${iss.title}</b><br>${iss.severity.toUpperCase()} • Score: ${iss.priority_score}`);
 
-                    // Add Card to Feed
                     const card = document.createElement('div');
                     card.className = "bg-white p-3.5 rounded-xl border border-outline-variant shadow-sm flex flex-col gap-2";
                     card.innerHTML = `
@@ -426,10 +552,32 @@
                             <button onclick="upvoteIssue('${iss.id}')" class="text-primary font-bold flex items-center gap-1 hover:bg-primary/10 px-2 py-1 rounded">
                                 <span class="material-symbols-outlined text-base">thumb_up</span> ${iss.upvote_count} Upvotes
                             </button>
-                            <span class="text-outline text-[11px]">${iss.status.toUpperCase()}</span>
+                            <span class="text-outline text-[11px] font-semibold">${iss.status.toUpperCase()}</span>
                         </div>
                     `;
                     container.appendChild(card);
+                });
+
+                // Load Badges Grid
+                const profileRes = await fetch("/api/users/profile/");
+                const profileData = await profileRes.json();
+                if (profileData.user) {
+                    document.getElementById('user-points-pill').textContent = `${profileData.user.civic_points} Pts`;
+                    document.getElementById('impact-points').textContent = profileData.user.civic_points;
+                }
+
+                const badgesGrid = document.getElementById('badges-grid');
+                badgesGrid.innerHTML = "";
+                profileData.available_badges.forEach(b => {
+                    const badgeCard = document.createElement('div');
+                    badgeCard.className = "bg-white border border-outline-variant rounded-xl p-3 flex flex-col items-center text-center shadow-xs";
+                    badgeCard.innerHTML = `
+                        <div class="w-12 h-12 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-xl mb-1.5">${b.icon || '🏅'}</div>
+                        <h5 class="font-bold text-xs text-on-surface">${b.name}</h5>
+                        <p class="text-[10px] text-outline mt-0.5">${b.description}</p>
+                        <span class="text-[10px] text-secondary font-bold mt-1">+${b.points_reward} Pts</span>
+                    `;
+                    badgesGrid.appendChild(badgeCard);
                 });
             } catch (e) {
                 console.error(e);
@@ -439,11 +587,11 @@
         async function upvoteIssue(id) {
             const res = await fetch(`/api/issues/${id}/upvote/`, { method: "POST" });
             const data = await res.json();
-            alert(`Upvoted! Total upvotes: ${data.upvote_count}`);
+            alert(`Upvoted! Total votes: ${data.upvote_count}`);
             loadNearbyFeed();
         }
 
-        // 6. Tab Switching
+        // 7. Tab Switching
         document.querySelectorAll('.tab-btn').forEach(btn => {
             btn.addEventListener('click', () => {
                 document.querySelectorAll('.tab-btn').forEach(b => {
@@ -461,7 +609,6 @@
             });
         });
 
-        // Accessibility helpers
         document.getElementById('btn-contrast').addEventListener('click', () => {
             document.body.classList.toggle('high-contrast');
         });
@@ -470,7 +617,6 @@
             document.body.style.fontSize = scale;
         }
 
-        // Startup
         window.addEventListener('DOMContentLoaded', () => {
             initCamera();
             initGPS();
