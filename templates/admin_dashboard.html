@@ -8,11 +8,12 @@
     <link rel="stylesheet" href="{% static 'css/tailwind.css' %}">
 </head>
 <body class="min-h-screen bg-slate-100 text-slate-900 font-sans">
+    <a href="#main-content" class="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:bg-white focus:px-4 focus:py-2 focus:text-slate-900 focus:font-bold focus:shadow-lg">Skip to main content</a>
     <header class="bg-slate-950 text-white px-6 py-4 flex flex-wrap gap-4 items-center justify-between">
         <div><p class="text-xs uppercase tracking-widest text-cyan-300">CIVIX</p><h1 class="text-xl font-bold">System Administration</h1></div>
-        <nav class="flex gap-4 text-sm"><a href="/citizen/" class="underline">Citizen</a><a href="/officer/" class="underline">Command</a><a href="/worker/" class="underline">Worker</a></nav>
+        <nav aria-label="Portal navigation" class="flex gap-4 text-sm"><a href="/citizen/" class="underline">Citizen</a><a href="/officer/" class="underline">Command</a><a href="/worker/" class="underline">Worker</a></nav>
     </header>
-    <main class="max-w-6xl mx-auto p-6 space-y-6">
+    <main id="main-content" tabindex="-1" class="max-w-6xl mx-auto p-6 space-y-6">
         <section id="metric-grid" class="grid grid-cols-2 md:grid-cols-5 gap-3" aria-label="Platform health metrics"></section>
         <section class="grid lg:grid-cols-2 gap-6">
             <div class="bg-white border border-slate-200 p-5 rounded-lg shadow-sm">

@@ -21,6 +21,7 @@
     </style>
 </head>
 <body class="bg-surface text-on-surface min-h-screen flex flex-col font-sans pb-24">
+    <a href="#main-content" class="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:bg-white focus:px-4 focus:py-2 focus:text-primary focus:font-bold focus:shadow-lg">Skip to main content</a>
 
     <!-- Worker Accessibility Header -->
     <div class="bg-primary text-on-primary px-4 py-2 flex justify-between items-center text-xs font-bold" role="banner">
@@ -39,7 +40,7 @@
                 <button type="button" onclick="setWorkerFontSize('130%')" aria-label="Use largest text size">A++</button>
             </div>
             <button id="worker-read-aloud" type="button" aria-pressed="false" aria-label="Read worker tasks aloud">🔊 <span id="worker-read-label">Read aloud</span></button>
-            <a href="/citizen/" class="underline text-white" id="worker-citizen-link">Citizen View</a>
+            <nav aria-label="Portal navigation"><a href="/citizen/" class="underline text-white" id="worker-citizen-link">Citizen View</a></nav>
         </div>
     </div>
 
@@ -59,7 +60,7 @@
     </header>
 
     <!-- Main Canvas -->
-    <main class="flex-1 w-full max-w-4xl mx-auto px-4 py-4 flex flex-col gap-5">
+    <main id="main-content" tabindex="-1" class="flex-1 w-full max-w-4xl mx-auto px-4 py-4 flex flex-col gap-5">
 
         <!-- Target KPI Bar -->
         <section class="bg-white rounded-2xl p-4 border border-outline-variant shadow-sm flex justify-around items-center">

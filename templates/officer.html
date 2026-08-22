@@ -29,6 +29,7 @@
     </style>
 </head>
 <body class="bg-surface text-on-surface h-full font-sans overflow-hidden flex flex-col">
+    <a href="#main-content" class="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:bg-white focus:px-4 focus:py-2 focus:text-primary focus:font-bold focus:shadow-lg">Skip to main content</a>
 
     <!-- Top Command Navigation Bar -->
     <header class="bg-primary text-white border-b border-primary-container px-6 py-3 flex justify-between items-center z-40 shrink-0 shadow-md">
@@ -50,17 +51,19 @@
                 <button type="button" onclick="setOfficerFontSize('115%')" aria-label="Increase text size">A+</button>
                 <button type="button" onclick="setOfficerFontSize('130%')" aria-label="Use largest text size">A++</button>
                 <button id="officer-read-aloud" type="button" aria-pressed="false" aria-label="Read command center aloud">🔊 <span id="officer-read-label">Read aloud</span></button>
-                <a href="/citizen/" class="underline hover:text-secondary-container">Citizen Portal</a>
-                <span>|</span>
-                <a href="/worker/" class="underline hover:text-secondary-container">Worker View</a>
-                <span>|</span>
-                <a href="/login/" class="underline hover:text-secondary-container">Logout</a>
+                <nav aria-label="Portal navigation">
+                    <a href="/citizen/" class="underline hover:text-secondary-container">Citizen Portal</a>
+                    <span aria-hidden="true">|</span>
+                    <a href="/worker/" class="underline hover:text-secondary-container">Worker View</a>
+                    <span aria-hidden="true">|</span>
+                    <a href="/login/" class="underline hover:text-secondary-container">Logout</a>
+                </nav>
             </div>
         </div>
     </header>
 
     <!-- Main Command Body (Split-Pane) -->
-    <main class="flex-1 flex flex-col overflow-hidden">
+    <main id="main-content" tabindex="-1" class="flex-1 flex flex-col overflow-hidden">
 
         <!-- KPI Metrics Banner -->
         <div class="p-4 grid grid-cols-4 gap-4 bg-white border-b border-outline-variant shrink-0 shadow-sm">
