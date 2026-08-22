@@ -188,7 +188,7 @@ class Issue(Document):
         help_text="ObjectId reference to the citizen user who reported this",
     )
     input_method = StringField(
-        choices=["text", "voice_en", "voice_ta", "auto"],
+        choices=["text", "direct_camera", "voice_en", "voice_ta", "auto"],
         default="text",
         help_text="How the description was entered",
     )

@@ -41,6 +41,18 @@ class IssueLogicTests(SimpleTestCase):
 		self.assertEqual(issue.status_history[0].from_status, "submitted")
 		self.assertEqual(issue.status_history[0].to_status, "verified")
 
+	def test_direct_camera_is_a_valid_input_method(self):
+		issue = Issue(
+			title="Camera report",
+			reported_by="citizen",
+			location=[80.27, 13.08],
+			category="road",
+			severity="low",
+			input_method="direct_camera",
+		)
+
+		issue.validate()
+
 	def test_haversine_distance_is_zero_for_same_point(self):
 		self.assertEqual(haversine_distance(13.08, 80.27, 13.08, 80.27), 0)
 
