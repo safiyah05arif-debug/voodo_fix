@@ -340,6 +340,9 @@ class IssueResolveView(APIView):
         if not issue:
             return Response({"error": "Issue not found"}, status=status.HTTP_404_NOT_FOUND)
 
+        if issue.status not in ("assigned", "in_progress"):
+            return Response({"error": f"Cannot resolve an issue in {issue.status} status."}, status=status.HTTP_409_CONFLICT)
+
         try:
             worker_lat = float(request.data["latitude"])
             worker_lng = float(request.data["longitude"])
@@ -347,6 +350,8 @@ class IssueResolveView(APIView):
             return Response({"error": "Valid worker latitude and longitude are required."}, status=status.HTTP_400_BAD_REQUEST)
         notes = request.data.get("notes", "Work completed")
         worker_id = request.data.get("worker_id", "field_worker_1")
+        if issue.assigned_to and issue.assigned_to != worker_id:
+            return Response({"error": "Only the assigned worker can resolve this issue."}, status=status.HTTP_403_FORBIDDEN)
 
         issue_lng, issue_lat = location_coordinates(issue.location)
         dist = haversine_distance(worker_lat, worker_lng, issue_lat, issue_lng)
@@ -390,6 +395,8 @@ class IssueVerifyView(APIView):
         issue = Issue.objects(id=issue_id).first()
         if not issue:
             return Response({"error": "Issue not found"}, status=status.HTTP_404_NOT_FOUND)
+        if issue.status != "resolved":
+            return Response({"error": "Only resolved issues can be verified."}, status=status.HTTP_409_CONFLICT)
 
         is_fixed = request.data.get("is_fixed", True)
         if isinstance(is_fixed, str):
@@ -456,6 +463,10 @@ class IssueStatusView(APIView):
         "assigned": {"in_progress"},
         "in_progress": {"resolved"},
         "submitted": {"verified", "assigned"},
+        "verified": {"assigned"},
+        "reopened": {"assigned"},
+        "escalated": {"assigned"},
+        "citizen_verified": {"closed"},
     }
 
     def patch(self, request, issue_id):

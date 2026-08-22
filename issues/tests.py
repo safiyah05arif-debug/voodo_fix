@@ -1,7 +1,7 @@
 from django.test import SimpleTestCase
 
 from issues.models import Issue
-from issues.views import haversine_distance, location_coordinates
+from issues.views import IssueStatusView, haversine_distance, location_coordinates
 
 
 class IssueLogicTests(SimpleTestCase):
@@ -43,3 +43,8 @@ class IssueLogicTests(SimpleTestCase):
 
 	def test_haversine_distance_is_zero_for_same_point(self):
 		self.assertEqual(haversine_distance(13.08, 80.27, 13.08, 80.27), 0)
+
+	def test_status_transitions_follow_issue_lifecycle(self):
+		self.assertEqual(IssueStatusView.allowed_transitions["submitted"], {"verified", "assigned"})
+		self.assertEqual(IssueStatusView.allowed_transitions["in_progress"], {"resolved"})
+		self.assertEqual(IssueStatusView.allowed_transitions["citizen_verified"], {"closed"})
