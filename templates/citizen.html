@@ -361,20 +361,38 @@
         const previewElem = document.getElementById('captured-preview');
         const btnCapture = document.getElementById('btn-capture');
         const btnRetake = document.getElementById('btn-retake');
+        btnCapture.disabled = true;
+        btnCapture.classList.add('opacity-50', 'cursor-not-allowed');
 
         async function initCamera() {
             try {
+                if (!navigator.mediaDevices?.getUserMedia) {
+                    throw new Error('Camera access is unavailable in this browser or page context.');
+                }
                 const stream = await navigator.mediaDevices.getUserMedia({
                     video: { facingMode: { ideal: "environment" }, width: { ideal: 1280 }, height: { ideal: 720 } }
                 });
                 videoElem.srcObject = stream;
+                await videoElem.play();
+                btnCapture.disabled = false;
+                btnCapture.classList.remove('opacity-50', 'cursor-not-allowed');
             } catch (err) {
                 console.warn("Camera access warning:", err);
-                document.getElementById('camera-status-tag').textContent = translations[currentLang].cameraDemo;
+                const statusTag = document.getElementById('camera-status-tag');
+                const message = err.name === 'NotAllowedError'
+                    ? 'Camera permission denied. Allow camera access and reload.'
+                    : err.name === 'NotFoundError'
+                        ? 'No camera was found on this device.'
+                        : err.name === 'NotReadableError'
+                            ? 'Camera is already in use by another app or browser tab. Close it and reload.'
+                        : 'Camera unavailable. Check browser permissions and use HTTPS or localhost.';
+                statusTag.textContent = message;
+                statusTag.classList.add('text-red-300');
             }
         }
 
         btnCapture.addEventListener('click', async () => {
+            if (btnCapture.disabled || !videoElem.srcObject || !videoElem.videoWidth) return;
             canvasElem.width = videoElem.videoWidth || 640;
             canvasElem.height = videoElem.videoHeight || 480;
             const ctx = canvasElem.getContext('2d');
