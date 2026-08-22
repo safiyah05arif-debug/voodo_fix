@@ -144,6 +144,7 @@ USE_TZ = True
 
 # ── Static Files ──────────────────────────────────────────────────────────────
 STATIC_URL = "static/"
+STATICFILES_DIRS = [BASE_DIR / "static"]
 
 # ── Default Primary Key ──────────────────────────────────────────────────────
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"

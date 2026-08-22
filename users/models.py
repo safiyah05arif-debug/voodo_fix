@@ -134,8 +134,6 @@ class CivixUser(Document):
         "collection": "civix_users",
         "ordering": ["-civic_points"],
         "indexes": [
-            {"fields": ["phone"], "unique": True, "sparse": True},
-            {"fields": ["email"], "unique": True, "sparse": True},
             {"fields": ["last_known_location"], "cls": False, "sparse": True},
             "role",
             "zone",
