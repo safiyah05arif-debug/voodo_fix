@@ -78,6 +78,11 @@ pip install -r requirements.txt
 # GEMINI_MODEL=gemini-2.0-flash
 # OpenAI is optional; the app falls back to local heuristics if AI quota is unavailable.
 
+# Offline image detection (after installing the optional packages):
+# pip install -r requirements.txt
+# Download a YOLO model once, then set YOLO_MODEL_PATH to its local path.
+# OFFLINE_VISION=yolo
+
 # 3. Test MongoDB Atlas Connection
 python test_connection.py
 

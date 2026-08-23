@@ -8,6 +8,7 @@ with automated image feature analysis and heuristic fallback.
 import os
 import json
 import base64
+from io import BytesIO
 import requests
 from dotenv import load_dotenv
 
@@ -19,6 +20,49 @@ VALID_CATEGORIES = [
 ]
 
 VALID_SEVERITIES = ["critical", "high", "medium", "low"]
+_offline_model = None
+
+
+def _offline_yolo_classifier(image_bytes):
+    """Detect objects locally with an optional YOLO model and no API call."""
+    global _offline_model
+    if not image_bytes or os.getenv("OFFLINE_VISION", "yolo").lower() != "yolo":
+        return None
+
+    try:
+        from PIL import Image
+        from ultralytics import YOLO
+
+        if _offline_model is None:
+            model_path = os.getenv("YOLO_MODEL_PATH", "yolo11n.pt")
+            _offline_model = YOLO(model_path)
+        image = Image.open(BytesIO(image_bytes)).convert("RGB")
+        result = _offline_model.predict(source=image, verbose=False)[0]
+        names = result.names
+        detected_objects = []
+        for class_id, confidence in zip(result.boxes.cls.tolist(), result.boxes.conf.tolist()):
+            detected_objects.append({"label": names[int(class_id)], "confidence": round(float(confidence), 3)})
+
+        labels = {item["label"] for item in detected_objects}
+        if labels & {"bottle", "cup", "bowl", "backpack"}:
+            category, issue_type, severity = "waste", "visible_discarded_object", "medium"
+        elif labels & {"car", "bus", "truck", "motorcycle", "bicycle"}:
+            category, issue_type, severity = "road", "roadside_traffic_obstruction", "medium"
+        else:
+            category, issue_type, severity = "other", "unclassified_civic_scene", "low"
+
+        confidence = max((item["confidence"] for item in detected_objects), default=0.0)
+        return {
+            "category": category,
+            "issue_type": issue_type,
+            "severity": severity,
+            "confidence": confidence,
+            "suggested_title": f"Detected {issue_type.replace('_', ' ')}",
+            "detected_objects": detected_objects,
+            "raw_response": {"model": "YOLO local", "cloud": "Offline Vision"},
+        }
+    except Exception:
+        return None
 
 
 def classify_issue_image(image_bytes=None, image_url=None, title_hint=""):
@@ -42,7 +86,11 @@ def classify_issue_image(image_bytes=None, image_url=None, title_hint=""):
             except Exception:
                 pass
 
-    # Intelligent Heuristic & Feature Classifier
+    offline_result = _offline_yolo_classifier(image_bytes)
+    if offline_result:
+        return offline_result
+
+    # Text heuristic fallback when local vision is unavailable.
     return _heuristic_classifier(title_hint, image_bytes)
 
 
@@ -134,7 +182,7 @@ def _heuristic_classifier(title_hint="", image_bytes=None):
             "severity": "critical",
             "confidence": 0.93,
             "suggested_title": "Major Water Supply Pipeline Burst",
-            "raw_response": {"model": "civix-vision-v1", "detection": "Water leakage signature detected"}
+            "raw_response": {"model": "civix-vision-v1", "cloud": "Offline Heuristic", "detection": "Water leakage signature detected"}
         }
     elif any(w in hint for w in ["garbage", "trash", "waste", "dump", "bin", "plastic", "smell", "rotting"]):
         return {
@@ -143,7 +191,7 @@ def _heuristic_classifier(title_hint="", image_bytes=None):
             "severity": "high",
             "confidence": 0.91,
             "suggested_title": "Accumulated Solid Waste Overflow",
-            "raw_response": {"model": "civix-vision-v1", "detection": "Waste accumulation signature detected"}
+            "raw_response": {"model": "civix-vision-v1", "cloud": "Offline Heuristic", "detection": "Waste accumulation signature detected"}
         }
     elif any(w in hint for w in ["wire", "light", "electric", "spark", "pole", "transformer", "shock"]):
         return {
@@ -152,7 +200,7 @@ def _heuristic_classifier(title_hint="", image_bytes=None):
             "severity": "critical",
             "confidence": 0.96,
             "suggested_title": "Hazardous Loose Electrical Wire / Sparking",
-            "raw_response": {"model": "civix-vision-v1", "detection": "High voltage hazard signature detected"}
+            "raw_response": {"model": "civix-vision-v1", "cloud": "Offline Heuristic", "detection": "High voltage hazard signature detected"}
         }
     elif any(w in hint for w in ["drain", "sewage", "sewer", "gutter", "clog", "stagnant"]):
         return {
@@ -161,7 +209,7 @@ def _heuristic_classifier(title_hint="", image_bytes=None):
             "severity": "high",
             "confidence": 0.90,
             "suggested_title": "Blocked Stormwater / Sewage Drainage",
-            "raw_response": {"model": "civix-vision-v1", "detection": "Drainage blockage signature detected"}
+            "raw_response": {"model": "civix-vision-v1", "cloud": "Offline Heuristic", "detection": "Drainage blockage signature detected"}
         }
     else:
         return {
@@ -170,5 +218,5 @@ def _heuristic_classifier(title_hint="", image_bytes=None):
             "severity": "high",
             "confidence": 0.94,
             "suggested_title": "Severe Pothole / Road Surface Damage",
-            "raw_response": {"model": "civix-vision-v1", "detection": "Asphalt fracture signature detected"}
+            "raw_response": {"model": "civix-vision-v1", "cloud": "Offline Heuristic", "detection": "Asphalt fracture signature detected"}
         }

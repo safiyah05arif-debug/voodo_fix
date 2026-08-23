@@ -11,3 +11,5 @@ dnspython==2.8.0
 supabase==2.31.0
 storage3==2.31.0
 requests==2.34.2
+Pillow==11.3.0
+ultralytics==8.3.203
