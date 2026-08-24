@@ -11,6 +11,7 @@ class UserLogicTests(SimpleTestCase):
 
 		self.assertTrue(password_matches(user, "correct-password"))
 		self.assertFalse(password_matches(user, "wrong-password"))
+		self.assertTrue(user.password_hash.startswith("pbkdf2_sha256$") or user.password_hash.startswith("argon2$") or user.password_hash.startswith("bcrypt$"))
 
 	def test_demo_password_is_limited_to_demo_hash(self):
 		user = CivixUser(password_hash="pbkdf2_sha256$demo$seed")
@@ -27,3 +28,8 @@ class UserLogicTests(SimpleTestCase):
 			RoleAccessMiddleware.required_role("/api/issues/abc/status/", "PATCH"),
 			{"field_worker"},
 		)
+
+	def test_role_boundaries_cover_new_workflows(self):
+		self.assertEqual(RoleAccessMiddleware.required_role("/api/issues/emergency-dispatch/", "POST"), {"citizen"})
+		self.assertEqual(RoleAccessMiddleware.required_role("/api/issues/volunteer-drives/", "POST"), {"citizen", "officer", "zone_officer", "admin"})
+		self.assertEqual(RoleAccessMiddleware.required_role("/api/issues/abc/delete/", "DELETE"), {"officer", "zone_officer", "admin"})

@@ -15,7 +15,7 @@ from issues.views import (
 )
 from users.views import (
     UserProfileView, AdminAnalyticsView, AdminUsersView, AdminAuditLogsView,
-    AdminCreateUserView, AdminConfigView,
+    AdminCreateUserView, AdminConfigView, AdminDeactivateUserView,
 )
 
 def login_view(request):
@@ -66,6 +66,7 @@ urlpatterns = [
     path("api/admin/users/", AdminUsersView.as_view()),
     path("api/admin/audit-logs/", AdminAuditLogsView.as_view()),
     path("api/admin/users/create/", AdminCreateUserView.as_view()),
+    path("api/admin/users/<str:user_id>/deactivate/", AdminDeactivateUserView.as_view()),
     path("api/admin/config/sla/", AdminConfigView.as_view()),
     path("api/admin/issues/<str:issue_id>/", DeleteIssueView.as_view()),
 ]

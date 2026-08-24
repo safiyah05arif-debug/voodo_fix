@@ -6,6 +6,7 @@
     <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
     <title>CIVIX — Citizen Portal</title>
     <link rel="stylesheet" href="{% static 'css/tailwind.css' %}">
+    <link rel="icon" href="{% static 'favicon.svg' %}" type="image/svg+xml">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet"/>
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
     
@@ -29,7 +30,7 @@
         .sr-only-focusable:focus { position: static; width: auto; height: auto; margin: 0; overflow: visible; clip: auto; }
     </style>
 </head>
-<body class="bg-surface text-on-surface min-h-screen flex flex-col font-sans pb-24 transition-all">
+<body class="bg-surface text-on-surface min-h-screen flex flex-col font-sans pb-24 transition-all civix-enter">
     <a href="#main-content" class="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:bg-white focus:px-4 focus:py-2 focus:text-primary focus:font-bold focus:shadow-lg">Skip to main content</a>
 
     <!-- Global Accessibility Header -->
@@ -44,6 +45,10 @@
             <button id="btn-contrast" type="button" class="flex items-center gap-1 hover:text-secondary-container transition-colors" aria-pressed="false" aria-label="Toggle high contrast mode">
                 <span class="material-symbols-outlined text-sm">contrast</span>
                 <span id="txt-contrast">Contrast</span>
+            </button>
+            <button id="btn-easy-read" type="button" class="flex items-center gap-1 hover:text-secondary-container transition-colors" aria-pressed="false" aria-label="Toggle Easy Read mode">
+                <span class="material-symbols-outlined text-sm">text_fields</span>
+                <span id="txt-easy-read">Easy Read</span>
             </button>
             <div class="flex items-center gap-1 border-l border-white/30 pl-2">
                 <button type="button" onclick="setFontSize('100%')" class="px-1 py-0.5 rounded hover:bg-white/20" aria-label="Use normal text size">A</button>
@@ -62,7 +67,7 @@
     </header>
 
     <!-- Top App Navigation -->
-    <nav aria-label="Primary navigation" class="flex justify-between items-center px-4 py-3 bg-white border-b border-outline-variant max-w-4xl w-full mx-auto">
+    <nav aria-label="Primary navigation" class="flex justify-between items-center px-4 py-3 bg-white border-b border-outline-variant max-w-4xl w-full mx-auto civix-glass">
         <div class="flex items-center gap-2">
             <div class="w-9 h-9 rounded-full bg-primary text-white flex items-center justify-center font-black text-lg">C</div>
             <h1 class="font-extrabold text-2xl tracking-tight text-primary">CIVIX</h1>
@@ -108,10 +113,10 @@
             <!-- Live GPS Status Pill -->
             <div class="flex items-center justify-between bg-surface-container-low px-3.5 py-2 rounded-xl border border-outline-variant text-xs">
                 <div class="flex items-center gap-2">
-                    <span id="gps-pulse" class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                    <span id="gps-coords-text" class="font-mono font-bold text-on-surface" aria-live="polite">GPS: 13.0067° N, 80.2574° E</span>
+                    <span id="gps-pulse" class="w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse"></span>
+                    <span id="gps-coords-text" class="font-mono font-bold text-on-surface" aria-live="polite">GPS: Acquiring live location...</span>
                 </div>
-                    <span id="gps-accuracy-badge" class="bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-md text-[11px]">Acc: ±4m</span>
+                    <span id="gps-accuracy-badge" class="bg-amber-100 text-amber-800 font-bold px-2 py-0.5 rounded-md text-[11px]">Waiting for GPS</span>
             </div>
 
             <!-- In-Browser Direct Camera Viewfinder -->
@@ -146,7 +151,7 @@
                         <span class="material-symbols-outlined text-base">smart_toy</span>
                         <span id="ai-model-tag">Vision AI Classifier</span>
                     </div>
-                    <span id="ai-confidence-badge" class="bg-primary text-white font-bold px-2 py-0.5 rounded-full text-[10px]">94% Confidence</span>
+                        <span id="ai-confidence-badge" class="bg-primary text-white font-bold px-2 py-0.5 rounded-full text-[10px]">Analyzing...</span>
                 </div>
                 
                 <div class="grid grid-cols-2 gap-2 text-xs">
@@ -197,6 +202,10 @@
                 <span class="material-symbols-outlined text-lg">send</span>
                 <span id="btn-submit-text">Submit Report</span>
             </button>
+            <button id="btn-emergency-dispatch" type="button" class="w-full bg-red-700 text-white py-3 rounded-xl font-bold text-sm shadow-md hover:bg-red-800 transition-all flex items-center justify-center gap-2">
+                <span class="material-symbols-outlined text-lg">emergency</span>
+                <span>Emergency Quick Dispatch</span>
+            </button>
         </section>
 
         <!-- ================================================================= -->
@@ -243,6 +252,7 @@
     </main>
 
     <div id="status-live-region" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
+    {% csrf_token %}
 
     <!-- Spatial Deduplication Prompt Modal -->
     <div id="dedup-modal" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="dedup-title">
@@ -264,10 +274,41 @@
     <!-- CLIENT JAVASCRIPT: CAMERA + GPS + AI PREVIEW + WEB SPEECH         -->
     <!-- ================================================================= -->
     <script>
-        let currentLat = 13.0067, currentLng = 80.2574;
+        let currentLat = null, currentLng = null;
         let capturedPhotoBlob = null;
+        let capturedLocation = null;
         let mapInstance = null;
         let currentLang = 'en';
+        let easyRead = localStorage.getItem('civix-easy-read') === 'on';
+        const submissionMessages = {
+            en: {
+                normal: 'Your grievance has been successfully submitted and forwarded to the relevant municipal authority.',
+                easy: 'Your complaint was submitted ✅. The municipality will check it.'
+            },
+            ta: {
+                normal: 'உங்கள் குறை வெற்றிகரமாக சமர்ப்பிக்கப்பட்டு, சம்பந்தப்பட்ட நகராட்சி அதிகாரிக்கு அனுப்பப்பட்டுள்ளது.',
+                easy: 'உங்கள் புகார் சமர்ப்பிக்கப்பட்டது ✅. நகராட்சி இதைச் சரிபார்க்கும்.'
+            }
+        };
+
+        function currentSubmissionMessage() {
+            return submissionMessages[currentLang][easyRead ? 'easy' : 'normal'];
+        }
+
+        function updateEasyRead() {
+            const button = document.getElementById('btn-easy-read');
+            button.setAttribute('aria-pressed', String(easyRead));
+            button.classList.toggle('font-bold', easyRead);
+            document.getElementById('txt-easy-read').textContent = currentLang === 'ta' ? 'எளிய வாசிப்பு' : 'Easy Read';
+        }
+
+        function csrfToken() {
+            return document.querySelector('input[name="csrfmiddlewaretoken"]')?.value || '';
+        }
+
+        function escapeHtml(value) {
+            return String(value ?? '').replace(/[&<>\'"]/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[character]));
+        }
 
         // Translation Dictionary (English & Tamil)
         const translations = {
@@ -332,6 +373,7 @@
 
             document.getElementById('lang-en').className = lang === 'en' ? 'underline font-bold' : 'hover:underline';
             document.getElementById('lang-ta').className = lang === 'ta' ? 'underline font-bold' : 'hover:underline';
+            updateEasyRead();
         }
 
         // 1. Text-to-Speech (Read Aloud)
@@ -394,6 +436,57 @@
 
         btnCapture.addEventListener('click', async () => {
             if (btnCapture.disabled || !videoElem.srcObject || !videoElem.videoWidth) return;
+
+            let capturePosition;
+            try {
+                capturePosition = await new Promise((resolve, reject) => {
+                    if (!navigator.geolocation) {
+                        reject(new Error('Location services are unavailable in this browser.'));
+                        return;
+                    }
+
+                    let attempts = 0;
+                    const requestPosition = () => {
+                        attempts += 1;
+                        navigator.geolocation.getCurrentPosition(resolve, (err) => {
+                            if (err.code === 3 && attempts < 2) {
+                                requestPosition();
+                                return;
+                            }
+                            reject(err);
+                        }, {
+                            enableHighAccuracy: true,
+                            maximumAge: 0,
+                            timeout: 30000
+                        });
+                    };
+                    requestPosition();
+                });
+            } catch (err) {
+                const isInsecurePage = !window.isSecureContext && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1';
+                const message = isInsecurePage
+                    ? 'Location is blocked because this Wi-Fi link is not HTTPS. Open the site on localhost or use HTTPS, then allow location access.'
+                    : err.code === 1
+                        ? 'Location permission was denied. Allow location access for this site, reload, and try again.'
+                    : err.code === 2
+                        ? 'Your device could not determine its location. Turn on GPS and Wi-Fi/mobile location services, then try again.'
+                    : err.code === 3
+                        ? 'Getting your GPS location timed out. Move outdoors, wait a few seconds, and try again.'
+                        : 'A fresh location could not be obtained. Move to an area with GPS/network signal and try again.';
+                alert(message);
+                return;
+            }
+
+            capturedLocation = {
+                latitude: capturePosition.coords.latitude,
+                longitude: capturePosition.coords.longitude,
+                accuracy: capturePosition.coords.accuracy,
+                capturedAt: new Date().toISOString()
+            };
+            currentLat = capturedLocation.latitude;
+            currentLng = capturedLocation.longitude;
+            updateGpsLabels(capturedLocation.accuracy);
+
             canvasElem.width = videoElem.videoWidth || 640;
             canvasElem.height = videoElem.videoHeight || 480;
             const ctx = canvasElem.getContext('2d');
@@ -416,13 +509,14 @@
                     aiForm.append("photo", blob, "preview.jpg");
                     aiForm.append("description", document.getElementById('issue-description').value);
 
-                    const aiRes = await fetch("/api/issues/classify/", { method: "POST", body: aiForm });
+                    const aiRes = await fetch("/api/issues/classify/", { method: "POST", headers: { "X-CSRFToken": csrfToken() }, body: aiForm });
                     const aiData = await aiRes.json();
 
                     if (aiData.category) {
                         document.getElementById('ai-category-val').textContent = aiData.category.toUpperCase();
                         document.getElementById('ai-severity-val').textContent = `${aiData.severity.toUpperCase()} (${aiData.issue_type || ''})`;
                         document.getElementById('ai-confidence-badge').textContent = `${Math.round(aiData.confidence * 100)}% Confidence`;
+                        document.getElementById('ai-model-tag').textContent = aiData.raw_response?.cloud || 'Vision AI Classifier';
                         document.getElementById('ai-title-suggestion').textContent = `Suggested: "${aiData.suggested_title}"`;
                         
                         // Auto-select category in dropdown
@@ -439,6 +533,7 @@
 
         btnRetake.addEventListener('click', () => {
             capturedPhotoBlob = null;
+            capturedLocation = null;
             previewElem.classList.add('hidden');
             videoElem.classList.remove('hidden');
             btnRetake.classList.add('hidden');
@@ -455,16 +550,31 @@
                         currentLng = pos.coords.longitude;
                         updateGpsLabels(pos.coords.accuracy);
                     },
-                    (err) => console.warn("GPS info:", err),
-                    { enableHighAccuracy: true }
+                    (err) => {
+                        console.warn("GPS info:", err);
+                        const pulse = document.getElementById('gps-pulse');
+                        const badge = document.getElementById('gps-accuracy-badge');
+                        pulse.className = 'w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse';
+                        badge.className = 'bg-red-100 text-red-800 font-bold px-2 py-0.5 rounded-md text-[11px]';
+                        badge.textContent = err.code === 1 ? 'Location blocked' : 'GPS unavailable';
+                    },
+                    { enableHighAccuracy: true, maximumAge: 0, timeout: 30000 }
                 );
+            } else {
+                document.getElementById('gps-accuracy-badge').textContent = 'GPS unavailable';
             }
         }
 
         function updateGpsLabels(accuracy = 4) {
             const t = translations[currentLang];
+            if (currentLat === null || currentLng === null) {
+                document.getElementById('gps-coords-text').textContent = `${t.gps}: ${currentLang === 'ta' ? 'நேரடி இருப்பிடம் பெறப்படுகிறது...' : 'Acquiring live location...'}`;
+                return;
+            }
             document.getElementById('gps-coords-text').textContent = `${t.gps}: ${currentLat.toFixed(4)}° N, ${currentLng.toFixed(4)}° E`;
             document.getElementById('gps-accuracy-badge').textContent = `${t.accuracy} ±${Math.round(accuracy)}m`;
+            document.getElementById('gps-pulse').className = 'w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse';
+            document.getElementById('gps-accuracy-badge').className = 'bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-md text-[11px]';
         }
 
         // 4. Voice-To-Text (SpeechRecognition in EN & TA)
@@ -481,7 +591,8 @@
             const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
             recognition = new SpeechRec();
             recognition.continuous = false;
-            recognition.interimResults = false;
+            recognition.interimResults = true;
+            recognition.maxAlternatives = 1;
 
             btnSpeech.addEventListener('click', () => {
                 recognition.lang = currentLang === 'ta' ? 'ta-IN' : 'en-IN';
@@ -497,12 +608,23 @@
             });
 
             recognition.onresult = (evt) => {
-                const text = evt.results[0][0].transcript;
-                descInput.value = (descInput.value + ' ' + text).trim();
-                btnSpeech.classList.remove('bg-red-500', 'text-white', 'animate-pulse');
-                document.getElementById('mic-status-label').textContent = translations[currentLang].transcribed;
-                announce(translations[currentLang].transcribed);
-                speakText(text);
+                let finalText = '';
+                let interimText = '';
+                for (let index = evt.resultIndex; index < evt.results.length; index += 1) {
+                    const transcript = evt.results[index][0].transcript;
+                    if (evt.results[index].isFinal) finalText += transcript;
+                    else interimText += transcript;
+                }
+                if (interimText) {
+                    document.getElementById('mic-status-label').textContent = currentLang === 'ta' ? 'பதிவு செய்கிறது...' : 'Recording...';
+                }
+                if (finalText.trim()) {
+                    descInput.value = (descInput.value + ' ' + finalText).trim();
+                    btnSpeech.classList.remove('bg-red-500', 'text-white', 'animate-pulse');
+                    document.getElementById('mic-status-label').textContent = translations[currentLang].transcribed;
+                    announce(translations[currentLang].transcribed);
+                    speakText(finalText.trim());
+                }
             };
 
             recognition.onerror = () => {
@@ -523,9 +645,14 @@
 
         // 5. Submit Report
         document.getElementById('btn-submit-report').addEventListener('click', async () => {
+            if (!capturedPhotoBlob || !capturedLocation) {
+                alert('Capture a photo first so its current location can be recorded.');
+                return;
+            }
+
             const formData = new FormData();
-            formData.append("latitude", currentLat);
-            formData.append("longitude", currentLng);
+            formData.append("latitude", capturedLocation.latitude);
+            formData.append("longitude", capturedLocation.longitude);
             formData.append("description", descInput.value);
             formData.append("category", document.getElementById('issue-category-select').value);
             formData.append("input_method", inputMethod);
@@ -535,19 +662,19 @@
             }
 
             try {
-                const res = await fetch("/api/issues/report/", { method: "POST", body: formData });
+                const res = await fetch("/api/issues/report/", { method: "POST", headers: { "X-CSRFToken": csrfToken() }, body: formData });
                 const data = await res.json();
 
                 if (data.duplicate_detected) {
                     const dup = data.nearby_issues[0];
                     document.getElementById('dedup-card-slot').innerHTML = `
-                        <div class="font-bold text-on-surface">${dup.title}</div>
-                        <div class="text-outline text-[11px]">${dup.address} • Priority Score: ${dup.priority_score}</div>
+                        <div class="font-bold text-on-surface">${escapeHtml(dup.title)}</div>
+                        <div class="text-outline text-[11px]">${escapeHtml(dup.address)} • Priority Score: ${escapeHtml(dup.priority_score)}</div>
                     `;
                     document.getElementById('dedup-modal').classList.remove('hidden');
                     
                     document.getElementById('btn-upvote-existing').onclick = async () => {
-                        await fetch(`/api/issues/${dup.id}/upvote/`, { method: "POST" });
+                        await fetch(`/api/issues/${dup.id}/upvote/`, { method: "POST", headers: { "X-CSRFToken": csrfToken() } });
                         speakText(currentLang === 'ta' ? "ஏற்கனவே உள்ள புகாருக்கு வாக்களிக்கப்பட்டது." : "Existing complaint upvoted.");
                         setTimeout(() => location.reload(), 1200);
                     };
@@ -556,21 +683,37 @@
                         const forcedFormData = new FormData();
                         formData.forEach((value, key) => forcedFormData.append(key, value));
                         forcedFormData.set("force_submit", "true");
-                        const forcedRes = await fetch("/api/issues/report/", { method: "POST", body: forcedFormData });
+                        const forcedRes = await fetch("/api/issues/report/", { method: "POST", headers: { "X-CSRFToken": csrfToken() }, body: forcedFormData });
                         const forcedData = await forcedRes.json();
                         if (!forcedRes.ok || !forcedData.success) {
                             throw new Error(forcedData.error || "Could not submit the report.");
                         }
-                        speakText(currentLang === 'ta' ? "புகார் வெற்றிகரமாக பதிவு செய்யப்பட்டது." : "Issue reported successfully.");
+                        speakText(currentSubmissionMessage());
                         setTimeout(() => location.reload(), 1200);
                     };
                 } else {
-                    speakText(currentLang === 'ta' ? "புகார் வெற்றிகரமாக பதிவு செய்யப்பட்டது. 20 புள்ளிகள் கிடைத்தன." : "Issue reported successfully. 20 civic points earned.");
+                    speakText(currentSubmissionMessage());
                     setTimeout(() => location.reload(), 1200);
                 }
             } catch (err) {
                 alert("Error submitting report: " + err);
             }
+        });
+
+        document.getElementById('btn-emergency-dispatch').addEventListener('click', async () => {
+            if (currentLat === null || currentLng === null) {
+                alert('Wait for live GPS before sending an emergency dispatch.');
+                return;
+            }
+            const emergencyType = prompt('Emergency type (for example: live electrical wires):');
+            if (!emergencyType) return;
+            const description = prompt('Briefly describe the danger:') || '';
+            const res = await fetch('/api/issues/emergency-dispatch/', {
+                method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken() },
+                body: JSON.stringify({ latitude: currentLat, longitude: currentLng, emergency_type: emergencyType, description })
+            });
+            const data = await res.json();
+            alert(data.message || data.error || 'Emergency dispatch request failed.');
         });
 
         // 6. Nearby Feed & Badges Loader
@@ -595,17 +738,17 @@
                     const markerColor = iss.severity === 'critical' ? 'red' : iss.severity === 'high' ? 'orange' : 'green';
                     L.circleMarker([iss.location.latitude, iss.location.longitude], {
                         color: markerColor, radius: 7, fillOpacity: 0.8
-                    }).addTo(mapInstance).bindPopup(`<b>${iss.title}</b><br>${iss.severity.toUpperCase()} • Score: ${iss.priority_score}`);
+                    }).addTo(mapInstance).bindPopup(`<b>${escapeHtml(iss.title)}</b><br>${escapeHtml(iss.severity).toUpperCase()} • Score: ${escapeHtml(iss.priority_score)}`);
 
                     const card = document.createElement('div');
                     card.className = "bg-white p-3.5 rounded-xl border border-outline-variant shadow-sm flex flex-col gap-2";
                     card.innerHTML = `
                         <div class="flex justify-between items-start">
-                            <span class="text-[10px] font-bold uppercase px-2 py-0.5 rounded ${iss.severity === 'critical' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-800'}">${iss.severity}</span>
-                            <span class="text-xs font-mono font-bold text-primary">Score: ${iss.priority_score}</span>
+                            <span class="text-[10px] font-bold uppercase px-2 py-0.5 rounded ${iss.severity === 'critical' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-800'}">${escapeHtml(iss.severity)}</span>
+                            <span class="text-xs font-mono font-bold text-primary">Score: ${escapeHtml(iss.priority_score)}</span>
                         </div>
-                        <h4 class="font-bold text-sm text-on-surface">${iss.title}</h4>
-                        <p class="text-xs text-on-surface-variant line-clamp-1">${iss.address}</p>
+                        <h4 class="font-bold text-sm text-on-surface">${escapeHtml(iss.title)}</h4>
+                        <p class="text-xs text-on-surface-variant line-clamp-1">${escapeHtml(iss.address)}</p>
                         <div class="flex items-center gap-1 text-[10px] font-bold uppercase" aria-label="Issue status timeline">
                             ${['submitted', 'assigned', 'in_progress', 'resolved'].map((status) => `<span class="px-1.5 py-1 rounded ${iss.status === status || (status === 'submitted' && ['assigned', 'in_progress', 'resolved', 'citizen_verified'].includes(iss.status)) || (status === 'assigned' && ['in_progress', 'resolved', 'citizen_verified'].includes(iss.status)) || (status === 'in_progress' && ['resolved', 'citizen_verified'].includes(iss.status)) ? 'bg-secondary text-white' : 'bg-surface-container text-outline'}">${status.replace('_', ' ')}</span>`).join('<span class="text-outline">›</span>')}
                         </div>
@@ -614,7 +757,7 @@
                             <button onclick="upvoteIssue('${iss.id}')" class="text-primary font-bold flex items-center gap-1 hover:bg-primary/10 px-2 py-1 rounded">
                                 <span class="material-symbols-outlined text-base">thumb_up</span> ${iss.upvote_count} Upvotes
                             </button>
-                            <span class="text-outline text-[11px] font-semibold">${iss.status.toUpperCase()}</span>
+                            <span class="text-outline text-[11px] font-semibold">${escapeHtml(iss.status).toUpperCase()}</span>
                         </div>
                     `;
                     container.appendChild(card);
@@ -647,7 +790,7 @@
         }
 
         async function upvoteIssue(id) {
-            const res = await fetch(`/api/issues/${id}/upvote/`, { method: "POST" });
+            const res = await fetch(`/api/issues/${id}/upvote/`, { method: "POST", headers: { "X-CSRFToken": csrfToken() } });
             const data = await res.json();
             alert(`Upvoted! Total votes: ${data.upvote_count}`);
             loadNearbyFeed();
@@ -656,7 +799,7 @@
         async function verifyIssue(id, isFixed) {
             const response = await fetch(`/api/issues/${id}/verify/`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken() },
                 body: JSON.stringify({ is_fixed: isFixed, user_id: 'citizen_anonymous' })
             });
             const data = await response.json();
@@ -691,6 +834,13 @@
             localStorage.setItem('civix-contrast', enabled ? 'on' : 'off');
             document.getElementById('btn-contrast').setAttribute('aria-pressed', String(enabled));
             announce(enabled ? (currentLang === 'ta' ? 'மாறுபட்ட காட்சி இயக்கப்பட்டது' : 'High contrast enabled') : (currentLang === 'ta' ? 'மாறுபட்ட காட்சி முடக்கப்பட்டது' : 'High contrast disabled'));
+        });
+
+        document.getElementById('btn-easy-read').addEventListener('click', () => {
+            easyRead = !easyRead;
+            localStorage.setItem('civix-easy-read', easyRead ? 'on' : 'off');
+            updateEasyRead();
+            announce(easyRead ? (currentLang === 'ta' ? 'எளிய வாசிப்பு இயக்கப்பட்டது' : 'Easy Read enabled') : (currentLang === 'ta' ? 'எளிய வாசிப்பு முடக்கப்பட்டது' : 'Easy Read disabled'));
         });
 
         function setFontSize(scale) {

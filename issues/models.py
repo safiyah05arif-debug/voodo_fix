@@ -609,3 +609,31 @@ class EscalationLog(Document):
 
     def __str__(self):
         return f"Escalation: Issue {self.issue_id} L{self.from_level}→L{self.to_level} ({self.reason})"
+
+
+class EmergencyDispatch(Document):
+    """Immediate emergency alert created from a life-threatening civic report."""
+    issue_id = StringField(required=True)
+    reported_by = StringField(required=True)
+    emergency_type = StringField(required=True, max_length=100)
+    location = PointField(required=True)
+    description = StringField(max_length=2000)
+    status = StringField(default="dispatched", choices=["dispatched", "acknowledged", "closed"])
+    dispatched_at = DateTimeField(default=datetime.datetime.utcnow)
+
+    meta = {"collection": "emergency_dispatches", "indexes": ["issue_id", "-dispatched_at"], "strict": False}
+
+
+class VolunteerDrive(Document):
+    """Scheduled neighborhood cleanup or repair drive."""
+    title = StringField(required=True, max_length=200)
+    description = StringField(max_length=2000)
+    organizer_id = StringField(required=True)
+    organizer_role = StringField(required=True)
+    zone = StringField(required=True, max_length=100)
+    location = PointField(required=True)
+    scheduled_at = DateTimeField(required=True)
+    status = StringField(default="scheduled", choices=["scheduled", "active", "completed", "cancelled"])
+    created_at = DateTimeField(default=datetime.datetime.utcnow)
+
+    meta = {"collection": "volunteer_drives", "indexes": ["zone", "scheduled_at", "status"], "strict": False}

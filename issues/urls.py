@@ -11,6 +11,7 @@ from issues.views import (
     IssueStatusView,
     MyReportsView, NearbyIssuesView, TaskAssignedView, IssueDetailsView, IssueProofView,
     DepartmentMasterView, SLABreachesView, OverrideDepartmentView, EscalateIssueView, DeleteIssueView,
+    EmergencyDispatchView, VolunteerDriveView,
 )
 
 urlpatterns = [
@@ -22,6 +23,9 @@ urlpatterns = [
     path("<str:issue_id>/resolve/", IssueResolveView.as_view(), name="issue-resolve"),
     path("<str:issue_id>/verify/", IssueVerifyView.as_view(), name="issue-verify"),
     path("<str:issue_id>/assign/", IssueAssignView.as_view(), name="issue-assign"),
+    path("<str:issue_id>/delete/", DeleteIssueView.as_view(), name="issue-delete"),
+    path("emergency-dispatch/", EmergencyDispatchView.as_view(), name="emergency-dispatch"),
+    path("volunteer-drives/", VolunteerDriveView.as_view(), name="volunteer-drives"),
     path("<str:issue_id>/status/", IssueStatusView.as_view(), name="issue-status"),
     path("my-reports/", MyReportsView.as_view(), name="my-reports"),
     path("nearby/", NearbyIssuesView.as_view(), name="nearby-issues"),

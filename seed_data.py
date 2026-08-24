@@ -101,6 +101,7 @@ BADGE_DEFINITIONS = [
 DEMO_USERS = [
     {
         "email": "ravi.kumar@example.com",
+        "username": "ravi-kumar",
         "phone": "+919876543210",
         "full_name": "Ravi Kumar",
         "password_hash": "pbkdf2_sha256$demo$hashed_password_placeholder",
@@ -110,6 +111,7 @@ DEMO_USERS = [
     },
     {
         "email": "priya.devi@example.com",
+        "username": "priya-devi",
         "phone": "+919876543211",
         "full_name": "Priya Devi",
         "password_hash": "pbkdf2_sha256$demo$hashed_password_placeholder",
@@ -119,6 +121,7 @@ DEMO_USERS = [
     },
     {
         "email": "murugan.s@example.com",
+        "username": "murugan-s",
         "phone": "+919876543212",
         "full_name": "Murugan S",
         "password_hash": "pbkdf2_sha256$demo$hashed_password_placeholder",
@@ -129,6 +132,7 @@ DEMO_USERS = [
     },
     {
         "email": "lakshmi.n@example.com",
+        "username": "lakshmi-narayanan",
         "phone": "+919876543213",
         "full_name": "Lakshmi Narayanan",
         "password_hash": "pbkdf2_sha256$demo$hashed_password_placeholder",
@@ -139,6 +143,7 @@ DEMO_USERS = [
     },
     {
         "email": "officer.chennai@example.com",
+        "username": "anand-krishnan",
         "phone": "+919876543214",
         "full_name": "Anand Krishnan (Officer)",
         "password_hash": "pbkdf2_sha256$demo$hashed_password_placeholder",
@@ -149,11 +154,23 @@ DEMO_USERS = [
     },
     {
         "email": "zone.officer@example.com",
+        "username": "deepa-sundaram",
         "phone": "+919876543215",
         "full_name": "Deepa Sundaram (Zone Officer)",
         "password_hash": "pbkdf2_sha256$demo$hashed_password_placeholder",
         "role": "zone_officer",
         "zone": "Zone 5 - Adyar",
+        "department": "Municipal Administration",
+        "civic_points": 0,
+    },
+    {
+        "email": "admin.civix@example.com",
+        "username": "civix-admin",
+        "phone": "+919876543216",
+        "full_name": "CIVIX System Administrator",
+        "password_hash": "pbkdf2_sha256$demo$hashed_password_placeholder",
+        "role": "admin",
+        "zone": "All Zones",
         "department": "Municipal Administration",
         "civic_points": 0,
     },
@@ -517,12 +534,16 @@ def seed_users():
     for user_data in DEMO_USERS:
         existing = CivixUser.objects(email=user_data["email"]).first()
         if existing:
+            if not existing.username and user_data.get("username"):
+                existing.username = user_data["username"]
+                existing.save()
             print(f"   [SKIP] User '{user_data['full_name']}' already exists")
             user_ids.append(str(existing.id))
             continue
 
         user = CivixUser(
             email=user_data["email"],
+            username=user_data.get("username"),
             phone=user_data.get("phone"),
             full_name=user_data["full_name"],
             password_hash=user_data["password_hash"],

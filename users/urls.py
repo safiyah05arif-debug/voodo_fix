@@ -8,7 +8,7 @@ from users.views import (
     WorkerListView,
     AdminMetricsView,
     AdminConfigView,
-    AdminAnalyticsView, AdminUsersView, AdminAuditLogsView, AdminCreateUserView,
+    AdminAnalyticsView, AdminUsersView, AdminAuditLogsView, AdminCreateUserView, AdminUpdateUserView, NotificationListView,
 )
 
 urlpatterns = [
@@ -17,6 +17,7 @@ urlpatterns = [
     path("workers/add/", WorkerAddView.as_view(), name="worker-add"),
     path("workers/", WorkerListView.as_view(), name="worker-list"),
     path("profile/", UserProfileView.as_view(), name="user-profile"),
+    path("notifications/", NotificationListView.as_view(), name="notifications"),
     path("leaderboard/", LeaderboardView.as_view(), name="user-leaderboard"),
     path("admin/metrics/", AdminMetricsView.as_view(), name="admin-metrics"),
     path("admin/config/", AdminConfigView.as_view(), name="admin-config"),
@@ -24,5 +25,6 @@ urlpatterns = [
     path("admin/users/", AdminUsersView.as_view(), name="admin-users"),
     path("admin/audit-logs/", AdminAuditLogsView.as_view(), name="admin-audit-logs"),
     path("admin/users/create/", AdminCreateUserView.as_view(), name="admin-create-user"),
+    path("admin/users/<str:user_id>/", AdminUpdateUserView.as_view(), name="admin-update-user"),
     path("admin/config/sla/", AdminConfigView.as_view(), name="admin-sla-config"),
 ]

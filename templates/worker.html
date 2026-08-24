@@ -6,6 +6,7 @@
     <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
     <title>CIVIX — Field Worker Mobile App</title>
     <link rel="stylesheet" href="{% static 'css/tailwind.css' %}">
+    <link rel="icon" href="{% static 'favicon.svg' %}" type="image/svg+xml">
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet"/>
 
@@ -20,7 +21,7 @@
         .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
     </style>
 </head>
-<body class="bg-surface text-on-surface min-h-screen flex flex-col font-sans pb-24">
+<body class="bg-surface text-on-surface min-h-screen flex flex-col font-sans pb-24 civix-enter">
     <a href="#main-content" class="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:bg-white focus:px-4 focus:py-2 focus:text-primary focus:font-bold focus:shadow-lg">Skip to main content</a>
 
     <!-- Worker Accessibility Header -->
@@ -30,7 +31,7 @@
             <span id="worker-portal-title">FIELD WORKER PORTAL</span>
         </div>
         <div class="flex items-center gap-3">
-            <span id="worker-gps-tag">📍 GPS: Active (Adyar Zone 5)</span>
+            <span id="worker-gps-tag">GPS: Waiting for location</span>
             <div class="flex items-center gap-2 border-l border-white/30 pl-2">
                 <button id="worker-lang-en" type="button" aria-label="Switch interface language to English" class="underline">EN</button>
                 <button id="worker-lang-ta" type="button" aria-label="தமிழில் இடைமுகத்தை மாற்றவும்">தமிழ்</button>
@@ -45,12 +46,12 @@
     </div>
 
     <!-- App Header -->
-    <header class="bg-white border-b border-outline-variant flex justify-between items-center w-full px-4 py-3 max-w-4xl mx-auto">
+    <header class="bg-white border-b border-outline-variant flex justify-between items-center w-full px-4 py-3 max-w-4xl mx-auto civix-glass">
         <div class="flex items-center gap-3">
             <div class="w-10 h-10 rounded-full bg-primary text-white flex items-center justify-center font-bold">MS</div>
             <div>
                 <h1 class="font-black text-xl text-primary leading-tight" id="worker-heading">CIVIX Worker</h1>
-                <p class="text-xs text-on-surface-variant">Murugan S. (Roads Dept)</p>
+                <p id="worker-profile-summary" class="text-xs text-on-surface-variant">Loading worker profile...</p>
             </div>
         </div>
         <div class="flex items-center gap-2 bg-secondary-container/50 text-secondary px-3 py-1 rounded-full text-xs font-bold border border-secondary/30">
@@ -63,15 +64,15 @@
     <main id="main-content" tabindex="-1" class="flex-1 w-full max-w-4xl mx-auto px-4 py-4 flex flex-col gap-5">
 
         <!-- Target KPI Bar -->
-        <section class="bg-white rounded-2xl p-4 border border-outline-variant shadow-sm flex justify-around items-center">
+        <section class="bg-white rounded-2xl p-4 border border-outline-variant shadow-sm civix-panel flex justify-around items-center">
             <div class="text-center">
                 <span class="text-xs text-on-surface-variant font-bold uppercase" id="worker-assigned-label">Assigned Tasks</span>
-                <div class="font-mono text-2xl font-black text-primary">6 Tasks</div>
+                <div id="worker-assigned-count" class="font-mono text-2xl font-black text-primary">0 Tasks</div>
             </div>
             <div class="h-8 w-px bg-outline-variant"></div>
             <div class="text-center">
                 <span class="text-xs text-on-surface-variant font-bold uppercase" id="worker-closed-label">Closed Today</span>
-                <div class="font-mono text-2xl font-black text-secondary">3 Done</div>
+                <div id="worker-closed-count" class="font-mono text-2xl font-black text-secondary">0 Done</div>
             </div>
         </section>
 
@@ -156,7 +157,9 @@
         let currentActiveWorkerId = null;
         const assignedWorkerByIssue = {};
         let proofPhotoFile = null;
+        let workerCurrentPosition = null;
         let workerLanguage = localStorage.getItem('civix-language') || 'en';
+        const escapeHtml = (value) => String(value ?? '').replace(/[&<>\'"]/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[character]));
         const workerTranslations = {
             en: {
                 portal: 'FIELD WORKER PORTAL', citizen: 'Citizen View', heading: 'CIVIX Worker', duty: 'On Duty', assigned: 'Assigned Tasks', closed: 'Closed Today',
@@ -204,6 +207,15 @@
             document.getElementById('worker-read-aloud').setAttribute('aria-pressed', String(isReading));
         }
 
+        let workerSpeechVoices = [];
+        function loadWorkerSpeechVoices() {
+            if ('speechSynthesis' in window) workerSpeechVoices = window.speechSynthesis.getVoices();
+        }
+        if ('speechSynthesis' in window) {
+            loadWorkerSpeechVoices();
+            window.speechSynthesis.addEventListener('voiceschanged', loadWorkerSpeechVoices);
+        }
+
         function readWorkerTasks() {
             if (!('speechSynthesis' in window)) {
                 announceWorker(workerLanguage === 'ta' ? 'இந்த உலாவியில் குரல் வாசிப்பு ஆதரிக்கப்படவில்லை.' : 'Speech synthesis is not supported in this browser.');
@@ -218,6 +230,8 @@
             const utterance = new SpeechSynthesisUtterance(workerTranslations[workerLanguage].prompt + ' ' + document.getElementById('worker-tasks-list').innerText);
             utterance.lang = workerLanguage === 'ta' ? 'ta-IN' : 'en-US';
             utterance.rate = 0.95;
+            const voicePrefix = workerLanguage === 'ta' ? 'ta' : 'en';
+            utterance.voice = workerSpeechVoices.find((voice) => voice.lang.toLowerCase().startsWith(voicePrefix)) || null;
             utterance.onstart = () => { updateWorkerReadButton(true); announceWorker(workerTranslations[workerLanguage].started); };
             utterance.onend = () => updateWorkerReadButton(false);
             utterance.onerror = () => updateWorkerReadButton(false);
@@ -245,6 +259,14 @@
                     return;
                 }
 
+                const resolvedStatuses = ['resolved', 'citizen_verified', 'closed'];
+                const closedToday = issues.filter((issue) => {
+                    if (!resolvedStatuses.includes(issue.status) || !issue.resolved_at) return false;
+                    return new Date(issue.resolved_at).toDateString() === new Date().toDateString();
+                }).length;
+                document.getElementById('worker-assigned-count').textContent = `${issues.length} Tasks`;
+                document.getElementById('worker-closed-count').textContent = `${closedToday} Done`;
+
                 issues.slice(0, 10).forEach((iss, index) => {
                     assignedWorkerByIssue[iss.id] = iss.assigned_to || '';
                     const card = document.createElement('article');
@@ -264,12 +286,12 @@
                             <span class="text-xs font-bold text-primary font-mono">📍 ${(index * 120 + 80)}m Away</span>
                         </div>
                         <div>
-                            <h4 class="font-bold text-base text-on-surface">${iss.title}</h4>
-                            <p class="text-xs text-on-surface-variant mt-0.5">${iss.address}</p>
+                            <h4 class="font-bold text-base text-on-surface">${escapeHtml(iss.title)}</h4>
+                            <p class="text-xs text-on-surface-variant mt-0.5">${escapeHtml(iss.address)}</p>
                         </div>
                         <div class="grid grid-cols-2 gap-2 bg-surface-container-low p-2 rounded-xl text-center text-xs">
                             <div><span class="text-[10px] text-on-surface-variant uppercase block">Priority Score</span><span class="font-bold text-primary font-mono text-sm">${iss.priority_score}</span></div>
-                            <div><span class="text-[10px] text-on-surface-variant uppercase block">Status</span><span class="font-bold text-secondary uppercase text-sm">${iss.status}</span></div>
+                            <div><span class="text-[10px] text-on-surface-variant uppercase block">Status</span><span class="font-bold text-secondary uppercase text-sm">${escapeHtml(iss.status)}</span></div>
                         </div>
                         <div class="flex gap-2 pt-1">
                             <a href="https://maps.google.com/?q=${iss.location.latitude},${iss.location.longitude}" target="_blank" class="flex-1 bg-surface-container text-on-surface py-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 border hover:bg-surface-variant">
@@ -330,9 +352,13 @@
                 alert(workerLanguage === 'ta' ? 'முடிப்பு புகைப்படம் அவசியம்.' : 'An after photo is required before closing the ticket.');
                 return;
             }
+            if (!workerCurrentPosition) {
+                alert('Current worker location is required before submitting proof. Enable GPS and try again.');
+                return;
+            }
             const formData = new FormData();
-            formData.append("latitude", "13.0067");
-            formData.append("longitude", "80.2574");
+            formData.append("latitude", workerCurrentPosition.coords.latitude);
+            formData.append("longitude", workerCurrentPosition.coords.longitude);
             formData.append("notes", document.getElementById('resolution-notes').value);
             formData.append("worker_id", currentActiveWorkerId || "field_worker_1");
             if (proofPhotoFile) {
@@ -360,12 +386,27 @@
 
         window.addEventListener('DOMContentLoaded', () => {
             setWorkerLanguage(workerLanguage);
+            const storedUser = JSON.parse(localStorage.getItem('civix_user') || 'null');
+            if (storedUser) {
+                document.getElementById('worker-profile-summary').textContent = `${storedUser.full_name} (${storedUser.department || 'Municipal Works'})`;
+            }
             if (localStorage.getItem('civix-contrast') === 'on') {
                 document.body.classList.add('high-contrast');
                 document.getElementById('worker-contrast').setAttribute('aria-pressed', 'true');
             }
             if (localStorage.getItem('civix-font-size')) setWorkerFontSize(localStorage.getItem('civix-font-size'));
             loadWorkerTasks();
+            if ('geolocation' in navigator) {
+                navigator.geolocation.watchPosition((position) => {
+                    workerCurrentPosition = position;
+                    document.getElementById('worker-gps-tag').textContent = `GPS: Active (±${Math.round(position.coords.accuracy)}m)`;
+                }, () => {
+                    workerCurrentPosition = null;
+                    document.getElementById('worker-gps-tag').textContent = 'GPS: Unavailable';
+                }, { enableHighAccuracy: true, maximumAge: 0, timeout: 30000 });
+            } else {
+                document.getElementById('worker-gps-tag').textContent = 'GPS: Unavailable';
+            }
         });
     </script>
 </body>

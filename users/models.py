@@ -5,6 +5,7 @@ User profiles, gamification, and role management stored in MongoDB Atlas.
 
 Updated:
     - Primary identifier is now `phone` (required & unique)
+    - Username is an optional human-friendly login identifier
     - `email` is optional
     - Full role support (citizen, field_worker, officer, zone_officer, admin)
 """
@@ -79,6 +80,13 @@ class CivixUser(Document):
         sparse=True,
         max_length=20,
         help_text="Primary phone number used for login, e.g. '9876543210'",
+    )
+    username = StringField(
+        required=False,
+        unique=True,
+        sparse=True,
+        max_length=100,
+        help_text="Optional username used for login",
     )
     email = EmailField(
         required=False,
@@ -200,3 +208,24 @@ class Notification(Document):
         ],
         "strict": False,
     }
+
+
+class SystemConfig(Document):
+    """Persistent administrator configuration for SLA and priority rules."""
+    key = StringField(required=True, unique=True, default="default")
+    sla_deadlines = DictField(default=dict)
+    priority_weights = DictField(default=dict)
+    updated_at = DateTimeField(default=datetime.datetime.utcnow)
+
+    meta = {"collection": "system_config", "strict": False}
+
+
+class AdminAuditLog(Document):
+    """Immutable record of sensitive system-admin actions."""
+    actor_id = StringField(required=True)
+    action = StringField(required=True, max_length=100)
+    target_id = StringField()
+    details = DictField()
+    created_at = DateTimeField(default=datetime.datetime.utcnow)
+
+    meta = {"collection": "admin_audit_logs", "indexes": ["actor_id", "-created_at"], "strict": False}

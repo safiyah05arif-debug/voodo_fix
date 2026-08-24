@@ -92,3 +92,64 @@ python test_storage.py
 # 5. Populate 25 realistic demo issues in Chennai
 python seed_data.py
 ```
+
+## ✅ Implemented Feature Coverage
+
+### Citizen workflow
+
+- Camera-first issue reporting with GPS capture and timestamps.
+- AI category, issue type, severity, and confidence suggestions.
+- 50-meter spatial duplicate detection with upvoting.
+- Nearby issue map, issue status timeline, resolution verification, and reopening.
+- Civic points, levels, and badges.
+- English/Tamil interface switching.
+- Tamil and English speech-to-text and read-aloud support.
+- Easy Read message mode with four localized states:
+  - English normal: `Your grievance has been successfully submitted and forwarded to the relevant municipal authority.`
+  - English easy: `Your complaint was submitted ✅. The municipality will check it.`
+  - Tamil normal: `உங்கள் குறை வெற்றிகரமாக சமர்ப்பிக்கப்பட்டு, சம்பந்தப்பட்ட நகராட்சி அதிகாரிக்கு அனுப்பப்பட்டுள்ளது.`
+  - Tamil easy: `உங்கள் புகார் சமர்ப்பிக்கப்பட்டது ✅. நகராட்சி இதைச் சரிபார்க்கும்.`
+- High contrast, font-size controls, keyboard focus states, and skip links.
+
+### Officer and worker workflow
+
+- Officer heatmap, priority queue, SLA breach visibility, and worker assignment.
+- Automatic routing to an active worker matching issue category and zone.
+- Worker task status flow: `Assigned → In Progress → Resolved`.
+- Mandatory after-photo proof with geo-fence validation and resolution metadata.
+- Citizen, worker, and officer notifications for assignment, resolution, and verification events.
+- Persistent SLA and priority configuration stored in MongoDB.
+- Automatic SLA escalation and authority notifications when overdue tickets are checked.
+
+### System administration
+
+- Admin dashboard metrics and issue status distribution.
+- Create and edit citizens, workers, officers, zone officers, and administrators.
+- Activate/deactivate accounts and reset passwords.
+- Passwords are write-only and never displayed.
+- Admin actions are recorded in the audit log.
+
+### AI behavior
+
+The system tries the configured live provider first (`OpenAI` or `Gemini`). If the provider is unavailable, it falls back to optional local YOLO detection and then keyword-based heuristic classification. Every classification response includes its source so fallback results are not presented as live AI.
+
+### Demo accounts
+
+All seeded demo accounts use password `demo123`:
+
+| Role | Username | Phone |
+| --- | --- | --- |
+| Citizen | `ravi-kumar` | `9876543210` |
+| Field Worker | `murugan-s` | `9876543212` |
+| Officer | `anand-krishnan` | `9876543214` |
+| System Admin | `civix-admin` | `9876543216` |
+
+New passwords use Django secure password hashing. Legacy demo hashes are upgraded automatically after successful login.
+
+### Verification
+
+```bash
+python manage.py check
+python manage.py test
+npm run build:css
+```

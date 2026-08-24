@@ -6,6 +6,7 @@
     <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
     <title>CIVIX — Municipal Officer Command Center</title>
     <link rel="stylesheet" href="{% static 'css/tailwind.css' %}">
+    <link rel="icon" href="{% static 'favicon.svg' %}" type="image/svg+xml">
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet"/>
     
@@ -26,22 +27,36 @@
         .high-contrast .bg-primary { background-color: #000 !important; color: #ffff00 !important; }
         .high-contrast a { color: #00ffff !important; }
         .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+        @media (max-width: 767px) {
+            body { overflow: auto; }
+            body > header { align-items: flex-start; flex-direction: column; gap: 0.75rem; }
+            body > header > div:last-child { align-items: flex-start; flex-wrap: wrap; gap: 0.75rem; }
+            #main-content { overflow: visible; }
+            #main-content > div:first-child { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            #main-content > div:last-child { flex-direction: column; overflow: visible; }
+            #officer-map { height: 300px; }
+            #main-content > div:last-child > div:last-child { width: 100%; height: 60vh; min-height: 360px; border-left: 0; border-top: 1px solid #d9d9e0; }
+        }
     </style>
 </head>
-<body class="bg-surface text-on-surface h-full font-sans overflow-hidden flex flex-col">
+<body class="bg-surface text-on-surface h-full font-sans overflow-hidden flex flex-col civix-enter">
     <a href="#main-content" class="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:bg-white focus:px-4 focus:py-2 focus:text-primary focus:font-bold focus:shadow-lg">Skip to main content</a>
 
     <!-- Top Command Navigation Bar -->
     <header class="bg-primary text-white border-b border-primary-container px-6 py-3 flex justify-between items-center z-40 shrink-0 shadow-md">
         <div class="flex items-center gap-4">
             <div class="font-black text-2xl tracking-wider text-white" id="officer-title">CIVIX COMMAND</div>
-            <span class="bg-white/20 text-xs px-2.5 py-0.5 rounded-full font-bold">Zone 5 • Chennai Central</span>
+            <span id="officer-zone-label" class="bg-white/20 text-xs px-2.5 py-0.5 rounded-full font-bold">Loading zone...</span>
         </div>
         <div class="flex items-center gap-4 text-xs">
             <!-- Add Field Worker Trigger Button -->
             <button onclick="openWorkerModal()" class="bg-secondary text-white px-3.5 py-1.5 rounded-xl font-bold flex items-center gap-1.5 shadow-sm hover:bg-secondary-container hover:text-on-secondary-container transition-all">
                 <span class="material-symbols-outlined text-sm">person_add</span>
                 <span>+ Provision Field Worker</span>
+            </button>
+            <button onclick="createVolunteerDrive()" class="bg-emerald-600 text-white px-3.5 py-1.5 rounded-xl font-bold flex items-center gap-1.5 shadow-sm hover:bg-emerald-700 transition-all">
+                <span class="material-symbols-outlined text-sm">groups</span>
+                <span>Plan Volunteer Drive</span>
             </button>
             <div class="flex items-center gap-3 border-l border-white/20 pl-4">
                 <button id="officer-lang-en" type="button" aria-label="Switch interface language to English" class="underline">EN</button>
@@ -91,7 +106,7 @@
             <!-- Left: Interactive Leaflet City Heatmap -->
             <div class="flex-1 relative bg-surface-container-low overflow-hidden">
                 <div id="officer-map"></div>
-                <div class="absolute top-4 right-4 bg-white/90 backdrop-blur-md p-3 rounded-xl shadow-lg border border-outline-variant z-20 text-xs flex flex-col gap-1.5">
+                <div class="absolute top-4 right-4 bg-white/90 backdrop-blur-md p-3 rounded-xl shadow-lg border border-outline-variant z-20 text-xs flex flex-col gap-1.5 civix-glass max-w-[250px]">
                     <span class="font-bold text-on-surface mb-1" id="officer-heatmap-label">Severity Heatmap Layers</span>
                     <label class="flex items-center gap-2"><span class="w-3 h-3 rounded-full bg-red-600"></span> Critical (24h SLA)</label>
                     <label class="flex items-center gap-2"><span class="w-3 h-3 rounded-full bg-amber-500"></span> High (48h SLA)</label>
@@ -127,15 +142,19 @@
             <form id="add-worker-form" class="flex flex-col gap-3">
                 {% csrf_token %}
                 <div>
-                    <label class="text-xs font-bold uppercase text-on-surface-variant block mb-1">Worker Full Name</label>
+                    <label for="worker-name-input" class="text-xs font-bold uppercase text-on-surface-variant block mb-1">Worker Full Name</label>
                     <input id="worker-name-input" type="text" required aria-label="Worker full name" placeholder="E.g. Selvam Kumar" class="w-full p-2.5 border rounded-xl text-xs outline-none focus:border-primary"/>
                 </div>
                 <div>
-                    <label class="text-xs font-bold uppercase text-on-surface-variant block mb-1">Mobile Phone Number</label>
+                    <label for="worker-phone-input" class="text-xs font-bold uppercase text-on-surface-variant block mb-1">Mobile Phone Number</label>
                     <div class="flex gap-2">
                         <span class="p-2.5 border rounded-xl bg-surface-container text-xs font-bold text-on-surface">+91</span>
                         <input id="worker-phone-input" type="tel" required aria-label="Worker mobile phone number" placeholder="9876543219" class="flex-1 p-2.5 border rounded-xl text-xs font-mono font-bold outline-none focus:border-primary"/>
                     </div>
+                </div>
+                <div>
+                    <label for="worker-password-input" class="text-xs font-bold uppercase text-on-surface-variant block mb-1">Worker Password</label>
+                    <input id="worker-password-input" type="password" required minlength="6" autocomplete="new-password" aria-label="Worker password" placeholder="At least 6 characters" class="w-full p-2.5 border rounded-xl text-xs outline-none focus:border-primary"/>
                 </div>
                 <div>
                     <label class="text-xs font-bold uppercase text-on-surface-variant block mb-1">Municipal Department</label>
@@ -168,6 +187,10 @@
 
     <script>
         let officerMapInstance = null;
+        let officerMarkerLayer = null;
+        let officerHeatLayer = null;
+        let workersLoaded = false;
+        let officerRefreshInFlight = false;
         let workerOptionsList = [];
         let officerLanguage = localStorage.getItem('civix-language') || 'en';
         const officerTranslations = {
@@ -213,6 +236,15 @@
             document.getElementById('officer-read-aloud').setAttribute('aria-pressed', String(isReading));
         }
 
+        let officerSpeechVoices = [];
+        function loadOfficerSpeechVoices() {
+            if ('speechSynthesis' in window) officerSpeechVoices = window.speechSynthesis.getVoices();
+        }
+        if ('speechSynthesis' in window) {
+            loadOfficerSpeechVoices();
+            window.speechSynthesis.addEventListener('voiceschanged', loadOfficerSpeechVoices);
+        }
+
         function readOfficerQueue() {
             if (!('speechSynthesis' in window)) {
                 announceOfficer(officerLanguage === 'ta' ? 'இந்த உலாவியில் குரல் வாசிப்பு ஆதரிக்கப்படவில்லை.' : 'Speech synthesis is not supported in this browser.');
@@ -228,6 +260,8 @@
             const utterance = new SpeechSynthesisUtterance(text);
             utterance.lang = officerLanguage === 'ta' ? 'ta-IN' : 'en-US';
             utterance.rate = 0.95;
+            const voicePrefix = officerLanguage === 'ta' ? 'ta' : 'en';
+            utterance.voice = officerSpeechVoices.find((voice) => voice.lang.toLowerCase().startsWith(voicePrefix)) || null;
             utterance.onstart = () => { updateOfficerReadButton(true); announceOfficer(officerTranslations[officerLanguage].started); };
             utterance.onend = () => updateOfficerReadButton(false);
             utterance.onerror = () => updateOfficerReadButton(false);
@@ -256,6 +290,7 @@
             try {
                 const res = await fetch("/api/users/workers/");
                 workerOptionsList = await res.json();
+                workersLoaded = true;
             } catch (e) {
                 console.error("Worker fetch failed", e);
             }
@@ -266,6 +301,7 @@
             e.preventDefault();
             const full_name = document.getElementById('worker-name-input').value;
             const phone = document.getElementById('worker-phone-input').value;
+            const password = document.getElementById('worker-password-input').value;
             const department = document.getElementById('worker-dept-input').value;
             const zone = document.getElementById('worker-zone-input').value;
 
@@ -276,7 +312,7 @@
                         "Content-Type": "application/json",
                         "X-CSRFToken": document.querySelector('#add-worker-form input[name="csrfmiddlewaretoken"]').value
                     },
-                    body: JSON.stringify({ full_name, phone, department, zone })
+                    body: JSON.stringify({ full_name, phone, password, department, zone })
                 });
                 const data = await res.json();
                 if (res.ok) {
@@ -293,11 +329,20 @@
         });
 
         async function initOfficerCommand() {
-            await fetchWorkers();
+            if (officerRefreshInFlight) return;
+            officerRefreshInFlight = true;
+            if (!workersLoaded) await fetchWorkers();
 
             if (!officerMapInstance) {
                 officerMapInstance = L.map('officer-map').setView([13.0450, 80.2400], 12);
                 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 18 }).addTo(officerMapInstance);
+                officerMarkerLayer = L.layerGroup().addTo(officerMapInstance);
+            }
+
+            officerMarkerLayer.clearLayers();
+            if (officerHeatLayer) {
+                officerMapInstance.removeLayer(officerHeatLayer);
+                officerHeatLayer = null;
             }
 
             try {
@@ -320,6 +365,7 @@
                 document.getElementById('kpi-resolved').textContent = issues.filter(issue => issue.resolved_at && new Date(issue.resolved_at).toDateString() === today).length;
 
                 const heatPoints = [];
+                const escapeHtml = (value) => String(value ?? '').replace(/[&<>\'"]/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[character]));
 
                 issues.forEach(iss => {
                     const lat = iss.location.latitude;
@@ -332,11 +378,11 @@
                         fillColor: markerColor,
                         radius: isCritical ? 9 : 7,
                         fillOpacity: 0.85
-                    }).addTo(officerMapInstance).bindPopup(`
+                    }).addTo(officerMarkerLayer).bindPopup(`
                         <div style="font-family:sans-serif; min-width:180px;">
-                            <b style="font-size:13px;">${iss.title}</b><br/>
-                            <span style="color:${markerColor}; font-weight:bold;">${iss.severity.toUpperCase()}</span> • Priority: <b>${iss.priority_score}</b><br/>
-                            <span style="font-size:11px; color:#555;">${iss.address}</span>
+                            <b style="font-size:13px;">${escapeHtml(iss.title)}</b><br/>
+                            <span style="color:${markerColor}; font-weight:bold;">${escapeHtml(iss.severity).toUpperCase()}</span> • Priority: <b>${escapeHtml(iss.priority_score)}</b><br/>
+                            <span style="font-size:11px; color:#555;">${escapeHtml(iss.address)}</span>
                         </div>
                     `);
 
@@ -346,20 +392,25 @@
                     let workerOptionsHtml = `<option value="">${officerTranslations[officerLanguage].assign}</option>`;
                     workerOptionsList.forEach(w => {
                         const selected = iss.assigned_to === w.name || iss.assigned_to === w.phone ? 'selected' : '';
-                        workerOptionsHtml += `<option value="${w.name}" ${selected}>${w.name} (${w.department})</option>`;
+                        workerOptionsHtml += `<option value="${escapeHtml(w.name)}" ${selected}>${escapeHtml(w.name)} (${escapeHtml(w.department)})</option>`;
                     });
+
+                    // Escape HTML for XSS prevention
+                    const escapeHtml = (unsafe) => {
+                        return (unsafe || '').replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+                    };
 
                     // Add Ticket Card to Queue
                     const card = document.createElement('div');
                     card.className = `bg-white border-2 ${isCritical ? 'border-red-400' : 'border-outline-variant'} rounded-xl p-3.5 shadow-sm flex flex-col gap-2 hover:shadow-md transition-shadow`;
                     card.innerHTML = `
                         <div class="flex justify-between items-start">
-                            <span class="px-2 py-0.5 rounded text-[10px] font-black uppercase ${isCritical ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-800'}">${iss.severity}</span>
+                            <span class="px-2 py-0.5 rounded text-[10px] font-black uppercase ${isCritical ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-800'}">${escapeHtml(iss.severity)}</span>
                             <span class="text-xs font-mono font-bold text-on-surface-variant">#${iss.id.slice(-6).toUpperCase()}</span>
                         </div>
-                        <h4 class="font-bold text-sm text-on-surface">${iss.title}</h4>
+                        <h4 class="font-bold text-sm text-on-surface">${escapeHtml(iss.title)}</h4>
                         <p class="text-xs text-on-surface-variant flex items-center gap-1">
-                            <span class="material-symbols-outlined text-xs">location_on</span> ${iss.address}
+                            <span class="material-symbols-outlined text-xs">location_on</span> ${escapeHtml(iss.address)}
                         </p>
                         <div class="grid grid-cols-2 gap-2 bg-surface-container-low p-2 rounded-lg text-xs">
                             <div><span class="text-[10px] uppercase text-outline block">${officerTranslations[officerLanguage].priority}</span><span class="font-mono font-bold text-primary">${iss.priority_score}</span></div>
@@ -369,18 +420,23 @@
                             <select onchange="assignWorker('${iss.id}', this.value)" class="text-xs p-1.5 border rounded bg-white font-semibold outline-none focus:border-primary max-w-[260px]">
                                 ${workerOptionsHtml}
                             </select>
-                            <span class="text-[11px] text-outline">${iss.upvote_count} Upvotes</span>
+                            <div class="flex items-center gap-2">
+                                <span class="text-[11px] text-outline">${iss.upvote_count} Upvotes</span>
+                                ${iss.status === 'resolved' ? `<button type="button" onclick="deleteResolvedIssue('${iss.id}')" class="text-red-700 border border-red-200 bg-red-50 px-2 py-1 rounded font-bold hover:bg-red-100" aria-label="Delete resolved issue">Delete</button>` : ''}
+                            </div>
                         </div>
                     `;
                     queueContainer.appendChild(card);
                 });
 
                 if (window.L.heatLayer && heatPoints.length > 0) {
-                    L.heatLayer(heatPoints, { radius: 25, blur: 15, maxZoom: 14 }).addTo(officerMapInstance);
+                    officerHeatLayer = L.heatLayer(heatPoints, { radius: 25, blur: 15, maxZoom: 14 }).addTo(officerMapInstance);
                 }
 
             } catch (err) {
                 console.error(err);
+            } finally {
+                officerRefreshInFlight = false;
             }
         }
 
@@ -388,14 +444,82 @@
             if (!workerName) return;
             await fetch(`/api/issues/${issueId}/assign/`, {
                 method: "PATCH",
-                headers: { "Content-Type": "application/json" },
+                headers: { "Content-Type": "application/json", "X-CSRFToken": document.querySelector('#add-worker-form input[name="csrfmiddlewaretoken"]').value },
                 body: JSON.stringify({ worker_id: workerName, officer_id: "Officer_Chennai" })
             });
             alert(`Task assigned to ${workerName}!`);
         }
 
+        async function deleteResolvedIssue(issueId) {
+            if (!confirm('Delete this resolved issue permanently?')) return;
+            const res = await fetch(`/api/issues/${issueId}/delete/`, { method: 'DELETE', headers: { 'X-CSRFToken': document.querySelector('#add-worker-form input[name="csrfmiddlewaretoken"]').value } });
+            const data = await res.json();
+            if (!res.ok) {
+                alert(data.error || 'Could not delete the issue.');
+                return;
+            }
+            announceOfficer('Resolved issue deleted.');
+            initOfficerCommand();
+        }
+
+        async function createVolunteerDrive() {
+            const title = prompt('Drive title:');
+            if (!title) return;
+            const scheduledAtInput = document.createElement('input');
+            scheduledAtInput.type = 'datetime-local';
+            scheduledAtInput.min = new Date().toISOString().slice(0, 16);
+            scheduledAtInput.value = scheduledAtInput.min;
+            document.body.appendChild(scheduledAtInput);
+            scheduledAtInput.showPicker?.();
+            const scheduledAtLocal = await new Promise((resolve) => {
+                scheduledAtInput.addEventListener('change', () => resolve(scheduledAtInput.value), { once: true });
+                scheduledAtInput.addEventListener('blur', () => resolve(scheduledAtInput.value), { once: true });
+            });
+            scheduledAtInput.remove();
+            if (!scheduledAtLocal) return;
+            const scheduledAt = new Date(scheduledAtLocal).toISOString();
+            const zone = prompt('Zone:') || 'Zone 5 - Adyar';
+            const locationSource = prompt('Enter an existing issue ID to use its location, or leave blank to click the map:');
+            let latitude;
+            let longitude;
+
+            if (locationSource) {
+                const issueResponse = await fetch('/api/issues/');
+                const issues = await issueResponse.json();
+                const issue = Array.isArray(issues) ? issues.find((item) => item.id === locationSource.trim()) : null;
+                if (!issue) {
+                    alert('Issue not found. Enter the full issue ID or choose a map location.');
+                    return;
+                }
+                latitude = issue.location.latitude;
+                longitude = issue.location.longitude;
+            } else {
+                if (!officerMapInstance) {
+                    alert('The map is not ready yet. Try again in a moment.');
+                    return;
+                }
+                alert('Click the map to choose the volunteer drive location.');
+                const selectedPoint = await new Promise((resolve) => {
+                    officerMapInstance.once('click', (event) => resolve(event.latlng));
+                });
+                latitude = selectedPoint.lat;
+                longitude = selectedPoint.lng;
+            }
+
+            const res = await fetch('/api/issues/volunteer-drives/', {
+                method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': document.querySelector('#add-worker-form input[name="csrfmiddlewaretoken"]').value },
+                body: JSON.stringify({ title, scheduled_at: scheduledAt, latitude, longitude, zone })
+            });
+            const data = await res.json();
+            alert(data.success ? 'Volunteer drive scheduled.' : (data.error || 'Could not schedule drive.'));
+        }
+
         window.addEventListener('DOMContentLoaded', () => {
             setOfficerLanguage(officerLanguage);
+            const storedUser = JSON.parse(localStorage.getItem('civix_user') || 'null');
+            if (storedUser) {
+                document.getElementById('officer-zone-label').textContent = `${storedUser.zone || 'All Zones'} • ${storedUser.department || 'Municipal Administration'}`;
+            }
             if (localStorage.getItem('civix-contrast') === 'on') {
                 document.body.classList.add('high-contrast');
                 document.getElementById('officer-contrast').setAttribute('aria-pressed', 'true');
