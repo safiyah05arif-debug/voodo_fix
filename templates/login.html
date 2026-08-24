@@ -9,6 +9,15 @@
     <link rel="icon" href="{% static 'favicon.svg' %}" type="image/svg+xml">
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet"/>
+    <style>
+        @media (max-width: 480px) {
+            body { padding: .75rem; justify-content: flex-start; }
+            #main-content { padding: 1.25rem; margin-top: .5rem; border-radius: 1.5rem; }
+            #demo-pills-box .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            #main-content > div:last-child { align-items: flex-start; flex-direction: column; gap: .5rem; }
+            #main-content > div:last-child nav { width: 100%; justify-content: space-between; }
+        }
+    </style>
 
 </head>
 <body class="bg-surface text-on-surface min-h-screen flex flex-col justify-center items-center p-4 font-sans civix-enter">

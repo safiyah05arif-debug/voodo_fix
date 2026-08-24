@@ -28,6 +28,19 @@
         .high-contrast a { color: #00ffff !important; }
         #leaflet-map-nearby { height: 260px; border-radius: 0.75rem; z-index: 10; }
         .sr-only-focusable:focus { position: static; width: auto; height: auto; margin: 0; overflow: visible; clip: auto; }
+        @media (max-width: 767px) {
+            body { padding-bottom: 1.5rem; }
+            body > header { align-items: flex-start; flex-wrap: wrap; gap: .5rem; }
+            body > header > div:last-child { width: 100%; justify-content: space-between; flex-wrap: wrap; gap: .5rem; }
+            body > nav[aria-label="Primary navigation"] { align-items: flex-start; flex-wrap: wrap; gap: .75rem; }
+            body > nav[aria-label="Primary navigation"] > div:last-child { width: 100%; justify-content: space-between; }
+            #main-content { padding-left: .75rem; padding-right: .75rem; }
+            .tab-btn { min-height: 52px; font-size: .75rem; }
+            #leaflet-map-nearby { height: 220px; }
+        }
+        @media (min-width: 768px) {
+            #main-content { padding-top: 1.5rem; padding-bottom: 1.5rem; }
+        }
     </style>
 </head>
 <body class="bg-surface text-on-surface min-h-screen flex flex-col font-sans pb-24 transition-all civix-enter">

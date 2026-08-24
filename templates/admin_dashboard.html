@@ -7,6 +7,13 @@
     <title>CIVIX - System Admin</title>
     <link rel="stylesheet" href="{% static 'css/tailwind.css' %}">
     <link rel="icon" href="{% static 'favicon.svg' %}" type="image/svg+xml">
+    <style>
+        @media (max-width: 767px) {
+            main { padding: 1rem; }
+            header { align-items: flex-start; }
+            header nav { width: 100%; justify-content: space-between; }
+        }
+    </style>
 </head>
 <body class="min-h-screen bg-slate-100 text-slate-900 font-sans civix-enter">
     <a href="#main-content" class="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:bg-white focus:px-4 focus:py-2 focus:text-slate-900 focus:font-bold focus:shadow-lg">Skip to main content</a>

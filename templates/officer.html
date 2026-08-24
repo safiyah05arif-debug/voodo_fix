@@ -29,10 +29,13 @@
         .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
         @media (max-width: 767px) {
             body { overflow: auto; }
-            body > header { align-items: flex-start; flex-direction: column; gap: 0.75rem; }
+            body > header { align-items: flex-start; flex-direction: column; gap: 0.75rem; padding: .75rem 1rem; }
             body > header > div:last-child { align-items: flex-start; flex-wrap: wrap; gap: 0.75rem; }
+            body > header > div:last-child > nav { width: 100%; }
             #main-content { overflow: visible; }
-            #main-content > div:first-child { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            #main-content > div:first-child { grid-template-columns: repeat(2, minmax(0, 1fr)); padding: .75rem; gap: .5rem; }
+            #main-content > div:first-child > div { padding: .75rem; }
+            #main-content > div:first-child .text-3xl { font-size: 1.5rem; }
             #main-content > div:last-child { flex-direction: column; overflow: visible; }
             #officer-map { height: 300px; }
             #main-content > div:last-child > div:last-child { width: 100%; height: 60vh; min-height: 360px; border-left: 0; border-top: 1px solid #d9d9e0; }
@@ -394,11 +397,6 @@
                         const selected = iss.assigned_to === w.name || iss.assigned_to === w.phone ? 'selected' : '';
                         workerOptionsHtml += `<option value="${escapeHtml(w.name)}" ${selected}>${escapeHtml(w.name)} (${escapeHtml(w.department)})</option>`;
                     });
-
-                    // Escape HTML for XSS prevention
-                    const escapeHtml = (unsafe) => {
-                        return (unsafe || '').replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
-                    };
 
                     // Add Ticket Card to Queue
                     const card = document.createElement('div');
