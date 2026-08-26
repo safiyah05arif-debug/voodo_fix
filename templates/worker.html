@@ -4,30 +4,99 @@
 <head>
     <meta charset="utf-8"/>
     <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-    <title>CIVIX — Field Worker Mobile App</title>
+    <title>Nagara Setu — Field Worker Mobile App</title>
     <link rel="stylesheet" href="{% static 'css/tailwind.css' %}">
-    <link rel="icon" href="{% static 'favicon.svg' %}" type="image/svg+xml">
+    <link rel="icon" href="{% static 'nagara_setu_logo.svg' %}" type="image/svg+xml">
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet"/>
 
     <style>
-        .high-contrast, .high-contrast main, .high-contrast header, .high-contrast section,
-        .high-contrast .bg-white, .high-contrast .bg-surface-container-low { background-color: #000 !important; color: #fff !important; }
-        .high-contrast * { border-color: #ffff00 !important; }
-        .high-contrast button, .high-contrast input, .high-contrast textarea { background: #000 !important; color: #fff !important; }
-        .high-contrast .text-primary, .high-contrast .text-on-surface-variant { color: #ffff00 !important; }
-        .high-contrast .bg-primary { background-color: #000 !important; color: #ffff00 !important; }
-        .high-contrast a { color: #00ffff !important; }
+        :root { --civix-radius: .75rem; --civix-control-height: 2.5rem; --civix-card-padding: .75rem; --civix-card-border: #d9d9e0; --civix-card-shadow: 0 2px 8px rgba(18, 33, 51, .06); }
+        html, body, .proof-modal-inline, #proof-modal > div { scrollbar-width: none; -ms-overflow-style: none; }
+        html::-webkit-scrollbar, body::-webkit-scrollbar, .proof-modal-inline::-webkit-scrollbar, #proof-modal > div::-webkit-scrollbar { display: none; }
+        body > header { order: 1; }
+        body > div[role="banner"] { order: 2; }
+        body > .worker-date-selector { order: 3; }
+        body > main { order: 4; }
+        body.high-contrast { --hc-bg: #101820; --hc-surface: #17232d; --hc-surface-strong: #20313d; --hc-text: #ffffff; --hc-muted: #d7e3ea; --hc-border: #a9c2cf; --hc-primary: #7dd3fc; --hc-secondary: #fcd34d; --hc-danger: #fda4af; --hc-success: #86efac; background: var(--hc-bg) !important; color: var(--hc-text) !important; }
+        body.high-contrast, body.high-contrast main, body.high-contrast header, body.high-contrast nav, body.high-contrast section, body.high-contrast article, body.high-contrast div, body.high-contrast form, body.high-contrast label, body.high-contrast .bg-white, body.high-contrast .bg-surface-container-low { background-color: var(--hc-surface) !important; color: var(--hc-text) !important; }
+        body.high-contrast * { border-color: var(--hc-border) !important; }
+        body.high-contrast p, body.high-contrast span, body.high-contrast h1, body.high-contrast h2, body.high-contrast h3, body.high-contrast h4, body.high-contrast label { color: var(--hc-text) !important; }
+        body.high-contrast .text-on-surface-variant, body.high-contrast .text-outline { color: var(--hc-muted) !important; }
+        body.high-contrast .text-primary, body.high-contrast .text-secondary { color: var(--hc-primary) !important; }
+        body.high-contrast button, body.high-contrast select, body.high-contrast textarea, body.high-contrast input { background-color: var(--hc-surface-strong) !important; color: var(--hc-text) !important; border: 2px solid var(--hc-border) !important; }
+        body.high-contrast button:hover, body.high-contrast button:focus-visible, body.high-contrast a:hover { background-color: #315064 !important; color: #ffffff !important; }
+        body.high-contrast .bg-primary, body.high-contrast .bg-secondary { background-color: #075985 !important; color: #ffffff !important; }
+        body.high-contrast .bg-emerald-100, body.high-contrast .bg-emerald-50 { background-color: #14532d !important; color: var(--hc-success) !important; }
+        body.high-contrast .bg-amber-100, body.high-contrast .bg-amber-50 { background-color: #713f12 !important; color: var(--hc-secondary) !important; }
+        body.high-contrast .text-emerald-700, body.high-contrast .text-emerald-800 { color: var(--hc-success) !important; }
+        body.high-contrast .text-amber-700, body.high-contrast .text-amber-800 { color: var(--hc-secondary) !important; }
+        body.high-contrast .text-red-700, body.high-contrast .text-error { color: var(--hc-danger) !important; }
+        body.high-contrast a { color: var(--hc-primary) !important; }
         .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+        .proof-upload-shell { position: relative; z-index: 1; }
+        #worker-tasks-list article { border-radius: var(--civix-radius); border-color: var(--civix-card-border); box-shadow: var(--civix-card-shadow); }
+        #worker-tasks-list button, #worker-tasks-list a { min-height: var(--civix-control-height); border-radius: .5rem; }
+        .proof-upload-shell label { min-height: 180px; }
+        .proof-modal-inline { position: static; background: transparent; padding: 0; }
+        #worker-accessibility-controls { min-width: 12rem; }
+        #worker-accessibility-controls #worker-contrast, #worker-accessibility-controls #worker-easy-read { width: 100% !important; flex-basis: auto !important; display: flex !important; }
+        .worker-accessibility-menu { position: absolute; right: 0; top: 100%; z-index: 100; margin-top: .5rem; }
+        .worker-complete-button { transform: none !important; }
+        .worker-complete-button > span:last-child { white-space: nowrap; font-size: .6rem; }
+        .worker-complete-button .material-symbols-outlined { width: 1rem; height: 1rem; display: inline-flex; align-items: center; justify-content: center; font-size: 1rem; line-height: 1; flex: 0 0 1rem; }
+        .worker-date-selector { display: grid; grid-template-columns: 1fr 1.2fr 1fr; }
+        .worker-date-selector button { min-height: 2.75rem; }
+        .worker-date-selector .selected-date { background: #0f7a72; color: #fff; }
+        .worker-calendar-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: .25rem; }
+        .worker-calendar-grid button { min-height: 2.25rem; border-radius: 9999px; font-size: .75rem; }
+        .worker-calendar-grid button:hover { background: #dff3ef; }
+        .worker-calendar-grid button.selected { background: #0f7a72; color: #fff; font-weight: 800; }
+        .worker-calendar-grid button.today { border: 1px solid #0f7a72; }
+        #worker-date-picker.worker-date-picker-popover { inset: auto; padding: 0; background: transparent; align-items: flex-start; justify-content: flex-start; }
+        #worker-date-picker.worker-date-picker-popover > div { width: min(22rem, calc(100vw - 1rem)); max-height: calc(100vh - 1rem); overflow-y: auto; }
+        @media (min-width: 768px) and (max-width: 1023px) {
+            body { overflow-x: hidden; overflow-y: auto; }
+            #main-content { max-width: 48rem; }
+            body > div[role="banner"] { padding: .625rem .75rem; gap: .75rem; }
+            body > header { padding: .75rem 1rem; }
+        }
         @media (max-width: 767px) {
-            body > div[role="banner"] { align-items: flex-start; flex-wrap: wrap; gap: .5rem; }
-            body > div[role="banner"] > div:last-child { width: 100%; align-items: flex-start; flex-wrap: wrap; gap: .5rem; }
+            body { font-size: .875rem; }
+            body > div[role="banner"] { order: 2; align-items: center; flex-wrap: nowrap; gap: .25rem; padding: .35rem .5rem; white-space: nowrap; }
+            body > .worker-date-selector { order: 3; }
+            body > header { order: 1; }
+            body > main { order: 4; }
+            body > div[role="banner"] > div:first-child { min-width: 0; flex-shrink: 1; }
+            body > div[role="banner"] > div:first-child span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+            body > div[role="banner"] > div:last-child { min-width: 0; width: auto; margin-left: auto; align-items: center; justify-content: flex-end; flex-wrap: nowrap; gap: .15rem; }
             body > div[role="banner"] nav { margin-left: auto; }
-            body > header { align-items: flex-start; gap: .75rem; }
-            body > header > div:last-child { align-self: flex-start; }
-            #main-content { padding-left: .75rem; padding-right: .75rem; }
+            body > div[role="banner"] button, body > div[role="banner"] a { min-height: 1.75rem; min-width: 1.75rem; padding: .15rem .25rem; font-size: .625rem; }
+            body > div[role="banner"] .material-symbols-outlined { font-size: 1rem; }
+            body > div[role="banner"] > div:last-child > span { display: none; }
+            body > div[role="banner"] > div:last-child > div { gap: .2rem; }
+            #worker-contrast { border: 1px solid rgba(255,255,255,.65); border-radius: 4px; }
+            #worker-accessibility-controls { position: fixed; top: 2.5rem; right: .5rem; left: .5rem; width: auto; min-width: 0; }
+            #worker-read-label { display: none; }
+            #worker-read-aloud { width: 1.75rem; overflow: hidden; padding: .15rem; }
+            body > header { align-items: center; gap: .35rem; padding: .5rem .625rem; white-space: nowrap; }
+            body > header > div:first-child { min-width: 0; }
+            body > header > div:first-child h1 { font-size: 1rem; }
+            body > header > div:last-child { align-self: center; flex-shrink: 0; padding: .2rem .35rem; font-size: .625rem; }
+            body { overflow-x: hidden; }
+            #main-content { padding: .75rem; gap: 1rem; }
+            #main-content > section:first-child { padding: .75rem; }
             #main-content > section:first-child { justify-content: space-between; }
-            #worker-tasks-heading { line-height: 1.25; }
+            #worker-tasks-heading { font-size: .875rem; line-height: 1.25; }
+            #worker-tasks-list { gap: .75rem; }
+            #worker-tasks-list article { padding: .75rem; gap: .75rem; }
+            #worker-tasks-list article h4 { font-size: .9375rem; }
+            #worker-tasks-list article > img { height: 8.5rem; }
+            .proof-upload-shell label { min-height: 140px; }
+            #worker-tasks-list button, #worker-tasks-list a { min-height: 2.25rem; }
+            .text-sm { font-size: .8125rem; }
+            .text-base { font-size: .875rem; }
+            .text-lg { font-size: 1rem; }
         }
     </style>
 </head>
@@ -35,33 +104,48 @@
     <a href="#main-content" class="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:bg-white focus:px-4 focus:py-2 focus:text-primary focus:font-bold focus:shadow-lg">Skip to main content</a>
 
     <!-- Worker Accessibility Header -->
-    <div class="bg-primary text-on-primary px-4 py-2 flex justify-between items-center text-xs font-bold" role="banner">
+    <div class="bg-primary text-on-primary px-4 py-2 flex justify-between items-center text-xs font-bold relative" role="banner">
         <div class="flex items-center gap-2">
             <span class="material-symbols-outlined text-sm">engineering</span>
             <span id="worker-portal-title">FIELD WORKER PORTAL</span>
         </div>
         <div class="flex items-center gap-3">
             <span id="worker-gps-tag">GPS: Waiting for location</span>
-            <div class="flex items-center gap-2 border-l border-white/30 pl-2">
-                <button id="worker-lang-en" type="button" aria-label="Switch interface language to English" class="underline">EN</button>
-                <button id="worker-lang-ta" type="button" aria-label="தமிழில் இடைமுகத்தை மாற்றவும்">தமிழ்</button>
-                <button id="worker-contrast" type="button" aria-pressed="false" aria-label="Toggle high contrast mode">◐</button>
-                <button type="button" onclick="setWorkerFontSize('100%')" aria-label="Use normal text size">A</button>
-                <button type="button" onclick="setWorkerFontSize('115%')" aria-label="Increase text size">A+</button>
-                <button type="button" onclick="setWorkerFontSize('130%')" aria-label="Use largest text size">A++</button>
+            <button id="worker-language" type="button" class="p-1 rounded hover:bg-white/20" aria-label="Switch interface language to Tamil" title="Switch language">
+                <span class="material-symbols-outlined text-sm">language</span>
+            </button>
+            <div class="relative">
+                <button id="worker-accessibility-menu" type="button" class="p-1 rounded hover:bg-white/20" aria-expanded="false" aria-controls="worker-accessibility-controls" aria-label="Open accessibility options">
+                    <span class="material-symbols-outlined text-sm">menu</span>
+                </button>
+                <div id="worker-accessibility-controls" class="worker-accessibility-menu hidden p-2 bg-white text-on-surface border border-outline-variant rounded-lg shadow-xl">
+                    <button id="worker-contrast" type="button" class="w-full flex items-center gap-2 px-2 py-1.5 rounded hover:bg-surface-container transition-colors" aria-pressed="false" aria-label="Toggle high contrast mode"><span class="material-symbols-outlined text-sm text-primary">contrast</span><span id="worker-contrast-label">Contrast</span></button>
+                    <button id="worker-easy-read" type="button" class="w-full flex items-center gap-2 px-2 py-1.5 rounded hover:bg-surface-container transition-colors" aria-pressed="false" aria-label="Toggle Easy Read mode"><span class="material-symbols-outlined text-sm text-primary">text_fields</span><span id="worker-easy-read-label">Easy Read</span></button>
+                    <div class="flex items-center justify-between gap-1 border-t border-outline-variant mt-1 pt-1">
+                        <button type="button" onclick="setWorkerFontSize('100%')" class="px-2 py-1 rounded hover:bg-surface-container" aria-label="Use normal text size">A</button>
+                        <button type="button" onclick="setWorkerFontSize('115%')" class="px-2 py-1 rounded hover:bg-surface-container font-bold" aria-label="Increase text size">A+</button>
+                        <button type="button" onclick="setWorkerFontSize('130%')" class="px-2 py-1 rounded hover:bg-surface-container text-sm font-black" aria-label="Use largest text size">A++</button>
+                    </div>
+                </div>
             </div>
-            <button id="worker-read-aloud" type="button" aria-pressed="false" aria-label="Read worker tasks aloud">🔊 <span id="worker-read-label">Read aloud</span></button>
-            <nav aria-label="Portal navigation"><a href="/citizen/" class="underline text-white" id="worker-citizen-link">Citizen View</a></nav>
+            <button id="worker-read-aloud" type="button" aria-pressed="false" aria-label="Read worker tasks aloud"><span class="material-symbols-outlined text-sm">volume_up</span><span id="worker-read-label">Read aloud</span></button>
+            <nav aria-label="Portal navigation"><a href="/api/users/logout/" class="underline text-white">Logout</a></nav>
         </div>
     </div>
+
+    <section class="worker-date-selector w-full max-w-4xl mx-auto px-4 pt-3" aria-label="Task date selector">
+        <button id="worker-yesterday" type="button" class="rounded-l-xl border border-outline-variant bg-white px-2 py-2 text-xs font-bold text-on-surface-variant hover:bg-surface-container">Yesterday</button>
+        <button id="worker-selected-date" type="button" class="selected-date border-y border-outline-variant px-2 py-2 text-xs font-bold" aria-haspopup="dialog" aria-controls="worker-date-picker">26-08-2026</button>
+        <button id="worker-today" type="button" class="rounded-r-xl border border-outline-variant bg-white px-2 py-2 text-xs font-bold text-on-surface-variant hover:bg-surface-container">Today</button>
+    </section>
 
     <!-- App Header -->
     <header class="bg-white border-b border-outline-variant flex justify-between items-center w-full px-4 py-3 max-w-4xl mx-auto civix-glass">
         <div class="flex items-center gap-3">
-            <div class="w-10 h-10 rounded-full bg-primary text-white flex items-center justify-center font-bold">MS</div>
+            <img src="{% static 'nagara_setu_logo.svg' %}" alt="Nagara Setu logo" class="w-10 h-10 object-contain rounded-full bg-white p-0.5 shadow-sm"/>
             <div>
-                <h1 class="font-black text-xl text-primary leading-tight" id="worker-heading">CIVIX Worker</h1>
-                <p id="worker-profile-summary" class="text-xs text-on-surface-variant">Loading worker profile...</p>
+                <h1 class="font-black text-xl text-primary leading-tight" id="worker-heading">Nagara Setu Worker</h1>
+                <p id="worker-profile-summary" class="text-xs text-on-surface-variant">Field worker account</p>
             </div>
         </div>
         <div class="flex items-center gap-2 bg-secondary-container/50 text-secondary px-3 py-1 rounded-full text-xs font-bold border border-secondary/30">
@@ -96,42 +180,69 @@
         </div>
 
         <!-- Task List -->
-        <section id="worker-tasks-list" class="flex flex-col gap-4">
+        <section id="worker-tasks-list" class="flex flex-col gap-4" role="region" aria-live="polite" aria-label="Assigned worker tasks">
             <!-- Dynamic task items injected via JS -->
         </section>
 
     </main>
 
+    <div id="worker-date-picker" class="hidden fixed inset-0 z-50 bg-slate-900/30 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="worker-date-picker-title">
+        <div class="w-full max-w-sm rounded-2xl bg-white p-5 shadow-2xl border border-outline-variant">
+            <div class="flex items-center justify-between gap-3 mb-4">
+                <h2 id="worker-date-picker-title" class="font-bold text-base text-on-surface">Select task date</h2>
+                <button id="worker-date-picker-close" type="button" class="p-1 text-on-surface-variant" aria-label="Close date picker">✕</button>
+            </div>
+            <div class="flex items-center justify-between gap-3 rounded-xl bg-primary p-3 text-white mb-4">
+                <span id="worker-calendar-selected-label" class="font-bold text-sm">26-08-2026</span>
+                <span class="text-xs opacity-80">Task date</span>
+            </div>
+            <div class="flex items-center justify-between gap-2 mb-3">
+                <button id="worker-calendar-prev" type="button" class="p-2 rounded-lg text-on-surface-variant hover:bg-surface-container" aria-label="Previous month">&lt;</button>
+                <strong id="worker-calendar-month" class="text-sm text-on-surface"></strong>
+                <button id="worker-calendar-next" type="button" class="p-2 rounded-lg text-on-surface-variant hover:bg-surface-container" aria-label="Next month">&gt;</button>
+            </div>
+            <div class="worker-calendar-grid text-center text-[10px] font-bold text-on-surface-variant mb-1" aria-hidden="true"><span>Sun</span><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span></div>
+            <div id="worker-calendar-days" class="worker-calendar-grid"></div>
+            <div class="flex justify-end gap-2 mt-4 border-t border-outline-variant pt-3">
+                <button id="worker-date-picker-cancel" type="button" class="px-3 py-2 rounded-lg text-xs font-bold text-on-surface-variant hover:bg-surface-container">Cancel</button>
+                <button id="worker-date-picker-confirm" type="button" class="px-3 py-2 rounded-lg bg-primary text-white text-xs font-bold hover:bg-primary-container">Select date</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Proof of Work Closing Modal -->
-    <div id="proof-modal" class="hidden fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-        <div class="bg-white rounded-2xl max-w-lg w-full p-5 shadow-2xl flex flex-col gap-4 border border-outline-variant max-h-[90vh] overflow-y-auto">
+    <div id="proof-modal" class="hidden fixed inset-0 z-50 bg-slate-900/30 flex items-center justify-center p-3 sm:p-4" role="dialog" aria-modal="true" aria-labelledby="proof-modal-title">
+        <div class="relative bg-white rounded-2xl max-w-lg w-full p-5 shadow-2xl flex flex-col gap-4 border border-outline-variant max-h-[90vh] overflow-y-auto z-10">
             {% csrf_token %}
             <div class="flex justify-between items-center border-b pb-2">
                 <h3 class="font-bold text-base text-on-surface flex items-center gap-2">
                     <span class="material-symbols-outlined text-secondary">task_alt</span>
-                    <span>Submit Proof of Work & Close Ticket</span>
+                    <span id="proof-modal-title">Submit Proof of Work & Close Ticket</span>
                 </h3>
                 <button onclick="closeProofModal()" class="text-on-surface-variant p-1" aria-label="Close proof of work dialog">✕</button>
             </div>
 
             <!-- Geo-Fence Validation Banner -->
-            <div class="flex items-center justify-between bg-emerald-50 border border-emerald-300 p-3 rounded-xl">
+            <div class="flex items-center justify-between bg-surface-container-low border border-outline-variant p-3 rounded-xl">
                 <div class="flex items-center gap-2 text-emerald-800 font-bold text-xs">
-                    <span class="material-symbols-outlined text-sm">verified_user</span>
-                    <span>Geo-fencing Validated: Within 35m of Incident</span>
+                    <span class="material-symbols-outlined text-sm">location_searching</span>
+                    <span id="proof-gps-status">Waiting for current GPS location</span>
                 </div>
-                <span class="text-[11px] text-emerald-700 font-mono">Accuracy: 3m</span>
+                <span id="proof-gps-accuracy" class="text-[11px] text-on-surface-variant font-mono">GPS required</span>
             </div>
 
             <!-- "After" Photo Upload Box -->
-            <div class="border-2 border-dashed border-outline-variant rounded-xl p-4 flex flex-col items-center justify-center bg-surface-container-low text-center gap-2 relative cursor-pointer" onclick="document.getElementById('proof-photo-input').click()">
-                <input id="proof-photo-input" type="file" accept="image/*" capture="environment" class="hidden" onchange="previewProof(event)"/>
-                <img id="proof-preview-img" alt="Preview of repair completion photo" class="hidden w-full h-40 object-cover rounded-lg"/>
-                <div id="proof-placeholder-view" class="flex flex-col items-center py-4">
-                    <span class="material-symbols-outlined text-4xl text-primary mb-1">add_a_photo</span>
-                    <span class="font-bold text-xs text-on-surface" id="worker-photo-title">Capture Mandatory 'After' Photo</span>
-                    <span class="text-[10px] text-on-surface-variant" id="worker-photo-help">Tap to take photo of completed repair</span>
-                </div>
+            <div class="proof-upload-shell border-2 border-dashed border-primary/60 rounded-2xl bg-gradient-to-br from-white via-surface-container-low to-primary/10 p-3 shadow-inner">
+                <label for="proof-photo-input" class="block w-full cursor-pointer rounded-xl border-2 border-primary/25 bg-white/95 hover:bg-primary/5 focus-within:ring-2 focus-within:ring-primary/40 transition-all shadow-sm">
+                    <input id="proof-photo-input" type="file" accept="image/*" capture="environment" aria-label="Completion photo from camera or device" class="hidden" onchange="previewProof(event)"/>
+                    <img id="proof-preview-img" alt="Preview of repair completion photo" class="hidden w-full h-40 object-cover rounded-lg mb-2"/>
+                    <div id="proof-placeholder-view" class="flex flex-col items-center justify-center gap-2 py-6 px-3 text-center min-h-[180px]">
+                        <span class="material-symbols-outlined text-4xl text-primary mb-1">add_a_photo</span>
+                        <span class="font-bold text-xs text-on-surface" id="worker-photo-title">Capture Mandatory 'After' Photo</span>
+                        <span class="text-[10px] text-on-surface-variant" id="worker-photo-help">Tap to take photo of completed repair</span>
+                        <span class="mt-1 inline-flex items-center justify-center bg-primary text-white px-3 py-2 rounded-lg font-bold text-[11px] shadow-sm">Choose Photo</span>
+                    </div>
+                </label>
             </div>
 
             <!-- Checklist -->
@@ -168,16 +279,30 @@
         const assignedWorkerByIssue = {};
         let proofPhotoFile = null;
         let workerCurrentPosition = null;
+        let workerTasksLoading = false;
+        let workerTasksRequestId = 0;
+        let workerTasksRefreshTimer = null;
         let workerLanguage = localStorage.getItem('civix-language') || 'en';
-        const escapeHtml = (value) => String(value ?? '').replace(/[&<>\'"]/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[character]));
+        let workerEasyRead = localStorage.getItem('civix-easy-read') === 'on';
+        let workerSelectedDate = workerDateKey(new Date());
+        let workerCalendarDate = new Date();
+        let workerPendingDate = workerSelectedDate;
+            const escapeHtml = (value) => String(value ?? '').replace(/[&<>\'"]/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[character]));
+            const googleMapsUrl = (location) => {
+                const latitude = Number(location?.latitude);
+                const longitude = Number(location?.longitude);
+                return Number.isFinite(latitude) && Number.isFinite(longitude)
+                    ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${latitude},${longitude}`)}`
+                    : 'https://www.google.com/maps/';
+            };
         const workerTranslations = {
             en: {
-                portal: 'FIELD WORKER PORTAL', citizen: 'Citizen View', heading: 'CIVIX Worker', duty: 'On Duty', assigned: 'Assigned Tasks', closed: 'Closed Today',
+                portal: 'FIELD WORKER PORTAL', citizen: 'Citizen View', heading: 'Nagara Setu Worker', duty: 'On Duty', assigned: 'Assigned Tasks', closed: 'Closed Today',
                 tasks: 'Assigned Tasks (Sorted by Urgency & Distance)', photoTitle: "Capture Mandatory 'After' Photo", photoHelp: 'Tap to take photo of completed repair', notes: 'Field Notes', submit: 'SUBMIT CLOSURE PROOF',
                 read: 'Read aloud', stop: 'Stop reading', prompt: 'Worker portal. Review assigned tasks, navigate to the incident, and submit a completion photo with your field notes.', started: 'Read aloud started', stopped: 'Read aloud stopped'
             },
             ta: {
-                portal: 'களப் பணியாளர் தளம்', citizen: 'குடிமகன் பார்வை', heading: 'சிவிக்ஸ் பணியாளர்', duty: 'பணியில்', assigned: 'ஒதுக்கப்பட்ட பணிகள்', closed: 'இன்று முடித்தவை',
+                portal: 'களப் பணியாளர் தளம்', citizen: 'குடிமகன் பார்வை', heading: 'நாகரா சேது பணியாளர்', duty: 'பணியில்', assigned: 'ஒதுக்கப்பட்ட பணிகள்', closed: 'இன்று முடித்தவை',
                 tasks: 'அவசரம் மற்றும் தூரத்தின் அடிப்படையில் ஒதுக்கப்பட்ட பணிகள்', photoTitle: 'கட்டாய முடிப்பு புகைப்படத்தை எடுக்கவும்', photoHelp: 'முடிக்கப்பட்ட பணியின் புகைப்படத்தை எடுக்க அழுத்தவும்', notes: 'களக் குறிப்புகள்', submit: 'முடிப்பு சான்றை சமர்ப்பிக்கவும்',
                 read: 'வாசிக்கவும்', stop: 'வாசிப்பை நிறுத்தவும்', prompt: 'பணியாளர் தளம். ஒதுக்கப்பட்ட பணிகளைப் பார்த்து, சம்பவ இடத்திற்குச் சென்று, முடிப்பு புகைப்படத்தையும் களக் குறிப்புகளையும் சமர்ப்பிக்கவும்.', started: 'குரல் வாசிப்பு தொடங்கியது', stopped: 'குரல் வாசிப்பு நிறுத்தப்பட்டது'
             }
@@ -185,6 +310,80 @@
 
         function announceWorker(message) {
             document.getElementById('worker-live-region').textContent = message;
+        }
+
+        function workerDateKey(date) {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        function workerDateFromKey(dateKey) {
+            const [year, month, day] = dateKey.split('-').map(Number);
+            return new Date(year, month - 1, day);
+        }
+
+        function workerDateLabel(dateKey) {
+            const [year, month, day] = dateKey.split('-');
+            return `${day}-${month}-${year}`;
+        }
+
+        function updateWorkerDateSelector() {
+            document.getElementById('worker-selected-date').textContent = workerDateLabel(workerSelectedDate);
+            document.getElementById('worker-calendar-selected-label').textContent = workerDateLabel(workerSelectedDate);
+            const today = workerDateKey(new Date());
+            const yesterdayDate = new Date();
+            yesterdayDate.setDate(yesterdayDate.getDate() - 1);
+            const yesterday = workerDateKey(yesterdayDate);
+            document.getElementById('worker-yesterday').classList.toggle('selected-date', workerSelectedDate === yesterday);
+            document.getElementById('worker-yesterday').classList.toggle('text-white', workerSelectedDate === yesterday);
+            document.getElementById('worker-today').classList.toggle('selected-date', workerSelectedDate === today);
+            document.getElementById('worker-today').classList.toggle('text-white', workerSelectedDate === today);
+        }
+
+        function renderWorkerCalendar() {
+            const year = workerCalendarDate.getFullYear();
+            const month = workerCalendarDate.getMonth();
+            document.getElementById('worker-calendar-month').textContent = workerCalendarDate.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
+            const firstDay = new Date(year, month, 1).getDay();
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            const today = workerDateKey(new Date());
+            const days = document.getElementById('worker-calendar-days');
+            days.innerHTML = '';
+            for (let index = 0; index < firstDay; index += 1) days.insertAdjacentHTML('beforeend', '<span></span>');
+            for (let day = 1; day <= daysInMonth; day += 1) {
+                const dateKey = workerDateKey(new Date(year, month, day));
+                const button = document.createElement('button');
+                button.type = 'button';
+                button.textContent = day;
+                button.className = `${dateKey === workerPendingDate ? 'selected ' : ''}${dateKey === today ? 'today ' : ''}text-on-surface`;
+                button.setAttribute('aria-label', workerDateLabel(dateKey));
+                button.setAttribute('aria-pressed', String(dateKey === workerPendingDate));
+                button.addEventListener('click', () => {
+                    workerPendingDate = dateKey;
+                    document.getElementById('worker-calendar-selected-label').textContent = workerDateLabel(dateKey);
+                    renderWorkerCalendar();
+                });
+                days.appendChild(button);
+            }
+        }
+
+        function selectWorkerDate(dateKey) {
+            if (!/^\d{4}-\d{2}-\d{2}$/.test(dateKey)) return;
+            workerSelectedDate = dateKey;
+            updateWorkerDateSelector();
+            closeWorkerDatePicker();
+            loadWorkerTasks();
+        }
+
+        function closeWorkerDatePicker() {
+            const picker = document.getElementById('worker-date-picker');
+            picker.classList.add('hidden');
+            picker.classList.remove('worker-date-picker-popover');
+            picker.style.removeProperty('top');
+            picker.style.removeProperty('left');
+            picker.style.removeProperty('width');
         }
 
         function setWorkerLanguage(language) {
@@ -197,10 +396,18 @@
                 'worker-tasks-heading': t.tasks, 'worker-photo-title': t.photoTitle, 'worker-photo-help': t.photoHelp,
                 'worker-notes-label': t.notes, 'worker-submit-label': t.submit
             };
-            Object.entries(labels).forEach(([id, text]) => { document.getElementById(id).textContent = text; });
+            Object.entries(labels).forEach(([id, text]) => {
+                const el = document.getElementById(id);
+                if (el) el.textContent = text;
+            });
             document.documentElement.lang = language === 'ta' ? 'ta' : 'en';
-            document.getElementById('worker-lang-en').className = language === 'en' ? 'underline font-bold' : '';
-            document.getElementById('worker-lang-ta').className = language === 'ta' ? 'underline font-bold' : '';
+            loadWorkerTasks();
+            document.getElementById('worker-contrast-label').textContent = language === 'ta' ? 'மாறுபாடு' : 'Contrast';
+            document.getElementById('worker-easy-read-label').textContent = language === 'ta' ? 'எளிய வாசிப்பு' : 'Easy Read';
+            const languageButton = document.getElementById('worker-language');
+            const nextLanguage = language === 'ta' ? 'English' : 'Tamil';
+            languageButton.setAttribute('aria-label', `Switch interface language to ${nextLanguage}`);
+            languageButton.title = `Switch language to ${nextLanguage}`;
             updateWorkerReadButton('speechSynthesis' in window && window.speechSynthesis.speaking);
         }
 
@@ -248,19 +455,82 @@
             window.speechSynthesis.speak(utterance);
         }
 
-        document.getElementById('worker-lang-en').addEventListener('click', () => setWorkerLanguage('en'));
-        document.getElementById('worker-lang-ta').addEventListener('click', () => setWorkerLanguage('ta'));
+        document.getElementById('worker-language').addEventListener('click', () => setWorkerLanguage(workerLanguage === 'ta' ? 'en' : 'ta'));
+        const workerAccessibilityMenuButton = document.getElementById('worker-accessibility-menu');
+        const workerAccessibilityControls = document.getElementById('worker-accessibility-controls');
+        workerAccessibilityMenuButton.addEventListener('click', () => {
+            const expanded = workerAccessibilityMenuButton.getAttribute('aria-expanded') === 'true';
+            workerAccessibilityMenuButton.setAttribute('aria-expanded', String(!expanded));
+            workerAccessibilityMenuButton.setAttribute('aria-label', expanded ? 'Open accessibility options' : 'Close accessibility options');
+            workerAccessibilityControls.classList.toggle('hidden', expanded);
+        });
         document.getElementById('worker-contrast').addEventListener('click', () => {
             const enabled = document.body.classList.toggle('high-contrast');
             localStorage.setItem('civix-contrast', enabled ? 'on' : 'off');
             document.getElementById('worker-contrast').setAttribute('aria-pressed', String(enabled));
         });
+        document.getElementById('worker-easy-read').addEventListener('click', () => {
+            workerEasyRead = !workerEasyRead;
+            localStorage.setItem('civix-easy-read', workerEasyRead ? 'on' : 'off');
+            document.getElementById('worker-easy-read').setAttribute('aria-pressed', String(workerEasyRead));
+            document.getElementById('worker-easy-read').classList.toggle('font-bold', workerEasyRead);
+            announceWorker(workerEasyRead ? (workerLanguage === 'ta' ? 'எளிய வாசிப்பு இயக்கப்பட்டது' : 'Easy Read enabled') : (workerLanguage === 'ta' ? 'எளிய வாசிப்பு முடக்கப்பட்டது' : 'Easy Read disabled'));
+        });
+        document.querySelectorAll('#worker-accessibility-controls button').forEach((button) => {
+            button.addEventListener('click', () => {
+                workerAccessibilityMenuButton.setAttribute('aria-expanded', 'false');
+                workerAccessibilityMenuButton.setAttribute('aria-label', 'Open accessibility options');
+                workerAccessibilityControls.classList.add('hidden');
+            });
+        });
         document.getElementById('worker-read-aloud').addEventListener('click', readWorkerTasks);
+        document.getElementById('worker-yesterday').addEventListener('click', () => {
+            const date = new Date();
+            date.setDate(date.getDate() - 1);
+            selectWorkerDate(workerDateKey(date));
+        });
+        document.getElementById('worker-today').addEventListener('click', () => selectWorkerDate(workerDateKey(new Date())));
+        document.getElementById('worker-selected-date').addEventListener('click', () => {
+            workerPendingDate = workerSelectedDate;
+            workerCalendarDate = workerDateFromKey(workerSelectedDate);
+            renderWorkerCalendar();
+            const anchor = document.getElementById('worker-selected-date').getBoundingClientRect();
+            const picker = document.getElementById('worker-date-picker');
+            picker.classList.add('worker-date-picker-popover');
+            picker.style.top = `${anchor.bottom + 8}px`;
+            picker.style.left = `${Math.max(8, Math.min(anchor.left, window.innerWidth - 360))}px`;
+            picker.style.width = `${Math.min(352, window.innerWidth - 16)}px`;
+            picker.classList.remove('hidden');
+            requestAnimationFrame(() => {
+                const panel = picker.querySelector(':scope > div');
+                const panelBounds = panel.getBoundingClientRect();
+                picker.style.top = `${parseFloat(picker.style.top) + anchor.bottom + 8 - panelBounds.top}px`;
+            });
+        });
+        document.getElementById('worker-calendar-prev').addEventListener('click', () => {
+            workerCalendarDate.setMonth(workerCalendarDate.getMonth() - 1);
+            renderWorkerCalendar();
+        });
+        document.getElementById('worker-calendar-next').addEventListener('click', () => {
+            workerCalendarDate.setMonth(workerCalendarDate.getMonth() + 1);
+            renderWorkerCalendar();
+        });
+        document.getElementById('worker-date-picker-confirm').addEventListener('click', () => selectWorkerDate(workerPendingDate));
+        document.getElementById('worker-date-picker-cancel').addEventListener('click', closeWorkerDatePicker);
+        document.getElementById('worker-date-picker-close').addEventListener('click', closeWorkerDatePicker);
+        document.getElementById('worker-date-picker').addEventListener('click', (event) => {
+            if (event.target.id === 'worker-date-picker') closeWorkerDatePicker();
+        });
 
         async function loadWorkerTasks() {
+            if (!document.getElementById('worker-tasks-list')) return;
+            if (!document.getElementById('proof-modal').classList.contains('hidden')) return;
+            const requestId = ++workerTasksRequestId;
+            workerTasksLoading = true;
             try {
-                const res = await fetch("/api/tasks/assigned/");
+                const res = await fetch(`/api/tasks/assigned/?date=${encodeURIComponent(workerSelectedDate)}`, { credentials: 'same-origin' });
                 const issues = await res.json();
+                if (requestId !== workerTasksRequestId) return;
                 const container = document.getElementById('worker-tasks-list');
                 container.innerHTML = "";
 
@@ -268,6 +538,20 @@
                     container.innerHTML = `<p class="text-sm text-on-surface-variant p-3">${issues.error || 'Task data is temporarily unavailable.'}</p>`;
                     return;
                 }
+
+                let rejectedFeedbackByIssue = {};
+                try {
+                    const notificationResponse = await fetch('/api/users/notifications/', { credentials: 'same-origin' });
+                    if (notificationResponse.ok) {
+                        const notifications = await notificationResponse.json();
+                        notifications.filter((notification) => notification.notification_type === 'verification_rejected' && notification.related_issue_id).forEach((notification) => {
+                            if (!rejectedFeedbackByIssue[notification.related_issue_id]) rejectedFeedbackByIssue[notification.related_issue_id] = notification;
+                        });
+                    }
+                } catch (notificationError) {
+                    console.warn('Worker notifications unavailable:', notificationError);
+                }
+                if (requestId !== workerTasksRequestId) return;
 
                 const resolvedStatuses = ['resolved', 'citizen_verified', 'closed'];
                 const closedToday = issues.filter((issue) => {
@@ -280,6 +564,7 @@
                 issues.slice(0, 10).forEach((iss, index) => {
                     assignedWorkerByIssue[iss.id] = iss.assigned_to || '';
                     const card = document.createElement('article');
+                    card.dataset.issueId = iss.id;
                     card.className = "bg-white border-2 border-outline-variant rounded-2xl p-4 shadow-sm flex flex-col gap-3 relative";
                     
                     const isCritical = iss.severity === 'critical';
@@ -296,36 +581,75 @@
                             <span class="text-xs font-bold text-primary font-mono">📍 ${(index * 120 + 80)}m Away</span>
                         </div>
                         <div>
+                            <p class="text-[10px] font-bold uppercase tracking-wide text-primary">${escapeHtml(iss.category || 'Civic issue')}</p>
                             <h4 class="font-bold text-base text-on-surface">${escapeHtml(iss.title)}</h4>
-                            <p class="text-xs text-on-surface-variant mt-0.5">${escapeHtml(iss.address)}</p>
+                            <p class="text-xs text-on-surface-variant mt-0.5">${escapeHtml(iss.address || 'Location recorded')}</p>
+                            <p class="text-sm text-on-surface mt-2">${escapeHtml(iss.description || 'No description provided.')}</p>
+                            ${rejectedFeedbackByIssue[iss.id] ? `<div class="mt-2 rounded-xl border border-amber-300 bg-amber-50 p-2.5"><p class="text-[10px] font-bold uppercase text-amber-800">Officer feedback</p><p class="mt-1 text-xs text-amber-900">${escapeHtml(rejectedFeedbackByIssue[iss.id].message)}</p></div>` : ''}
                         </div>
-                        <div class="grid grid-cols-2 gap-2 bg-surface-container-low p-2 rounded-xl text-center text-xs">
-                            <div><span class="text-[10px] text-on-surface-variant uppercase block">Priority Score</span><span class="font-bold text-primary font-mono text-sm">${iss.priority_score}</span></div>
-                            <div><span class="text-[10px] text-on-surface-variant uppercase block">Status</span><span class="font-bold text-secondary uppercase text-sm">${escapeHtml(iss.status)}</span></div>
+                        ${iss.photo_urls?.length ? `<img src="${escapeHtml(iss.photo_urls[0])}" alt="Photo uploaded for ${escapeHtml(iss.title)}" class="w-full h-40 object-cover rounded-lg border border-outline-variant" loading="lazy">` : ''}
+                        <div class="grid grid-cols-2 gap-2 bg-surface-container-low p-2 rounded-xl text-xs">
+                            <div><span class="text-[10px] text-on-surface-variant uppercase block">Report coordinates</span><span class="font-mono font-bold text-on-surface">${Number(iss.location?.latitude ?? 0).toFixed(6)}, ${Number(iss.location?.longitude ?? 0).toFixed(6)}</span></div>
+                            <div><span class="text-[10px] text-on-surface-variant uppercase block">Assignment</span><span class="font-bold text-on-surface">${iss.assigned_at ? `Assigned ${new Date(iss.assigned_at).toLocaleDateString()}` : 'Assigned task'}</span></div>
+                        </div>
+                        <div class="bg-surface-container-low p-2 rounded-xl text-center text-xs">
+                            <span class="text-[10px] text-on-surface-variant uppercase block">Status</span><span class="font-bold text-secondary text-sm">${escapeHtml(iss.status_label || iss.status)}</span>
                         </div>
                         <div class="flex gap-2 pt-1">
-                            <a href="https://maps.google.com/?q=${iss.location.latitude},${iss.location.longitude}" target="_blank" class="flex-1 bg-surface-container text-on-surface py-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 border hover:bg-surface-variant">
+                            <a href="${googleMapsUrl(iss.location)}" target="_blank" rel="noopener noreferrer" aria-label="Navigate to reported location for ${escapeHtml(iss.title)}" class="flex-1 bg-surface-container text-on-surface py-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 border hover:bg-surface-variant">
                                 <span class="material-symbols-outlined text-sm">navigation</span> Navigate
                             </a>
                             ${iss.status === 'assigned' ? `<button onclick="updateWorkerStatus('${iss.id}', 'in_progress')" class="flex-1 bg-primary text-white py-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 shadow-sm hover:opacity-95"><span class="material-symbols-outlined text-sm">play_arrow</span> Start Work</button>` : ''}
-                            ${iss.status === 'in_progress' ? `<button onclick="openProofModal('${iss.id}')" class="flex-1 bg-secondary text-white py-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 shadow-sm hover:opacity-95"><span class="material-symbols-outlined text-sm">camera_alt</span> Close Ticket</button>` : ''}
+                            ${iss.status === 'in_progress' ? `<button onclick="openProofModal('${iss.id}')" class="worker-complete-button flex-1 bg-secondary text-white py-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 shadow-sm hover:opacity-95"><span class="material-symbols-outlined">camera_alt</span><span>Complete / Close Ticket</span></button>` : ''}
                         </div>
                     `;
                     container.appendChild(card);
                 });
+                if (!issues.length) container.innerHTML = '<p class="text-sm text-on-surface-variant p-3 text-center">No tasks for the selected date.</p>';
             } catch (e) {
                 console.error(e);
+            } finally {
+                if (requestId === workerTasksRequestId) workerTasksLoading = false;
             }
         }
 
         function openProofModal(id) {
             currentActiveIssueId = id;
             currentActiveWorkerId = assignedWorkerByIssue[id];
+            const modal = document.getElementById('proof-modal');
+            const ticket = document.querySelector(`[data-issue-id="${id}"]`);
+            if (ticket) {
+                ticket.appendChild(modal);
+                modal.className = 'proof-modal-inline flex flex-col mt-2 border-t border-outline-variant pt-3';
+                modal.querySelector(':scope > div').classList.remove('max-w-lg', 'w-full', 'p-5', 'shadow-2xl', 'border', 'max-h-[90vh]');
+                modal.querySelector(':scope > div').classList.add('w-full');
+            }
+            proofPhotoFile = null;
+            document.getElementById('proof-photo-input').value = '';
+            document.getElementById('proof-preview-img').classList.add('hidden');
+            document.getElementById('proof-placeholder-view').classList.remove('hidden');
+            updateProofGpsStatus();
             document.getElementById('proof-modal').classList.remove('hidden');
         }
 
         function closeProofModal() {
-            document.getElementById('proof-modal').classList.add('hidden');
+            const modal = document.getElementById('proof-modal');
+            modal.className = 'hidden fixed inset-0 z-50 bg-slate-900/30 flex items-center justify-center p-3 sm:p-4';
+            modal.querySelector(':scope > div').className = 'relative bg-white rounded-2xl max-w-lg w-full p-5 shadow-2xl flex flex-col gap-4 border border-outline-variant max-h-[90vh] overflow-y-auto z-10';
+            document.body.appendChild(modal);
+        }
+
+        function updateProofGpsStatus() {
+            const status = document.getElementById('proof-gps-status');
+            const accuracy = document.getElementById('proof-gps-accuracy');
+            if (!status || !accuracy) return;
+            if (workerCurrentPosition) {
+                status.textContent = 'Current GPS location captured';
+                accuracy.textContent = `Accuracy: ±${Math.round(workerCurrentPosition.coords.accuracy)}m`;
+            } else {
+                status.textContent = 'Waiting for current GPS location';
+                accuracy.textContent = 'GPS required';
+            }
         }
 
         async function updateWorkerStatus(issueId, nextStatus) {
@@ -336,6 +660,7 @@
                     'Content-Type': 'application/json',
                     'X-CSRFToken': document.querySelector('#proof-modal input[name="csrfmiddlewaretoken"]').value
                 },
+                credentials: 'same-origin',
                 body: JSON.stringify({ status: nextStatus, changed_by: currentActiveWorkerId || 'field_worker' })
             });
             const data = await response.json();
@@ -348,6 +673,10 @@
         }
 
         function previewProof(e) {
+            workerTasksRefreshTimer = window.setInterval(loadWorkerTasks, 3000);
+            document.addEventListener('visibilitychange', () => {
+                if (!document.hidden) loadWorkerTasks();
+            });
             if (e.target.files && e.target.files[0]) {
                 proofPhotoFile = e.target.files[0];
                 document.getElementById('proof-preview-img').src = URL.createObjectURL(proofPhotoFile);
@@ -379,7 +708,8 @@
                 const res = await fetch(`/api/issues/${currentActiveIssueId}/resolve/`, {
                     method: "PATCH",
                     headers: { "X-CSRFToken": document.querySelector('#proof-modal input[name="csrfmiddlewaretoken"]').value },
-                    body: formData
+                    body: formData,
+                    credentials: 'same-origin'
                 });
                 const data = await res.json();
                 if (!res.ok) {
@@ -395,29 +725,44 @@
         }
 
         window.addEventListener('DOMContentLoaded', () => {
+            updateWorkerDateSelector();
             setWorkerLanguage(workerLanguage);
-            const storedUser = JSON.parse(localStorage.getItem('civix_user') || 'null');
+                const storedUser = JSON.parse(localStorage.getItem('civix_user') || 'null');
             if (storedUser) {
                 document.getElementById('worker-profile-summary').textContent = `${storedUser.full_name} (${storedUser.department || 'Municipal Works'})`;
             }
+                fetch('/api/users/profile/', { credentials: 'same-origin' }).then((response) => response.json()).then((data) => {
+                if (data.user) document.getElementById('worker-profile-summary').textContent = `${data.user.full_name} (${data.user.department || 'Municipal Works'})`;
+            }).catch(() => {});
             if (localStorage.getItem('civix-contrast') === 'on') {
                 document.body.classList.add('high-contrast');
                 document.getElementById('worker-contrast').setAttribute('aria-pressed', 'true');
             }
+            document.getElementById('worker-easy-read').setAttribute('aria-pressed', String(workerEasyRead));
+            document.getElementById('worker-easy-read').classList.toggle('font-bold', workerEasyRead);
             if (localStorage.getItem('civix-font-size')) setWorkerFontSize(localStorage.getItem('civix-font-size'));
             loadWorkerTasks();
             if ('geolocation' in navigator) {
                 navigator.geolocation.watchPosition((position) => {
                     workerCurrentPosition = position;
                     document.getElementById('worker-gps-tag').textContent = `GPS: Active (±${Math.round(position.coords.accuracy)}m)`;
+                    updateProofGpsStatus();
                 }, () => {
                     workerCurrentPosition = null;
                     document.getElementById('worker-gps-tag').textContent = 'GPS: Unavailable';
+                    updateProofGpsStatus();
                 }, { enableHighAccuracy: true, maximumAge: 0, timeout: 30000 });
             } else {
                 document.getElementById('worker-gps-tag').textContent = 'GPS: Unavailable';
+                updateProofGpsStatus();
             }
+            // No demo login on production worker portal
         });
+
+        function csrfToken() {
+            return document.querySelector('input[name="csrfmiddlewaretoken"]')?.value || '';
+        }
+
     </script>
 </body>
 </html>

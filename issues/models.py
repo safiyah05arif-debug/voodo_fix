@@ -104,6 +104,19 @@ class ResolutionProof(EmbeddedDocument):
         required=True,
         help_text="Supabase Storage URL of the 'after' proof photo",
     )
+    worker_id = StringField(
+        required=True,
+        help_text="ID of the field worker who submitted the evidence",
+    )
+    ticket_id = StringField(
+        required=True,
+        help_text="ID of the issue ticket associated with the evidence",
+    )
+    verification_status = StringField(
+        choices=["pending", "accepted", "rejected"],
+        default="pending",
+        help_text="Officer review state for this completion evidence",
+    )
     worker_location = PointField(
         help_text="Worker's GPS coordinates at the time of resolution [lng, lat]",
     )
@@ -225,7 +238,7 @@ class Issue(Document):
         required=True,
         choices=["critical", "high", "medium", "low"],
         default="medium",
-        help_text="Severity level — determines SLA deadline",
+        help_text="Citizen-selected issue severity",
     )
     ai_classification = EmbeddedDocumentField(
         AIClassification,
@@ -265,24 +278,41 @@ class Issue(Document):
     status = StringField(
         required=True,
         choices=[
-            "submitted",       # Just reported by citizen
-            "verified",        # Confirmed by system/officer
-            "assigned",        # Assigned to a field worker
-            "in_progress",     # Field worker is on it
-            "resolved",        # Worker submitted proof-of-work
-            "citizen_verified", # Citizen confirmed the fix
-            "reopened",        # Citizen said the fix is bad
-            "escalated",       # SLA breached → auto-escalated
-            "closed",          # Permanently closed
+            "submitted",              # Just reported by citizen
+            "verified",               # Confirmed by system/officer
+            "dismissed",              # Officer reviewed and dismissed the report
+            "assigned",               # Assigned to a field worker
+            "in_progress",            # Field worker is on it
+            "awaiting_verification",  # Worker submitted proof-of-work for officer review
+            "resolved",               # Officer verified the completion
+            "citizen_verified",       # Citizen confirmed the fix
+            "reopened",               # Citizen said the fix is bad
+            "escalated",              # SLA breached → auto-escalated
+            "closed",                 # Permanently closed
         ],
         default="submitted",
         help_text="Current workflow status of the issue",
+    )
+    officer_priority = IntField(
+        min_value=1,
+        max_value=3,
+        help_text="Officer review priority: 1 low, 2 medium, 3 high",
+    )
+    officer_decision = StringField(
+        choices=["verified", "dismissed"],
+        help_text="Officer swipe decision",
+    )
+    assigned_officer = StringField(
+        help_text="ID of the officer responsible for reviewing this issue",
     )
     assigned_to = StringField(
         help_text="ObjectId of the field worker assigned to this issue",
     )
     assigned_at = DateTimeField(
         help_text="Timestamp when the issue was assigned to a worker",
+    )
+    started_at = DateTimeField(
+        help_text="Timestamp when the assigned worker started work",
     )
 
     # ── Resolution ────────────────────────────────────────────────────────────
@@ -301,6 +331,10 @@ class Issue(Document):
     priority_score = FloatField(
         default=0.0,
         help_text="Dynamically calculated priority score for sorting",
+    )
+    priority_locked = BooleanField(
+        default=False,
+        help_text="True when an officer has manually set the work priority",
     )
     location_risk_factor = FloatField(
         default=1.0,
@@ -431,7 +465,8 @@ class Issue(Document):
     def save(self, *args, **kwargs):
         """Override save to auto-update computed fields."""
         self.updated_at = datetime.datetime.utcnow()
-        self.calculate_priority_score()
+        if not self.priority_locked:
+            self.calculate_priority_score()
         if not self.sla_deadline:
             self.set_sla_deadline()
         self.check_sla_breach()

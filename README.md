@@ -75,7 +75,7 @@ pip install -r requirements.txt
 # Free AI option: create a Gemini API key in Google AI Studio, then set:
 # AI_PROVIDER=gemini
 # GEMINI_API_KEY=your-key
-# GEMINI_MODEL=gemini-2.0-flash
+# GEMINI_MODEL=gemini-3.6-flash
 # OpenAI is optional; the app falls back to local heuristics if AI quota is unavailable.
 
 # Offline image detection (after installing the optional packages):

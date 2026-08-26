@@ -22,6 +22,11 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from mongoengine.errors import NotUniqueError
+from mongoengine.queryset.visitor import Q
+from django.conf import settings
+from django.utils import timezone
+
+# (No dev-mode demo fallbacks — rely on real MongoDB for data integrity.)
 
 from issues.models import Issue, AIClassification, ResolutionProof, StatusChange, IssueUpvote, IssueVerification, EscalationLog, EmergencyDispatch, VolunteerDrive
 from users.models import Badge, CivixUser, AdminAuditLog, Notification
@@ -47,9 +52,38 @@ def location_coordinates(location):
     return location.get("coordinates") if isinstance(location, dict) else location
 
 
-def serialize_issue(issue):
+def user_has_upvoted(issue, user_id):
+    """Return True when a citizen has already upvoted this issue."""
+    if not user_id:
+        return False
+    upvoted_by = list(issue.upvoted_by or [])
+    return user_id in upvoted_by
+
+
+def serialize_issue(issue, user_id=None):
     """Convert MongoEngine Issue document to JSON-friendly dict."""
     coordinates = location_coordinates(issue.location)
+    overdue = overdue_issue_details(issue)
+    stalled = stalled_issue_details(issue)
+    proof = issue.resolution_proof
+    resolved_worker = None
+    if proof and proof.worker_id:
+        try:
+            resolved_worker = CivixUser.objects(id=proof.worker_id).first()
+        except (TypeError, ValueError):
+            resolved_worker = None
+        if not resolved_worker:
+            resolved_worker = CivixUser.objects(full_name=proof.worker_id).first()
+    started_at = issue.started_at
+    if not started_at:
+        started_change = next((change for change in (issue.status_history or []) if change.to_status == "in_progress"), None)
+        started_at = started_change.changed_at if started_change else None
+    worker_coords = None
+    if proof and proof.worker_location:
+        worker_coords = location_coordinates(proof.worker_location)
+    completion_distance = proof.distance_from_issue if proof else None
+    location_warning = completion_distance is not None and completion_distance > 50
+    already_voted = user_has_upvoted(issue, user_id)
     return {
         "id": str(issue.id),
         "title": issue.title,
@@ -57,15 +91,28 @@ def serialize_issue(issue):
         "category": issue.category,
         "issue_type": issue.issue_type or "",
         "severity": issue.severity,
+        "officer_priority": issue.officer_priority,
+        "officer_decision": issue.officer_decision or "",
+        "assigned_officer": issue.assigned_officer or "",
         "status": issue.status,
+        "status_label": issue_status_label(issue.status),
+        "public_status": public_status_lifecycle(issue.status),
         "location": {
             "longitude": coordinates[0],
             "latitude": coordinates[1],
             "coordinates": coordinates,
         },
+        "location_verification": {
+            "original_report": {"latitude": coordinates[1], "longitude": coordinates[0]},
+            "completion": {"latitude": worker_coords[1], "longitude": worker_coords[0]} if worker_coords else None,
+            "distance_meters": completion_distance,
+            "warning": location_warning,
+            "supporting_evidence_only": True,
+        },
         "address": issue.address or "",
         "ward": issue.ward or "",
         "upvote_count": issue.upvote_count,
+        "already_voted": already_voted,
         "priority_score": round(issue.priority_score, 1),
         "photo_urls": issue.photo_urls or [],
         "ai_classification": {
@@ -76,15 +123,31 @@ def serialize_issue(issue):
             "source": (issue.ai_classification.raw_response or {}).get("cloud", "Unknown"),
         } if issue.ai_classification else None,
         "resolution_proof": {
-            "photo_url": issue.resolution_proof.photo_url,
-            "geo_verified": issue.resolution_proof.geo_verified,
-            "distance_from_issue": issue.resolution_proof.distance_from_issue,
-            "submitted_at": issue.resolution_proof.submitted_at.isoformat() if issue.resolution_proof.submitted_at else None,
-            "notes": issue.resolution_proof.notes or "",
-        } if issue.resolution_proof else None,
+            "photo_url": proof.photo_url,
+            "worker_id": proof.worker_id,
+            "ticket_id": proof.ticket_id,
+            "verification_status": proof.verification_status or ("accepted" if issue.status in {"resolved", "citizen_verified", "closed"} else "pending"),
+            "worker_location": {
+                "longitude": worker_coords[0],
+                "latitude": worker_coords[1],
+                "coordinates": worker_coords,
+            } if worker_coords else None,
+            "geo_verified": proof.geo_verified,
+            "distance_from_issue": proof.distance_from_issue,
+            "submitted_at": proof.submitted_at.isoformat() if proof and proof.submitted_at else None,
+            "notes": proof.notes or "",
+        } if proof else None,
         "assigned_to": issue.assigned_to or "",
+        "resolved_by_name": resolved_worker.full_name if resolved_worker else (proof.worker_id if proof and proof.worker_id else issue.assigned_to or ""),
+        "assigned_at": issue.assigned_at.isoformat() if issue.assigned_at else None,
+        "started_at": started_at.isoformat() if started_at else None,
         "sla_deadline": issue.sla_deadline.isoformat() if issue.sla_deadline else None,
         "sla_breached": issue.sla_breached,
+        "is_overdue": overdue["is_overdue"],
+        "pending_days": overdue["pending_days"],
+        "is_stalled": stalled["is_stalled"],
+        "stalled_days": stalled["pending_days"],
+        "stalled_reason": stalled["reason"],
         "escalation_level": issue.escalation_level,
         "created_at": issue.created_at.isoformat() if issue.created_at else None,
         "resolved_at": issue.resolved_at.isoformat() if issue.resolved_at else None,
@@ -104,6 +167,84 @@ def session_user_id(request, fallback="anonymous"):
     return request.session.get("civix_user_id", fallback)
 
 
+def issue_status_label(status):
+    return {
+        "submitted": "Reported",
+        "verified": "Verified",
+        "dismissed": "Dismissed",
+        "assigned": "Assigned",
+        "in_progress": "Work in Progress",
+        "awaiting_verification": "Awaiting Verification",
+        "resolved": "Resolved",
+        "citizen_verified": "Resolved",
+        "reopened": "Reopened",
+        "escalated": "Escalated",
+        "closed": "Closed",
+    }.get(status, "Updated")
+
+
+def public_status_lifecycle(current_status):
+    """Return the civic-facing lifecycle across backend status values."""
+    ordered = [
+        {"key": "reported", "label": "Reported"},
+        {"key": "verified", "label": "Verified"},
+        {"key": "assigned", "label": "Assigned"},
+        {"key": "in_progress", "label": "Work in Progress"},
+        {"key": "resolved", "label": "Resolved"},
+    ]
+    alias_map = {
+        "submitted": "reported",
+        "verified": "verified",
+        "assigned": "assigned",
+        "in_progress": "in_progress",
+        "awaiting_verification": "in_progress",
+        "resolved": "resolved",
+        "citizen_verified": "resolved",
+        "closed": "resolved",
+    }
+    normalized = alias_map.get(current_status, "reported")
+    steps = []
+    for stage in ordered:
+        stage_key = stage["key"]
+        complete = ordered.index(stage) < ordered.index(next((step for step in ordered if step["key"] == normalized), ordered[0]))
+        active = stage_key == normalized
+        steps.append({
+            "key": stage_key,
+            "label": stage["label"],
+            "active": active,
+            "complete": complete,
+        })
+    return steps
+
+
+def overdue_issue_details(issue):
+    if not issue or not issue.created_at or issue.status in {"resolved", "citizen_verified", "closed", "dismissed"}:
+        return {"is_overdue": False, "pending_days": 0.0}
+    delta = datetime.datetime.utcnow() - issue.created_at
+    pending_days = delta.total_seconds() / 86400
+    overdue = (
+        pending_days >= 12
+        and (issue.status in {"submitted", "verified"} or not issue.assigned_to or issue.officer_decision is None)
+    )
+    return {"is_overdue": overdue, "pending_days": round(pending_days, 1)}
+
+
+def stalled_issue_details(issue):
+    """Return stage-aware five-day inactivity details for officer follow-up."""
+    if not issue or issue.status in {"dismissed", "resolved", "citizen_verified", "closed"}:
+        return {"is_stalled": False, "pending_days": 0.0, "reason": ""}
+    if issue.status in {"submitted", "verified"} and not issue.assigned_to:
+        reference_time, reason = issue.created_at, "This ticket has been unassigned"
+    elif issue.status == "assigned" and not issue.started_at:
+        reference_time, reason = issue.assigned_at or issue.created_at, "This ticket has had no work progress"
+    elif issue.status == "in_progress":
+        reference_time, reason = issue.started_at or issue.created_at, "This ticket has been in progress"
+    else:
+        return {"is_stalled": False, "pending_days": 0.0, "reason": ""}
+    pending_days = max(0.0, (datetime.datetime.utcnow() - reference_time).total_seconds() / 86400) if reference_time else 0.0
+    return {"is_stalled": pending_days >= 5, "pending_days": round(pending_days, 1), "reason": reason}
+
+
 class IssueClassifyView(APIView):
     """
     POST /api/issues/classify/
@@ -117,6 +258,7 @@ class IssueClassifyView(APIView):
             image_bytes = None
             image_url = request.data.get("image_url")
             title_hint = request.data.get("description", "")
+            requested_category = request.data.get("category", "").strip().lower()
 
             if "photo" in request.FILES:
                 photo_file = request.FILES["photo"]
@@ -125,9 +267,10 @@ class IssueClassifyView(APIView):
             result = classify_issue_image(
                 image_bytes=image_bytes,
                 image_url=image_url,
-                title_hint=title_hint
+                title_hint=title_hint,
+                requested_category=requested_category,
             )
-            return Response(result, status=status.HTTP_200_OK)
+            return Response(result, status=status.HTTP_200_OK if result.get("accepted", True) else status.HTTP_422_UNPROCESSABLE_ENTITY)
         except PyMongoError:
             return Response(
                 {"error": "Report storage is temporarily unavailable. Check the MongoDB connection."},
@@ -184,6 +327,8 @@ class IssueReportView(APIView):
             if "photo" in request.FILES:
                 photo_file = request.FILES["photo"]
                 photo_bytes = photo_file.read()
+                if not photo_bytes or not (photo_file.content_type or "").startswith("image/"):
+                    return Response({"error": "Please capture or upload a valid image."}, status=status.HTTP_400_BAD_REQUEST)
                 photo_hash = hashlib.sha256(photo_bytes).hexdigest()
 
                 if not force_submit:
@@ -199,7 +344,6 @@ class IssueReportView(APIView):
                             "nearby_issues": [serialize_issue(matching_issue)],
                         }, status=status.HTTP_200_OK)
                 
-                # Upload directly to Supabase Storage CDN
                 upload_res = upload_image_bytes(
                     file_bytes=photo_bytes,
                     filename=photo_file.name or "camera_snapshot.jpg",
@@ -207,22 +351,11 @@ class IssueReportView(APIView):
                     content_type=photo_file.content_type
                 )
                 photo_urls.append(upload_res["public_url"])
-
-                # Run Vision AI Classification
-                ai_data = classify_issue_image(
-                    image_bytes=photo_bytes,
-                    image_url=upload_res["public_url"],
-                    title_hint=title or description
-                )
-            elif title or description:
-                # Classify voice-only and text-only reports using the description.
-                ai_data = classify_issue_image(title_hint=title or description)
-
             # Determine category and severity
-            final_category = category_override or (ai_data.get("category") if ai_data else "road")
-            final_severity = severity_override or (ai_data.get("severity") if ai_data else "medium")
-            final_type = ai_data.get("issue_type") if ai_data else "general_complaint"
-            final_title = title or (ai_data.get("suggested_title") if ai_data else "Civic Complaint")
+            final_category = category_override or "other"
+            final_severity = severity_override or "medium"
+            final_type = "general_complaint"
+            final_title = title or "Civic Complaint"
 
             # Build Issue Document
             issue = Issue(
@@ -241,33 +374,7 @@ class IssueReportView(APIView):
                 status="submitted",
             )
 
-            if ai_data:
-                issue.ai_classification = AIClassification(
-                    category=ai_data.get("category", final_category),
-                    issue_type=ai_data.get("issue_type", final_type),
-                    severity=ai_data.get("severity", final_severity),
-                    confidence=float(ai_data.get("confidence", 0.90)),
-                    raw_response=ai_data.get("raw_response", {})
-                )
-
             issue.save()
-            matching_workers = [
-                worker for worker in CivixUser.objects(role="field_worker", is_active=True)
-                if (not worker.zone or worker.zone == issue.ward)
-                and (not worker.department or _department_category(worker.department) in (None, issue.category))
-            ]
-            if matching_workers:
-                worker = matching_workers[0]
-                issue.assigned_to = str(worker.id)
-                issue.assigned_at = datetime.datetime.utcnow()
-                issue.add_status_change(to_status="assigned", changed_by="automatic-routing", reason="Automatically routed by category and zone")
-                issue.save()
-                Notification(
-                    user_id=str(worker.id), title="New task assigned", title_ta="புதிய பணி ஒதுக்கப்பட்டது",
-                    message=f"{issue.title} was automatically routed to you.",
-                    message_ta=f"{issue.title} தானாக உங்களுக்கு ஒதுக்கப்பட்டது.",
-                    notification_type="assignment", related_issue_id=str(issue.id)
-                ).save()
 
             # Award Civic Points (+20 for verified reporting)
             user = CivixUser.objects(id=user_id).first() if len(user_id) == 24 else None
@@ -318,10 +425,14 @@ class HeatmapGeoJSONView(APIView):
 class IssueListView(APIView):
     """GET /api/issues/"""
     def get(self, request):
+        user_id = session_user_id(request, "")
         category = request.query_params.get("category")
         severity = request.query_params.get("severity")
         status_filter = request.query_params.get("status")
         assigned_to = request.query_params.get("assigned_to")
+        selected_date = request.query_params.get("date", "").strip()
+        workflow = request.query_params.get("workflow", "").strip()
+        date_filter = None
 
         query = {}
         if category:
@@ -332,14 +443,83 @@ class IssueListView(APIView):
             query["status"] = status_filter
         if assigned_to:
             query["assigned_to"] = assigned_to
+        if selected_date:
+            try:
+                ticket_date = datetime.date.fromisoformat(selected_date)
+            except ValueError:
+                return Response({"error": "Date must use YYYY-MM-DD format."}, status=status.HTTP_400_BAD_REQUEST)
+            local_zone = timezone.get_current_timezone()
+            local_start = timezone.make_aware(datetime.datetime.combine(ticket_date, datetime.time.min), local_zone)
+            local_end = local_start + datetime.timedelta(days=1)
+            start = local_start.astimezone(datetime.timezone.utc).replace(tzinfo=None)
+            end = local_end.astimezone(datetime.timezone.utc).replace(tzinfo=None)
+            if workflow == "assigned":
+                query["assigned_at__gte"] = start
+                query["assigned_at__lt"] = end
+            elif workflow == "completed":
+                date_filter = Q(resolution_proof__submitted_at__gte=start, resolution_proof__submitted_at__lt=end) | Q(resolved_at__gte=start, resolved_at__lt=end)
+            else:
+                query["created_at__gte"] = start
+                query["created_at__lt"] = end
+        if workflow == "not_assigned":
+            query["status__in"] = ["submitted", "verified"]
+            query["assigned_to__in"] = [None, ""]
+        elif workflow == "assigned":
+            query["assigned_to__exists"] = True
+            query["status__in"] = ["assigned", "in_progress", "awaiting_verification", "reopened", "escalated"]
+        elif workflow == "completed":
+            query["status__in"] = ["awaiting_verification", "resolved", "citizen_verified", "closed"]
+        if request.session.get("civix_role") == "citizen":
+            query["status__nin"] = ["dismissed"]
         if request.session.get("civix_role") == "zone_officer":
             officer = CivixUser.objects(id=request.session.get("civix_user_id")).first()
             if officer and officer.zone:
                 query["ward"] = officer.zone
 
         try:
-            issues = Issue.objects(**query).order_by("-priority_score")[:50]
-            return Response([serialize_issue(i) for i in issues], status=status.HTTP_200_OK)
+            issue_query = Issue.objects(**query)
+            if date_filter is not None:
+                issue_query = issue_query.filter(date_filter)
+            if workflow in {"not_assigned", "assigned", "completed"}:
+                severity_rank = {"critical": 4, "high": 3, "medium": 2, "low": 1}
+                issues = list(issue_query)
+                issues.sort(key=lambda issue: (-severity_rank.get(issue.severity, 0), -(issue.priority_score or 0), -(issue.created_at.timestamp() if issue.created_at else 0)))
+                issues = issues[:50]
+            else:
+                issues = issue_query.order_by("-priority_score")[:50]
+            officer_ids = [str(user.id) for user in CivixUser.objects(role__in=["officer", "zone_officer", "admin"], is_active=True)]
+            for issue in issues:
+                details = overdue_issue_details(issue)
+                if details["is_overdue"]:
+                    for officer_id in officer_ids:
+                        if not Notification.objects(user_id=officer_id, related_issue_id=str(issue.id), notification_type="overdue").first():
+                            Notification(
+                                user_id=officer_id,
+                                title="Ticket overdue — action required",
+                                title_ta="புகார் காலாவதியானது — நடவடிக்கை தேவை",
+                                message=f"{issue.title}: Pending for {details['pending_days']} days - Action Required.",
+                                message_ta=f"{issue.title}: {details['pending_days']} நாட்கள் நிலுவை - நடவடிக்கை தேவை.",
+                                notification_type="overdue",
+                                related_issue_id=str(issue.id),
+                            ).save()
+                stalled = stalled_issue_details(issue)
+                if stalled["is_stalled"]:
+                    assigned_officer = CivixUser.objects(id=issue.assigned_officer).first() if issue.assigned_officer else None
+                    recipients = [assigned_officer] if assigned_officer and assigned_officer.is_active else list(CivixUser.objects(role__in=["officer", "zone_officer", "admin"], is_active=True))
+                    stage_key = "unassigned" if issue.status in {"submitted", "verified"} else issue.status
+                    notification_type = f"stalled_{stage_key}"
+                    for officer in recipients:
+                        if not Notification.objects(user_id=str(officer.id), related_issue_id=str(issue.id), notification_type=notification_type).first():
+                            Notification(
+                                user_id=str(officer.id),
+                                title="Ticket needs attention",
+                                title_ta="புகாருக்கு கவனம் தேவை",
+                                message=f"{stalled['reason']} for {stalled['pending_days']} days. Please review: {issue.title}.",
+                                message_ta=f"{stalled['pending_days']} நாட்களாக {issue.title} புகாரில் முன்னேற்றம் இல்லை. தயவுசெய்து பரிசீலிக்கவும்.",
+                                notification_type=notification_type,
+                                related_issue_id=str(issue.id),
+                            ).save()
+            return Response([serialize_issue(i, user_id=user_id) for i in issues], status=status.HTTP_200_OK)
         except PyMongoError:
             return Response(
                 {"error": "Issue data is temporarily unavailable. Check the MongoDB connection."},
@@ -351,21 +531,27 @@ class IssueUpvoteView(APIView):
     """POST /api/issues/<id>/upvote/"""
     def post(self, request, issue_id):
         user_id = session_user_id(request, "citizen_anon")
-        issue = Issue.objects(id=issue_id).first()
+        try:
+            issue = Issue.objects(id=issue_id).first()
+        except Exception:
+            return Response({"error": "Issue data is temporarily unavailable. Check the MongoDB connection or issue id."}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+
         if not issue:
             return Response({"error": "Issue not found"}, status=status.HTTP_404_NOT_FOUND)
 
-        if user_id in (issue.upvoted_by or []):
-            return Response({"message": "You have already upvoted this issue!", "upvote_count": issue.upvote_count}, status=status.HTTP_200_OK)
+        if user_has_upvoted(issue, user_id):
+            return Response({"success": False, "already_voted": True, "message": "You have already voted for this issue.", "upvote_count": issue.upvote_count}, status=status.HTTP_200_OK)
 
-        issue.upvoted_by.append(user_id)
-        issue.upvote_count += 1
+        if user_id and user_id not in (issue.upvoted_by or []):
+            issue.upvoted_by.append(user_id)
+        issue.upvote_count = max(0, (issue.upvote_count or 0) + 1)
         issue.save()
 
         try:
             IssueUpvote(issue_id=str(issue.id), user_id=user_id).save()
         except NotUniqueError:
-            return Response({"message": "You have already upvoted this issue!", "upvote_count": issue.upvote_count}, status=status.HTTP_200_OK)
+            issue.reload()
+            return Response({"success": False, "already_voted": True, "message": "You have already voted for this issue.", "upvote_count": issue.upvote_count}, status=status.HTTP_200_OK)
 
         user = CivixUser.objects(id=user_id).first() if len(user_id) == 24 else None
         if user:
@@ -374,9 +560,31 @@ class IssueUpvoteView(APIView):
 
         return Response({
             "success": True,
+            "already_voted": False,
             "upvote_count": issue.upvote_count,
             "new_priority_score": round(issue.priority_score, 1)
         }, status=status.HTTP_200_OK)
+
+
+class IssuePriorityView(APIView):
+    """PATCH /api/issues/<id>/priority/ for officer-controlled work priority."""
+    def patch(self, request, issue_id):
+        if request.session.get("civix_role") not in {"officer", "zone_officer", "admin"}:
+            return Response({"error": "Only an officer can set ticket priority."}, status=status.HTTP_403_FORBIDDEN)
+        issue = Issue.objects(id=issue_id).first()
+        if not issue:
+            return Response({"error": "Issue not found"}, status=status.HTTP_404_NOT_FOUND)
+        try:
+            priority = int(request.data.get("priority"))
+        except (TypeError, ValueError):
+            return Response({"error": "Priority must be low, medium, or high."}, status=status.HTTP_400_BAD_REQUEST)
+        if priority not in {1, 2, 3}:
+            return Response({"error": "Priority must be between 1 and 3."}, status=status.HTTP_400_BAD_REQUEST)
+        issue.officer_priority = priority
+        issue.priority_locked = True
+        issue.priority_score = {1: 100.0, 2: 200.0, 3: 300.0}[priority]
+        issue.save()
+        return Response({"success": True, "priority": priority, "priority_score": issue.priority_score}, status=status.HTTP_200_OK)
 
 
 class IssueResolveView(APIView):
@@ -388,8 +596,8 @@ class IssueResolveView(APIView):
         if not issue:
             return Response({"error": "Issue not found"}, status=status.HTTP_404_NOT_FOUND)
 
-        if issue.status not in ("assigned", "in_progress"):
-            return Response({"error": f"Cannot resolve an issue in {issue.status} status."}, status=status.HTTP_409_CONFLICT)
+        if issue.status != "in_progress":
+            return Response({"error": f"Completion evidence requires an in-progress issue, not {issue.status}."}, status=status.HTTP_409_CONFLICT)
 
         try:
             worker_lat = float(request.data["latitude"])
@@ -425,26 +633,37 @@ class IssueResolveView(APIView):
 
         issue.resolution_proof = ResolutionProof(
             photo_url=photo_url,
+            worker_id=worker_id,
+            ticket_id=str(issue.id),
+            verification_status="pending",
             worker_location=[worker_lng, worker_lat] if worker_lng and worker_lat else None,
             geo_verified=geo_verified,
             distance_from_issue=round(dist, 1),
             notes=notes,
             submitted_at=datetime.datetime.utcnow()
         )
-        issue.add_status_change(to_status="resolved", changed_by=worker_id, reason=notes)
-        issue.resolved_at = datetime.datetime.utcnow()
+        issue.status = "awaiting_verification"
+        issue.add_status_change(to_status="awaiting_verification", changed_by=worker_id, reason=notes)
+        issue.resolved_at = None
         issue.save()
-        Notification(
-            user_id=issue.reported_by,
-            title="Your issue was resolved", title_ta="உங்கள் புகார் தீர்க்கப்பட்டது",
-            message=f"Proof of work was submitted for: {issue.title}",
-            message_ta=f"இதற்கான பணி சான்று சமர்ப்பிக்கப்பட்டது: {issue.title}",
-            notification_type="resolution", related_issue_id=str(issue.id)
-        ).save()
+        assigned_officer = CivixUser.objects(id=issue.assigned_officer).first() if issue.assigned_officer else None
+        officers = [assigned_officer] if assigned_officer else list(CivixUser.objects(role__in=["officer", "zone_officer", "admin"], is_active=True))
+        for officer in officers:
+            if not officer or not officer.is_active:
+                continue
+            Notification(
+                user_id=str(officer.id),
+                title="Completion upload awaiting verification",
+                title_ta="முடிவை சரிபார்க்க காத்திருக்கிறது",
+                message=f"Worker proof submitted for: {issue.title}.",
+                message_ta=f"பணியாளர் சான்று சமர்ப்பிக்கப்பட்டது: {issue.title}.",
+                notification_type="verification_required",
+                related_issue_id=str(issue.id),
+            ).save()
 
         return Response({
             "success": True,
-            "message": "Proof-of-work submitted! Ticket marked as Resolved.",
+            "message": "Proof submitted to the officer for verification.",
             "geo_verified": geo_verified,
             "distance_meters": round(dist, 1),
             "issue": serialize_issue(issue)
@@ -521,10 +740,8 @@ class IssueAssignView(APIView):
             return Response({"error": "You can only assign issues in your zone."}, status=status.HTTP_403_FORBIDDEN)
         if officer and officer.role == "zone_officer" and worker.zone != officer.zone:
             return Response({"error": "You can only assign workers in your zone."}, status=status.HTTP_403_FORBIDDEN)
-        if worker.department and _department_category(worker.department) not in (None, issue.category):
-            return Response({"error": "Worker department does not match this issue."}, status=status.HTTP_403_FORBIDDEN)
-
         issue.assigned_to = worker_id
+        issue.assigned_officer = officer_id
         issue.assigned_at = datetime.datetime.utcnow()
         issue.add_status_change(to_status="assigned", changed_by=officer_id, reason=f"Assigned to worker {worker_id}")
         issue.save()
@@ -542,16 +759,115 @@ class IssueAssignView(APIView):
         }, status=status.HTTP_200_OK)
 
 
+class IssueReviewView(APIView):
+    """PATCH /api/issues/<id>/review/ for officer swipe decisions."""
+    def patch(self, request, issue_id):
+        issue = Issue.objects(id=issue_id).first()
+        if not issue:
+            return Response({"error": "Issue not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        decision = request.data.get("decision", "").strip().lower()
+        officer_id = session_user_id(request, "officer_admin")
+        worker = None
+        worker_id = request.data.get("worker_id", "").strip()
+        feedback = request.data.get("feedback", "").strip()
+        priority_value = request.data.get("priority")
+
+        if decision == "resolved":
+            if issue.status != "awaiting_verification":
+                return Response({"error": "Only awaiting-verification tickets can be resolved by the officer."}, status=status.HTTP_409_CONFLICT)
+            issue.officer_decision = "verified"
+            if issue.resolution_proof:
+                issue.resolution_proof.verification_status = "accepted"
+            issue.status = "resolved"
+            issue.resolved_at = datetime.datetime.utcnow()
+            issue.add_status_change(to_status="resolved", changed_by=officer_id, reason="Officer verified completion")
+            issue.save()
+            Notification(
+                user_id=issue.reported_by,
+                title="Your issue was resolved", title_ta="உங்கள் புகார் தீர்க்கப்பட்டது",
+                message=f"The officer verified completion for: {issue.title}",
+                message_ta=f"அதிகாரி இந்த பணியை சரிபார்த்தார்: {issue.title}",
+                notification_type="resolution", related_issue_id=str(issue.id)
+            ).save()
+            return Response({"success": True, "issue": serialize_issue(issue)}, status=status.HTTP_200_OK)
+
+        if decision in {"rejected", "reopened"}:
+            if issue.status != "awaiting_verification":
+                return Response({"error": "Only awaiting-verification tickets can be rejected."}, status=status.HTTP_409_CONFLICT)
+            if not feedback:
+                return Response({"error": "Feedback is required when rejecting completion evidence."}, status=status.HTTP_400_BAD_REQUEST)
+            issue.add_status_change(to_status="in_progress", changed_by=officer_id, reason="Officer rejected completion evidence")
+            if issue.resolution_proof:
+                issue.resolution_proof.verification_status = "rejected"
+            issue.officer_decision = None
+            issue.save()
+            if issue.assigned_to:
+                Notification(
+                    user_id=issue.assigned_to,
+                    title="Completion evidence rejected", title_ta="முடிப்பு சான்று நிராகரிக்கப்பட்டது",
+                    message=f"{issue.title}: {feedback}",
+                    message_ta=f"{issue.title}: {feedback}",
+                    notification_type="verification_rejected", related_issue_id=str(issue.id)
+                ).save()
+            return Response({"success": True, "issue": serialize_issue(issue)}, status=status.HTTP_200_OK)
+
+        if decision not in {"verified", "dismissed"}:
+            return Response({"error": "Decision must be verified, dismissed or resolved."}, status=status.HTTP_400_BAD_REQUEST)
+
+        if decision == "dismissed":
+            issue.officer_priority = None
+            issue.officer_decision = "dismissed"
+            issue.assigned_to = None
+            issue.add_status_change(to_status="dismissed", changed_by=officer_id, reason="Officer dismissed invalid report")
+            issue.save()
+            return Response({"success": True, "issue": serialize_issue(issue)}, status=status.HTTP_200_OK)
+
+        if decision == "verified":
+            if not worker_id:
+                return Response({"error": "Select a field worker before verifying this issue."}, status=status.HTTP_400_BAD_REQUEST)
+            try:
+                priority = int(priority_value)
+            except (TypeError, ValueError):
+                return Response({"error": "Select a work priority before assigning this issue."}, status=status.HTTP_400_BAD_REQUEST)
+            if priority not in {1, 2, 3}:
+                return Response({"error": "Priority must be between 1 and 3."}, status=status.HTTP_400_BAD_REQUEST)
+            worker = CivixUser.objects(phone=worker_id).first() or CivixUser.objects(full_name=worker_id).first()
+            if not worker or worker.role != "field_worker":
+                return Response({"error": "Select a valid field worker."}, status=status.HTTP_400_BAD_REQUEST)
+
+        issue.officer_priority = None
+        issue.officer_decision = decision
+        issue.add_status_change(
+            to_status="verified",
+            changed_by=officer_id,
+            reason=f"Officer decision: {decision}",
+        )
+        if worker:
+            issue.assigned_officer = officer_id
+            issue.assigned_to = worker_id
+            issue.assigned_at = datetime.datetime.utcnow()
+            issue.officer_priority = priority
+            issue.priority_locked = True
+            issue.priority_score = {1: 100.0, 2: 200.0, 3: 300.0}[priority]
+            issue.add_status_change(to_status="assigned", changed_by=officer_id, reason=f"Assigned to worker {worker_id}")
+        issue.save()
+        if worker:
+            Notification(
+                user_id=str(worker.id), title="New task assigned", title_ta="புதிய பணி ஒதுக்கப்பட்டது",
+                message=f"{issue.title} has been assigned to you.",
+                message_ta=f"{issue.title} உங்களுக்கு ஒதுக்கப்பட்டுள்ளது.",
+                notification_type="assignment", related_issue_id=str(issue.id)
+            ).save()
+        return Response({"success": True, "issue": serialize_issue(issue)}, status=status.HTTP_200_OK)
+
+
 class IssueStatusView(APIView):
     """PATCH /api/issues/<issue_id>/status/ for worker workflow transitions."""
     allowed_transitions = {
         "assigned": {"in_progress"},
-        "in_progress": {"resolved"},
-        "submitted": {"verified", "assigned"},
-        "verified": {"assigned"},
-        "reopened": {"assigned"},
-        "escalated": {"assigned"},
-        "citizen_verified": {"closed"},
+        "in_progress": {"awaiting_verification"},
+        "awaiting_verification": set(),
     }
 
     def patch(self, request, issue_id):
@@ -564,6 +880,8 @@ class IssueStatusView(APIView):
         next_status = request.data.get("status", "").strip()
         if next_status not in self.allowed_transitions.get(issue.status, set()):
             return Response({"error": f"Cannot move issue from {issue.status} to {next_status}."}, status=status.HTTP_400_BAD_REQUEST)
+        if next_status == "in_progress" and not issue.started_at:
+            issue.started_at = datetime.datetime.utcnow()
         issue.add_status_change(
             to_status=next_status,
             changed_by=str(worker.id),
@@ -586,16 +904,22 @@ class MyReportsView(IssueListView):
         user_id = request.session.get("civix_user_id")
         if not user_id:
             return Response({"error": "Authentication required."}, status=status.HTTP_401_UNAUTHORIZED)
-        return Response([serialize_issue(i) for i in Issue.objects(reported_by=user_id).order_by("-created_at")[:50]])
+        reporter_ids = {user_id}
+        user = CivixUser.objects(id=user_id).first() if len(user_id) == 24 else None
+        if user:
+            reporter_ids.update(filter(None, [str(user.id), user.username, user.phone]))
+        reports = Issue.objects(reported_by__in=list(reporter_ids)).order_by("-created_at")[:50]
+        return Response([serialize_issue(i, user_id=user_id) for i in reports])
 
 
 class NearbyIssuesView(IssueListView):
     def get(self, request):
         try:
+            user_id = session_user_id(request, "")
             latitude = float(request.query_params.get("latitude", 13.0067))
             longitude = float(request.query_params.get("longitude", 80.2574))
             issues = Issue.objects(location__near=[longitude, latitude], location__max_distance=50, status__nin=["closed"])
-            return Response([serialize_issue(i) for i in issues[:50]])
+            return Response([serialize_issue(i, user_id=user_id) for i in issues[:50]])
         except PyMongoError:
             return Response({"error": "Issue data is temporarily unavailable."}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
 
@@ -609,21 +933,37 @@ class TaskAssignedView(IssueListView):
         assigned_values = [user_id]
         assigned_values.extend([worker.full_name, worker.phone])
         query = {"assigned_to__in": assigned_values}
-        category = _department_category(worker.department)
-        if category:
-            query["category"] = category
-        if worker.zone:
-            query["ward"] = worker.zone
-        return Response([serialize_issue(i) for i in Issue.objects(**query).order_by("-priority_score")[:50]])
+        selected_date = request.query_params.get("date", "").strip()
+        if selected_date:
+            try:
+                task_date = datetime.date.fromisoformat(selected_date)
+            except ValueError:
+                return Response({"error": "Date must use YYYY-MM-DD format."}, status=status.HTTP_400_BAD_REQUEST)
+            start = datetime.datetime.combine(task_date, datetime.time.min)
+            end = start + datetime.timedelta(days=1)
+            query["assigned_at__gte"] = start
+            query["assigned_at__lt"] = end
+        severity_rank = {"critical": 4, "high": 3, "medium": 2, "low": 1}
+        tasks = list(Issue.objects(**query))
+        tasks.sort(
+            key=lambda issue: (
+                -severity_rank.get(issue.severity, 0),
+                -(issue.priority_score or 0),
+                -(issue.assigned_at.timestamp() if issue.assigned_at else 0),
+            )
+        )
+        tasks = tasks[:50]
+        return Response([serialize_issue(i, user_id=user_id) for i in tasks])
 
 
 class IssueDetailsView(APIView):
     def get(self, request, issue_id):
         issue = Issue.objects(id=issue_id).first()
-        worker = CivixUser.objects(id=session_user_id(request, "")).first()
+        user_id = session_user_id(request, "")
+        worker = CivixUser.objects(id=user_id).first() if user_id else None
         if worker and worker.role == "field_worker" and issue and issue.assigned_to not in {str(worker.id), worker.full_name, worker.phone}:
             return Response({"error": "You can only view your assigned issues."}, status=status.HTTP_403_FORBIDDEN)
-        return Response(serialize_issue(issue), status=status.HTTP_200_OK) if issue else Response({"error": "Issue not found"}, status=status.HTTP_404_NOT_FOUND)
+        return Response(serialize_issue(issue, user_id=user_id), status=status.HTTP_200_OK) if issue else Response({"error": "Issue not found"}, status=status.HTTP_404_NOT_FOUND)
 
 
 class IssueProofView(IssueResolveView):

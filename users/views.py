@@ -15,6 +15,7 @@ import hashlib
 import re
 import time
 from django.contrib.auth.hashers import check_password, make_password
+from django.shortcuts import redirect
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from pymongo.errors import PyMongoError
@@ -38,12 +39,6 @@ def password_matches(user, password):
     except ValueError:
         pass
     if user.password_hash == hashlib.sha256(password.encode("utf-8")).hexdigest():
-        user.password_hash = make_password(password)
-        if user.id:
-            user.save()
-        return True
-    # Seeded demo records use a placeholder; allow the documented demo password once.
-    if user.password_hash.startswith("pbkdf2_sha256$demo$") and password == "demo123":
         user.password_hash = make_password(password)
         if user.id:
             user.save()
@@ -120,19 +115,21 @@ class UserLoginView(MongoSafeAPIView):
         # Lookup the friendly username first, then preserve phone/email login.
         clean_phone = identifier.replace(" ", "").replace("-", "")
         user = None
-        for attempt in range(2):
-            try:
-                user = CivixUser.objects(username=identifier.lower()).first()
-                if not user:
-                    user = CivixUser.objects(phone__in=[clean_phone, f"+91{clean_phone}", identifier]).first()
-                break
-            except PyMongoError:
-                if attempt == 1:
-                    raise
-                time.sleep(0.2)
-        
-        if not user and "@" in identifier:
-            user = CivixUser.objects(email=identifier.lower()).first()
+        try:
+            for attempt in range(2):
+                try:
+                    user = CivixUser.objects(username=identifier.lower()).first()
+                    if not user:
+                        user = CivixUser.objects(phone__in=[clean_phone, f"+91{clean_phone}", identifier]).first()
+                    break
+                except PyMongoError:
+                    if attempt == 1:
+                        raise
+                    time.sleep(0.2)
+            if not user and "@" in identifier:
+                user = CivixUser.objects(email=identifier.lower()).first()
+        except PyMongoError:
+            raise
 
         if not user:
             return Response({"error": f"No account found for username or phone number: {identifier}"}, status=status.HTTP_401_UNAUTHORIZED)
@@ -160,6 +157,70 @@ class UserLoginView(MongoSafeAPIView):
             "user": serialize_user(user),
             "redirect_url": portal_redirect
         }, status=status.HTTP_200_OK)
+
+
+class DevLoginView(APIView):
+    """
+    Development helper: POST /api/users/dev-login/
+    Accepts JSON { "identifier": "ravi-kumar" } and when settings.DEBUG is True
+    will set a lightweight session for demo testing without requiring MongoDB.
+    Returns a minimal `user` object similar to `serialize_user`.
+    """
+    def post(self, request):
+        from django.conf import settings
+        if not getattr(settings, 'DEBUG', False):
+            return Response({'error': 'Dev login disabled.'}, status=status.HTTP_403_FORBIDDEN)
+        identifier = (request.data.get('identifier') or '').strip()
+        if not identifier:
+            return Response({'error': 'identifier required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Known demo accounts (match seed_data usernames)
+        demo_map = {
+            'ravi-kumar': {'username': 'ravi-kumar', 'full_name': 'Ravi Kumar', 'role': 'citizen', 'phone': '+919876543210', 'civic_points': 120},
+            'priya-devi': {'username': 'priya-devi', 'full_name': 'Priya Devi', 'role': 'citizen', 'phone': '+919876543211', 'civic_points': 85},
+            'murugan-s': {'username': 'murugan-s', 'full_name': 'Murugan S', 'role': 'field_worker', 'phone': '+919876543212', 'civic_points': 0},
+            'lakshmi-narayanan': {'username': 'lakshmi-narayanan', 'full_name': 'Lakshmi Narayanan', 'role': 'field_worker', 'phone': '+919876543213', 'civic_points': 0},
+            'civix-admin': {'username': 'civix-admin', 'full_name': 'CIVIX System Administrator', 'role': 'admin', 'phone': '+919876543216', 'civic_points': 0},
+        }
+
+        demo = demo_map.get(identifier) or demo_map.get(identifier.lower())
+        if not demo:
+            return Response({'error': 'Unknown demo identifier'}, status=status.HTTP_404_NOT_FOUND)
+
+        # Set session keys to simulate a logged-in user
+        request.session['civix_user_id'] = f"dev-{demo['username']}"
+        request.session['civix_role'] = demo['role']
+        request.session['civix_department'] = demo.get('department', '')
+
+        user_obj = {
+            'id': request.session['civix_user_id'],
+            'username': demo['username'],
+            'phone': demo['phone'],
+            'is_active': True,
+            'email': '',
+            'full_name': demo['full_name'],
+            'role': demo['role'],
+            'zone': demo.get('zone', 'Zone 5 - Adyar'),
+            'department': demo.get('department', ''),
+            'civic_points': demo.get('civic_points', 0),
+            'level': 1,
+            'reports_submitted': 0,
+            'upvotes_given': 0,
+            'verifications_done': 0,
+            'issues_resolved': 0,
+            'badges': [],
+            'accessibility': {'language': 'en', 'high_contrast': False, 'font_size': 'normal', 'easy_read': False}
+        }
+
+        redirect_map = {'citizen': '/citizen/', 'field_worker': '/worker/', 'officer': '/officer/', 'zone_officer': '/officer/', 'admin': '/system-admin/'}
+        return Response({'success': True, 'message': f"Dev login: {demo['full_name']}", 'user': user_obj, 'redirect_url': redirect_map.get(demo['role'], '/citizen/')})
+
+
+class UserLogoutView(APIView):
+    """Clear the server session and local client identity."""
+    def get(self, request):
+        request.session.flush()
+        return redirect("/login/")
 
 
 class UserRegisterView(MongoSafeAPIView):
@@ -482,6 +543,21 @@ class AdminUpdateUserView(MongoSafeAPIView):
         user.save()
         log_admin_action(request, "update_user", target_id=str(user.id), details={"role": role, "password_changed": bool(password)})
         return Response({"success": True, "user": serialize_user(user)})
+
+
+class AdminResetPasswordView(MongoSafeAPIView):
+    """PATCH /api/users/admin/users/<id>/reset-password/ for admin access recovery."""
+    def patch(self, request, user_id):
+        user = CivixUser.objects(id=user_id).first()
+        if not user:
+            return Response({"error": "User not found"}, status=status.HTTP_404_NOT_FOUND)
+        password = request.data.get("password", "").strip()
+        if len(password) < 8:
+            return Response({"error": "Reset password must be at least 8 characters."}, status=status.HTTP_400_BAD_REQUEST)
+        user.password_hash = hash_pw(password)
+        user.save()
+        log_admin_action(request, "reset_user_password", target_id=str(user.id), details={"role": user.role})
+        return Response({"success": True, "user_id": str(user.id), "message": "Access password reset securely."})
 
 
 class AdminDeactivateUserView(MongoSafeAPIView):

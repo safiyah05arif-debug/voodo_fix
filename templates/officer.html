@@ -4,41 +4,147 @@
 <head>
     <meta charset="utf-8"/>
     <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-    <title>CIVIX — Municipal Officer Command Center</title>
+    <title>Nagara Setu — Municipal Officer</title>
     <link rel="stylesheet" href="{% static 'css/tailwind.css' %}">
-    <link rel="icon" href="{% static 'favicon.svg' %}" type="image/svg+xml">
+    <link rel="icon" href="{% static 'nagara_setu_logo.svg' %}" type="image/svg+xml">
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet"/>
     
-    <!-- Leaflet & Heatmap -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
-
     <style>
+        :root { --civix-radius: .75rem; --civix-control-height: 2.5rem; --civix-card-padding: .75rem; --civix-card-border: #d9d9e0; --civix-card-shadow: 0 2px 8px rgba(18, 33, 51, .06); }
         .pulse-red { animation: pulse-red 1.5s infinite; }
         @keyframes pulse-red { 0%, 100% { opacity: 1; color: #ba1a1a; } 50% { opacity: .4; color: #ba1a1a; } }
-        #officer-map { width: 100%; height: 100%; z-index: 10; }
-        .high-contrast, .high-contrast main, .high-contrast header, .high-contrast section,
-        .high-contrast .bg-white, .high-contrast .bg-surface-container-low { background-color: #000 !important; color: #fff !important; }
-        .high-contrast * { border-color: #ffff00 !important; }
-        .high-contrast button, .high-contrast input, .high-contrast select { background: #000 !important; color: #fff !important; }
-        .high-contrast .text-primary, .high-contrast .text-on-surface-variant { color: #ffff00 !important; }
-        .high-contrast .bg-primary { background-color: #000 !important; color: #ffff00 !important; }
-        .high-contrast a { color: #00ffff !important; }
+        body.high-contrast { --hc-bg: #101820; --hc-surface: #17232d; --hc-surface-strong: #20313d; --hc-text: #ffffff; --hc-muted: #d7e3ea; --hc-border: #a9c2cf; --hc-primary: #7dd3fc; --hc-secondary: #fcd34d; --hc-danger: #fda4af; --hc-success: #86efac; background: var(--hc-bg) !important; color: var(--hc-text) !important; }
+        body.high-contrast, body.high-contrast main, body.high-contrast header, body.high-contrast nav, body.high-contrast section, body.high-contrast article, body.high-contrast div, body.high-contrast form, body.high-contrast label, body.high-contrast .bg-white, body.high-contrast .bg-surface-container-low { background-color: var(--hc-surface) !important; color: var(--hc-text) !important; }
+        body.high-contrast * { border-color: var(--hc-border) !important; }
+        body.high-contrast p, body.high-contrast span, body.high-contrast h1, body.high-contrast h2, body.high-contrast h3, body.high-contrast h4, body.high-contrast label { color: var(--hc-text) !important; }
+        body.high-contrast .text-on-surface-variant, body.high-contrast .text-outline { color: var(--hc-muted) !important; }
+        body.high-contrast .text-primary, body.high-contrast .text-secondary { color: var(--hc-primary) !important; }
+        body.high-contrast button, body.high-contrast select, body.high-contrast input { background-color: var(--hc-surface-strong) !important; color: var(--hc-text) !important; border: 2px solid var(--hc-border) !important; }
+        body.high-contrast button:hover, body.high-contrast button:focus-visible, body.high-contrast a:hover { background-color: #315064 !important; color: #ffffff !important; }
+        body.high-contrast .bg-primary, body.high-contrast .bg-secondary { background-color: #075985 !important; color: #ffffff !important; }
+        body.high-contrast .bg-emerald-100, body.high-contrast .bg-emerald-50 { background-color: #14532d !important; color: var(--hc-success) !important; }
+        body.high-contrast .bg-amber-100, body.high-contrast .bg-amber-50 { background-color: #713f12 !important; color: var(--hc-secondary) !important; }
+        body.high-contrast .text-emerald-700, body.high-contrast .text-emerald-800 { color: var(--hc-success) !important; }
+        body.high-contrast .text-amber-700, body.high-contrast .text-amber-800 { color: var(--hc-secondary) !important; }
+        body.high-contrast .text-red-700, body.high-contrast .text-error { color: var(--hc-danger) !important; }
+        body.high-contrast a { color: var(--hc-primary) !important; }
         .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
-        @media (max-width: 767px) {
-            body { overflow: auto; }
-            body > header { align-items: flex-start; flex-direction: column; gap: 0.75rem; padding: .75rem 1rem; }
-            body > header > div:last-child { align-items: flex-start; flex-wrap: wrap; gap: 0.75rem; }
-            body > header > div:last-child > nav { width: 100%; }
-            #main-content { overflow: visible; }
-            #main-content > div:first-child { grid-template-columns: repeat(2, minmax(0, 1fr)); padding: .75rem; gap: .5rem; }
-            #main-content > div:first-child > div { padding: .75rem; }
-            #main-content > div:first-child .text-3xl { font-size: 1.5rem; }
+        .mobile-swipe-hint { display: none; }
+        .review-card { touch-action: pan-y; will-change: transform; border-radius: var(--civix-radius); border-color: var(--civix-card-border); box-shadow: var(--civix-card-shadow); }
+        .officer-ticket-card { min-width: 0; }
+        .officer-ticket-card h4 { font-size: .875rem; line-height: 1.25rem; font-weight: 700; }
+        .officer-ticket-card .ticket-description { font-size: .6875rem; line-height: 1rem; }
+        .officer-ticket-card .ticket-action { min-height: var(--civix-control-height); border-radius: .5rem; }
+        .ticket-meta-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .35rem .75rem; }
+        .assignment-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(5rem, auto) minmax(5rem, auto); align-items: stretch; gap: .5rem; }
+        .assignment-row select, .assignment-row button { min-height: 2.5rem; }
+        .officer-progress { margin-top: .5rem; border-top: 1px solid var(--civix-card-border); padding-top: .5rem; }
+        .officer-progress .status-stepper { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: .25rem; }
+        .officer-progress .status-step { position: relative; min-width: 0; text-align: center; }
+        .officer-progress .status-step:not(:last-child)::after { content: ''; position: absolute; top: .35rem; left: 50%; width: 100%; height: 2px; background: #d9d9e0; z-index: 0; }
+        .officer-progress .status-step.complete:not(:last-child)::after { background: #10b981; }
+        .officer-progress .status-node { position: relative; z-index: 1; display: block; width: .7rem; height: .7rem; margin: 0 auto .3rem; border: 2px solid #d9d9e0; border-radius: 9999px; background: #fff; }
+        .officer-progress .status-step.complete .status-node { border-color: #059669; background: #059669; box-shadow: 0 0 0 2px #d1fae5; }
+        .officer-progress .status-step.active .status-node { border-color: #006e25; background: #fff; box-shadow: 0 0 0 3px rgba(0, 110, 37, .16); }
+        .officer-progress .status-step-label { display: block; font-size: .55rem; line-height: .75rem; color: #6b7280; }
+        .officer-progress .status-step.complete .status-step-label, .officer-progress .status-step.active .status-step-label { color: #122133; font-weight: 700; }
+        .review-card .review-evidence-image { width: 100%; height: 9rem; object-fit: cover; }
+        .review-card .review-comparison-image { width: 100%; height: 5rem; object-fit: cover; }
+        .review-card .review-status-badge { flex-shrink: 0; font-size: .625rem; line-height: .875rem; font-weight: 700; padding: .25rem .5rem; border-radius: .375rem; }
+        .review-card button, .review-card select { min-height: var(--civix-control-height); }
+        .review-card.swiping { transition: none; }
+        .officer-status-tabs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .35rem; }
+        .officer-status-tabs button { min-height: 2.75rem; }
+        .officer-status-tabs button.selected { background: #0f7a72; color: #fff; }
+        .officer-calendar-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: .25rem; }
+        .officer-calendar-grid button { min-height: 2.25rem; border-radius: 9999px; font-size: .75rem; }
+        .officer-calendar-grid button:hover { background: #dff3ef; }
+        .officer-calendar-grid button.selected { background: #0f7a72; color: #fff; font-weight: 800; }
+        .officer-calendar-grid button.today { border: 1px solid #0f7a72; }
+        .officer-compact .ticket-description, .officer-compact .review-evidence-image, .officer-compact .review-comparison-image, .officer-compact .officer-progress, .officer-compact .ticket-meta-grid, .officer-compact .officer-compact-detail { display: none; }
+        .officer-compact > details { display: block; }
+        .officer-compact > details[open] .review-evidence-image { display: block; }
+        @media (min-width: 768px) and (max-width: 1023px) {
+            body.h-full.overflow-hidden { height: auto; min-height: 100%; overflow-x: hidden; overflow-y: auto; }
+            body > header { align-items: flex-start; gap: 1rem; padding: .75rem 1rem; }
+            body > header > div:first-child { min-width: 0; gap: .625rem; }
+            body > header > div:first-child > div { font-size: 1.25rem; line-height: 1.5rem; }
+            body > header > div:last-child { min-width: 0; flex-wrap: wrap; justify-content: flex-end; gap: .5rem; }
+            body > header > div:last-child > button:first-child { order: 2; }
+            body > header > div:last-child > div { gap: .5rem; padding-left: .75rem; }
+            body > header button, body > header a { min-height: 2rem; font-size: .6875rem; }
+            #main-content { flex: none; overflow: visible; }
+            #main-content > div:first-child { grid-template-columns: repeat(2, minmax(0, 1fr)); padding: .75rem; gap: .625rem; }
             #main-content > div:last-child { flex-direction: column; overflow: visible; }
-            #officer-map { height: 300px; }
-            #main-content > div:last-child > div:last-child { width: 100%; height: 60vh; min-height: 360px; border-left: 0; border-top: 1px solid #d9d9e0; }
+            #main-content > div:last-child > div:last-child { width: 100%; height: auto; min-height: 0; border-left: 0; border-top: 1px solid #d9d9e0; }
+            #master-ticket-queue { overflow: visible; padding: .75rem; }
+        }
+        @media (max-width: 767px) {
+            body.h-full.overflow-hidden { height: auto; min-height: 100%; overflow-x: hidden; overflow-y: auto; font-size: .875rem; }
+            body > header { align-items: center; flex-direction: row; flex-wrap: wrap; align-content: center; row-gap: 4px; column-gap: 0; padding: .35rem .5rem; white-space: nowrap; }
+            body > header > div:first-child { width: auto; min-width: 0; gap: .35rem; flex: 1 1 auto; }
+            body > header > div:first-child > div { min-width: 0; font-size: .875rem; line-height: 1rem; letter-spacing: .02em; }
+            body > header > div:first-child > span { display: none; }
+            body > header > div:last-child { position: relative; min-width: 0; width: auto; margin-left: auto; align-items: center; flex-wrap: nowrap; justify-content: flex-end; gap: .15rem; }
+            #officer-menu-toggle { display: inline-flex !important; }
+            #officer-accessibility-panel { display: none; position: absolute; right: 0; top: calc(100% + .35rem); z-index: 60; width: min(280px, calc(100vw - 1rem)); flex-direction: column; align-items: stretch; gap: .25rem; padding: .5rem; border-radius: .75rem; background: rgba(9, 89, 82, 0.98); border: 1px solid rgba(255,255,255,0.18); box-shadow: 0 20px 45px rgba(0,0,0,.22); }
+            #officer-accessibility-panel.is-open { display: flex; }
+            #officer-accessibility-panel > * { width: 100%; }
+            #officer-accessibility-panel .action-row { display: flex; align-items: center; justify-content: space-between; gap: .25rem; }
+            #officer-accessibility-panel button, #officer-accessibility-panel a { min-height: 2rem; width: 100%; justify-content: center; }
+            body > header > div:last-child > button:first-child { flex: 0 0 1.75rem; width: 1.75rem; min-height: 1.75rem; padding: .15rem; overflow: hidden; }
+            body > header > div:last-child > button:first-child span:last-child { display: none; }
+            body > header > div:last-child > div { width: auto; margin-left: 0; justify-content: flex-end; gap: .15rem; padding-left: 0; border-left: 0; }
+            body > header > div:last-child > div { margin-left: auto; }
+            body > header > div:last-child > div > button { min-width: 1.75rem; min-height: 1.75rem; padding: .15rem; }
+            body > header > div:last-child > div > button:last-of-type { width: 2rem; max-width: 2rem; overflow: hidden; padding: .25rem; white-space: nowrap; }
+            #officer-read-label { display: none; }
+            #officer-read-aloud { width: 1.75rem; overflow: hidden; padding: .15rem; }
+            body > header button, body > header a { min-height: 1.75rem; min-width: 1.75rem; padding: .15rem .25rem; font-size: .625rem; }
+            body > header .material-symbols-outlined { font-size: 1rem; }
+            #main-content { flex: none; overflow: visible; }
+            #main-content > div:first-child { display: none; }
+            #main-content > div:last-child { flex-direction: column; overflow: visible; }
+            #main-content > div:last-child > div:last-child { width: 100%; height: auto; min-height: 0; border-left: 0; border-top: 0; }
+            #main-content > div:last-child > div:last-child > div:first-child { padding: .75rem; }
+            #master-ticket-queue { overflow: visible; padding: .75rem; }
+            .review-card .review-evidence-image { height: 7rem; }
+            .review-card .review-comparison-image { height: 4.5rem; }
+            .officer-ticket-card { padding: .625rem; gap: .5rem; }
+            .assignment-row { grid-template-columns: minmax(0, 1fr) 5rem 5rem; gap: .35rem; }
+            .mobile-swipe-hint { display: block; }
+            .review-card.swipe-right { border-color: #059669; transform: translateX(18px); transition: transform .18s ease; }
+            .review-card.swipe-left { border-color: #dc2626; transform: translateX(-18px); transition: transform .18s ease; }
+            .review-card button, .review-card select { min-height: 2.25rem; }
+            .text-sm { font-size: .8125rem; }
+            .text-base { font-size: .875rem; }
+            .text-lg { font-size: 1rem; }
+            body > header { overflow: visible; }
+            body > header > div:first-child > img { width: 28px; height: 28px; }
+            body > header > div:first-child > div { font-size: 12px; line-height: 14px; }
+            body > header > div:last-child { overflow: visible; gap: 2px; }
+            body > header > div:last-child > button:first-child { width: 24px; min-width: 24px !important; flex-basis: 24px; }
+            body > header > div:last-child > div { gap: 0 !important; }
+            body > header > div:last-child > div > button { width: 20px !important; min-width: 20px !important; height: 26px !important; padding: 0 !important; }
+            body > header > div:last-child > div > button { display: inline-flex; align-items: center; justify-content: center; margin-left: 2px; }
+            body > header > div:last-child > div > #officer-lang-en { width: 26px !important; min-width: 26px !important; }
+            body > header > div:last-child > div > #officer-lang-ta { width: 38px !important; min-width: 38px !important; }
+            #officer-contrast { width: 24px !important; min-width: 24px !important; border: 1px solid rgba(255,255,255,.65) !important; border-radius: 4px; overflow: hidden; }
+            #officer-contrast .material-symbols-outlined { font-size: 14px; line-height: 1; }
+            body > header > div:last-child > nav a { width: 34px !important; min-width: 34px !important; padding: 0 !important; }
+            #officer-accessibility-panel nav { width: 100%; }
+            #officer-accessibility-panel nav a { min-height: 2rem; width: 100%; padding: .35rem .5rem; border-radius: .5rem; background: rgba(255,255,255,.1); text-decoration: none; }
+            .officer-status-tabs { padding: 0 .75rem .5rem; }
+            #add-worker-modal { align-items: flex-start; padding: .5rem !important; overflow-y: auto; }
+            #add-worker-modal .bg-white { max-width: 100% !important; width: calc(100vw - 1rem) !important; max-height: calc(100vh - 1rem); overflow-y: auto; padding: .875rem !important; border-radius: 1rem; gap: .75rem; }
+            #add-worker-modal h3 { font-size: .9rem; line-height: 1.15rem; }
+            #add-worker-modal .phone-input-row { align-items: stretch; }
+            #add-worker-modal .phone-input-row > span { flex: 0 0 auto; width: auto; white-space: nowrap; }
+            #add-worker-modal .phone-input-row > input { min-width: 0; }
+            #add-worker-modal form > div { margin-bottom: .25rem; }
+            #add-worker-modal button[type="submit"] { font-size: .7rem; line-height: 1.1rem; }
+            #add-worker-modal form { gap: .625rem; }
         }
     </style>
 </head>
@@ -48,98 +154,78 @@
     <!-- Top Command Navigation Bar -->
     <header class="bg-primary text-white border-b border-primary-container px-6 py-3 flex justify-between items-center z-40 shrink-0 shadow-md">
         <div class="flex items-center gap-4">
-            <div class="font-black text-2xl tracking-wider text-white" id="officer-title">CIVIX COMMAND</div>
-            <span id="officer-zone-label" class="bg-white/20 text-xs px-2.5 py-0.5 rounded-full font-bold">Loading zone...</span>
+            <img src="{% static 'nagara_setu_logo.svg' %}" alt="Nagara Setu logo" class="w-9 h-9 object-contain rounded-full bg-white/10 p-0.5 border border-white/30"/>
+            <div class="font-black text-2xl tracking-wider text-white" id="officer-title">NAGARA SETU</div>
         </div>
-        <div class="flex items-center gap-4 text-xs">
-            <!-- Add Field Worker Trigger Button -->
-            <button onclick="openWorkerModal()" class="bg-secondary text-white px-3.5 py-1.5 rounded-xl font-bold flex items-center gap-1.5 shadow-sm hover:bg-secondary-container hover:text-on-secondary-container transition-all">
+        <div class="flex items-center gap-2 md:gap-4 text-xs">
+            <button onclick="openWorkerModal()" class="bg-secondary text-white px-3.5 py-1.5 rounded-xl font-bold flex items-center gap-1.5 shadow-sm hover:bg-secondary-container hover:text-on-secondary-container transition-all text-[11px] md:text-xs max-md:hidden">
                 <span class="material-symbols-outlined text-sm">person_add</span>
                 <span>+ Provision Field Worker</span>
             </button>
-            <button onclick="createVolunteerDrive()" class="bg-emerald-600 text-white px-3.5 py-1.5 rounded-xl font-bold flex items-center gap-1.5 shadow-sm hover:bg-emerald-700 transition-all">
-                <span class="material-symbols-outlined text-sm">groups</span>
-                <span>Plan Volunteer Drive</span>
+            <button id="officer-menu-toggle" type="button" class="hidden md:hidden bg-white/10 border border-white/20 rounded-lg p-2 text-white" aria-label="Toggle accessibility menu" aria-expanded="false">
+                <span class="material-symbols-outlined text-lg">menu</span>
             </button>
-            <div class="flex items-center gap-3 border-l border-white/20 pl-4">
+            <div id="officer-accessibility-panel" class="flex items-center gap-3 border-l border-white/20 pl-4 max-md:pl-0 max-md:border-l-0">
+                <button onclick="openWorkerModal()" class="bg-secondary text-white px-3.5 py-1.5 rounded-xl font-bold flex items-center gap-1.5 shadow-sm hover:bg-secondary-container hover:text-on-secondary-container transition-all text-[11px] md:text-xs md:hidden">
+                    <span class="material-symbols-outlined text-sm">person_add</span>
+                    <span>New Worker</span>
+                </button>
                 <button id="officer-lang-en" type="button" aria-label="Switch interface language to English" class="underline">EN</button>
                 <button id="officer-lang-ta" type="button" aria-label="தமிழில் இடைமுகத்தை மாற்றவும்">தமிழ்</button>
-                <button id="officer-contrast" type="button" aria-pressed="false" aria-label="Toggle high contrast mode">◐</button>
+                <button id="officer-contrast" type="button" aria-pressed="false" aria-label="Toggle high contrast mode"><span class="material-symbols-outlined text-sm">contrast</span></button>
                 <button type="button" onclick="setOfficerFontSize('100%')" aria-label="Use normal text size">A</button>
                 <button type="button" onclick="setOfficerFontSize('115%')" aria-label="Increase text size">A+</button>
                 <button type="button" onclick="setOfficerFontSize('130%')" aria-label="Use largest text size">A++</button>
                 <button id="officer-read-aloud" type="button" aria-pressed="false" aria-label="Read command center aloud">🔊 <span id="officer-read-label">Read aloud</span></button>
                 <nav aria-label="Portal navigation">
-                    <a href="/citizen/" class="underline hover:text-secondary-container">Citizen Portal</a>
-                    <span aria-hidden="true">|</span>
-                    <a href="/worker/" class="underline hover:text-secondary-container">Worker View</a>
-                    <span aria-hidden="true">|</span>
-                    <a href="/login/" class="underline hover:text-secondary-container">Logout</a>
+                    <a id="officer-logout" href="/api/users/logout/" class="flex items-center justify-center gap-2 underline hover:text-secondary-container" aria-label="Log out">
+                        <span class="material-symbols-outlined text-sm">logout</span>
+                        <span>Logout</span>
+                    </a>
                 </nav>
             </div>
         </div>
     </header>
 
-    <!-- Main Command Body (Split-Pane) -->
-    <main id="main-content" tabindex="-1" class="flex-1 flex flex-col overflow-hidden">
-
-        <!-- KPI Metrics Banner -->
-        <div class="p-4 grid grid-cols-4 gap-4 bg-white border-b border-outline-variant shrink-0 shadow-sm">
-            <div class="bg-surface-container-low p-3.5 rounded-xl border border-outline-variant">
-                <span class="text-xs text-on-surface-variant font-bold uppercase tracking-wider block" id="officer-total-label">Total Active Issues</span>
-                <div class="font-mono text-3xl font-black text-primary mt-1" id="kpi-total">0</div>
+    <section class="officer-status-tabs w-full px-4 pt-3" aria-label="Officer workflow selector">
+        <button id="officer-not-assigned" type="button" class="selected border border-outline-variant bg-white px-3 py-2 rounded-lg text-xs font-bold text-on-surface" aria-pressed="true">Not assigned</button>
+        <button id="officer-assigned" type="button" class="border border-outline-variant bg-white px-3 py-2 rounded-lg text-xs font-bold text-on-surface-variant" aria-pressed="false">Assigned</button>
+        <button id="officer-completed" type="button" class="border border-outline-variant bg-white px-3 py-2 rounded-lg text-xs font-bold text-on-surface-variant" aria-pressed="false">Completed</button>
+    </section>
+    <section class="w-full max-w-4xl mx-auto px-4 pb-3" aria-label="Select issue date">
+        <div class="rounded-2xl bg-white border border-outline-variant p-3 shadow-sm">
+            <div class="flex items-center justify-between gap-2 mb-3">
+                <button id="officer-calendar-prev" type="button" class="p-2 rounded-lg text-on-surface-variant hover:bg-surface-container" aria-label="Previous month">&lt;</button>
+                <div class="text-center">
+                    <strong id="officer-calendar-month" class="block text-sm text-on-surface"></strong>
+                    <span class="text-[10px] text-on-surface-variant">Selected: <span id="officer-selected-date">26-08-2026</span></span>
+                </div>
+                <button id="officer-calendar-next" type="button" class="p-2 rounded-lg text-on-surface-variant hover:bg-surface-container" aria-label="Next month">&gt;</button>
             </div>
-            <div class="bg-red-50 p-3.5 rounded-xl border border-red-200">
-                <span class="text-xs text-red-700 font-bold uppercase tracking-wider block" id="officer-critical-label">🔴 Critical Urgency</span>
-                <div class="font-mono text-3xl font-black text-red-600 mt-1" id="kpi-critical">0</div>
-            </div>
-            <div class="bg-amber-50 p-3.5 rounded-xl border border-amber-200">
-                <span class="text-xs text-amber-800 font-bold uppercase tracking-wider block" id="officer-sla-label">⚠️ SLA Breached</span>
-                <div class="font-mono text-3xl font-black text-amber-700 mt-1 pulse-red" id="kpi-sla">0</div>
-            </div>
-            <div class="bg-emerald-50 p-3.5 rounded-xl border border-emerald-200">
-                <span class="text-xs text-emerald-800 font-bold uppercase tracking-wider block" id="officer-resolved-label">✅ Resolved Today</span>
-                <div class="font-mono text-3xl font-black text-emerald-700 mt-1" id="kpi-resolved">0</div>
-            </div>
+            <div class="officer-calendar-grid text-center text-[10px] font-bold text-on-surface-variant mb-1" aria-hidden="true"><span>Sun</span><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span></div>
+            <div id="officer-calendar-days" class="officer-calendar-grid"></div>
         </div>
+    </section>
 
-        <!-- Split-Pane: Map (Left) + Ticket Queue (Right) -->
-        <div class="flex-1 flex overflow-hidden">
-
-            <!-- Left: Interactive Leaflet City Heatmap -->
-            <div class="flex-1 relative bg-surface-container-low overflow-hidden">
-                <div id="officer-map"></div>
-                <div class="absolute top-4 right-4 bg-white/90 backdrop-blur-md p-3 rounded-xl shadow-lg border border-outline-variant z-20 text-xs flex flex-col gap-1.5 civix-glass max-w-[250px]">
-                    <span class="font-bold text-on-surface mb-1" id="officer-heatmap-label">Severity Heatmap Layers</span>
-                    <label class="flex items-center gap-2"><span class="w-3 h-3 rounded-full bg-red-600"></span> Critical (24h SLA)</label>
-                    <label class="flex items-center gap-2"><span class="w-3 h-3 rounded-full bg-amber-500"></span> High (48h SLA)</label>
-                    <label class="flex items-center gap-2"><span class="w-3 h-3 rounded-full bg-emerald-600"></span> Resolved</label>
-                </div>
-            </div>
-
-            <!-- Right: Master Ticket Queue -->
-            <div class="w-[460px] bg-white border-l border-outline-variant flex flex-col h-full shrink-0 shadow-lg">
-                <div class="p-4 border-b border-outline-variant bg-surface-container-low sticky top-0 z-20 flex justify-between items-center">
-                    <h3 class="font-bold text-base text-on-surface" id="officer-queue-title">Master Ticket Queue</h3>
-                    <span class="text-xs bg-primary/10 text-primary font-bold px-2 py-0.5 rounded-md">Sorted by Priority Score</span>
-                </div>
-                <div id="master-ticket-queue" class="flex-1 overflow-y-auto p-4 space-y-4">
-                    <!-- Tickets populated dynamically -->
-                </div>
-            </div>
-
+    <!-- Main Command Body -->
+    <main id="main-content" tabindex="-1" class="flex-1 flex flex-col overflow-hidden bg-surface-container-low">
+        <div class="bg-white border-b border-outline-variant px-4 py-3 flex items-center justify-between sticky top-0 z-20">
+            <h3 class="font-bold text-base text-on-surface" id="officer-queue-title">Review Issues</h3>
+        </div>
+        <div id="master-ticket-queue" class="flex-1 overflow-y-auto p-4 space-y-4" role="region" aria-live="polite" aria-label="Officer ticket queue">
+            <!-- Tickets populated dynamically -->
         </div>
     </main>
 
     <!-- OFFICER MODAL: ADD / PROVISION FIELD WORKER -->
     <div id="add-worker-modal" class="hidden fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
         <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl flex flex-col gap-4 border border-outline-variant">
-            <div class="flex justify-between items-center border-b pb-2">
-                <h3 class="font-bold text-base text-on-surface flex items-center gap-2">
-                    <span class="material-symbols-outlined text-primary">person_add</span>
-                    <span>Provision New Field Worker</span>
+            <div class="flex justify-between items-center border-b pb-2 gap-2">
+                <h3 class="font-bold text-base text-on-surface flex items-center gap-2 min-w-0">
+                    <span class="material-symbols-outlined text-primary shrink-0">person_add</span>
+                    <span class="leading-snug">Provision New Field Worker</span>
                 </h3>
-                <button onclick="closeWorkerModal()" class="text-on-surface-variant p-1" aria-label="Close add worker dialog">✕</button>
+                <button onclick="closeWorkerModal()" class="text-on-surface-variant p-1 shrink-0" aria-label="Close add worker dialog">✕</button>
             </div>
 
             <form id="add-worker-form" class="flex flex-col gap-3">
@@ -150,7 +236,7 @@
                 </div>
                 <div>
                     <label for="worker-phone-input" class="text-xs font-bold uppercase text-on-surface-variant block mb-1">Mobile Phone Number</label>
-                    <div class="flex gap-2">
+                    <div class="phone-input-row flex gap-2">
                         <span class="p-2.5 border rounded-xl bg-surface-container text-xs font-bold text-on-surface">+91</span>
                         <input id="worker-phone-input" type="tel" required aria-label="Worker mobile phone number" placeholder="9876543219" class="flex-1 p-2.5 border rounded-xl text-xs font-mono font-bold outline-none focus:border-primary"/>
                     </div>
@@ -186,29 +272,112 @@
         </div>
     </div>
 
+    <div id="assign-worker-modal" class="hidden fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="assign-worker-title">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl flex flex-col gap-4 border border-outline-variant">
+            <div>
+                <h3 id="assign-worker-title" class="font-bold text-base text-on-surface">Assign verified issue</h3>
+                <p class="text-xs text-on-surface-variant mt-1">Choose a field worker to receive the location, image, and description.</p>
+            </div>
+            <label for="assign-worker-select" class="text-xs font-bold uppercase text-on-surface-variant">Field worker</label>
+            <select id="assign-worker-select" class="w-full p-3 border rounded-xl bg-white text-sm font-semibold outline-none focus:border-primary"></select>
+            <div class="flex gap-2">
+                <button id="cancel-assign-worker" type="button" class="flex-1 border border-outline-variant text-on-surface py-3 rounded-xl font-bold text-sm">Assign later</button>
+                <button id="confirm-assign-worker" type="button" class="flex-1 bg-secondary text-white py-3 rounded-xl font-bold text-sm">Assign worker</button>
+            </div>
+        </div>
+    </div>
+
     <div id="officer-live-region" class="sr-only" role="status" aria-live="polite"></div>
 
     <script>
-        let officerMapInstance = null;
-        let officerMarkerLayer = null;
-        let officerHeatLayer = null;
         let workersLoaded = false;
         let officerRefreshInFlight = false;
         let workerOptionsList = [];
+        let pendingAssignmentIssueId = null;
+        let officerShowActive = false;
+        let officerShowCritical = false;
+        let officerShowResolved = false;
+        let officerShowStalled = false;
         let officerLanguage = localStorage.getItem('civix-language') || 'en';
+        let officerWorkflow = 'not_assigned';
+        let officerSelectedDate = officerDateKey(new Date());
+        let officerCalendarDate = new Date();
+        let officerPendingDate = officerSelectedDate;
+        let officerRequestId = 0;
+        const escapeHtml = (value) => String(value ?? '').replace(/[&<>\'\"]/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[character]));
         const officerTranslations = {
             en: {
-                title: 'CIVIX COMMAND', total: 'Total Active Issues', critical: '🔴 Critical Urgency', sla: '⚠️ SLA Breached', resolved: '✅ Resolved Today', heatmap: 'Severity Heatmap Layers', queue: 'Master Ticket Queue',
+                    title: 'NAGARA SETU', total: 'Total Active Issues', critical: '🔴 Critical Urgency', sla: '⚠️ SLA Breached', resolved: '✅ Resolved Today', heatmap: 'Severity Heatmap Layers', queue: 'Master Ticket Queue',
                 read: 'Read aloud', stop: 'Stop reading', prompt: 'Command center. Review the severity heatmap and assign workers to the highest priority tickets.', started: 'Read aloud started', stopped: 'Read aloud stopped', priority: 'Priority Score', slaStatus: 'SLA Status', breached: 'BREACHED', onTrack: 'ON TRACK', assign: 'Assign Worker...'
             },
             ta: {
-                title: 'சிவிக்ஸ் கட்டுப்பாட்டு மையம்', total: 'செயலில் உள்ள மொத்த புகார்கள்', critical: '🔴 மிக அவசரம்', sla: '⚠️ SLA மீறப்பட்டது', resolved: '✅ இன்று தீர்க்கப்பட்டவை', heatmap: 'தீவிர வரைபட அடுக்குகள்', queue: 'முக்கிய புகார் வரிசை',
+                title: 'நாகரா சேது கட்டுப்பாட்டு மையம்', total: 'செயலில் உள்ள மொத்த புகார்கள்', critical: '🔴 மிக அவசரம்', sla: '⚠️ SLA மீறப்பட்டது', resolved: '✅ இன்று தீர்க்கப்பட்டவை', heatmap: 'தீவிர வரைபட அடுக்குகள்', queue: 'முக்கிய புகார் வரிசை',
                 read: 'வாசிக்கவும்', stop: 'வாசிப்பை நிறுத்தவும்', prompt: 'கட்டுப்பாட்டு மையம். தீவிர வரைபடத்தைப் பார்த்து, அதிக முன்னுரிமை புகார்களுக்கு பணியாளர்களை ஒதுக்கவும்.', started: 'குரல் வாசிப்பு தொடங்கியது', stopped: 'குரல் வாசிப்பு நிறுத்தப்பட்டது', priority: 'முன்னுரிமை மதிப்பெண்', slaStatus: 'SLA நிலை', breached: 'மீறப்பட்டது', onTrack: 'சரியான நிலையில்', assign: 'பணியாளரை ஒதுக்கவும்...'
             }
         };
 
         function announceOfficer(message) {
             document.getElementById('officer-live-region').textContent = message;
+        }
+
+        function officerDateKey(date) {
+            return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+        }
+
+        function officerDateFromKey(key) {
+            const [year, month, day] = key.split('-').map(Number);
+            return new Date(year, month - 1, day);
+        }
+
+        function officerDateLabel(key) {
+            const [year, month, day] = key.split('-');
+            return `${day}-${month}-${year}`;
+        }
+
+        function updateOfficerDateSelector() {
+            document.getElementById('officer-selected-date').textContent = officerDateLabel(officerSelectedDate);
+            const buttons = { not_assigned: document.getElementById('officer-not-assigned'), assigned: document.getElementById('officer-assigned'), completed: document.getElementById('officer-completed') };
+            Object.entries(buttons).forEach(([key, button]) => {
+                const selected = officerWorkflow === key;
+                button.setAttribute('aria-pressed', String(selected));
+                button.classList.toggle('selected', selected);
+                button.classList.toggle('bg-white', !selected);
+                button.classList.toggle('text-on-surface', !selected);
+                button.classList.toggle('text-on-surface-variant', !selected);
+                button.classList.toggle('bg-primary', selected);
+                button.classList.toggle('text-white', selected);
+                button.classList.toggle('border-primary', selected);
+            });
+        }
+
+        function renderOfficerCalendar() {
+            const year = officerCalendarDate.getFullYear();
+            const month = officerCalendarDate.getMonth();
+            document.getElementById('officer-calendar-month').textContent = officerCalendarDate.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
+            const days = document.getElementById('officer-calendar-days');
+            days.innerHTML = '';
+            for (let index = 0; index < new Date(year, month, 1).getDay(); index += 1) days.insertAdjacentHTML('beforeend', '<span></span>');
+            const today = officerDateKey(new Date());
+            for (let day = 1; day <= new Date(year, month + 1, 0).getDate(); day += 1) {
+                const key = officerDateKey(new Date(year, month, day));
+                const button = document.createElement('button');
+                button.type = 'button'; button.textContent = day; button.className = `${key === officerPendingDate ? 'selected ' : ''}${key === today ? 'today ' : ''}text-on-surface`; button.setAttribute('aria-label', officerDateLabel(key)); button.setAttribute('aria-pressed', String(key === officerPendingDate));
+                button.addEventListener('click', () => {
+                    officerSelectedDate = key;
+                    officerPendingDate = key;
+                    updateOfficerDateSelector();
+                    renderOfficerCalendar();
+                    initOfficerCommand();
+                });
+                days.appendChild(button);
+            }
+        }
+
+        function selectOfficerWorkflow(workflow) {
+            officerWorkflow = workflow;
+            officerShowActive = false; officerShowCritical = false; officerShowResolved = false; officerShowStalled = false;
+            updateOfficerDateSelector();
+            initOfficerCommand();
         }
 
         function setOfficerLanguage(language) {
@@ -219,8 +388,12 @@
                 'officer-title': t.title, 'officer-total-label': t.total, 'officer-critical-label': t.critical,
                 'officer-sla-label': t.sla, 'officer-resolved-label': t.resolved, 'officer-heatmap-label': t.heatmap, 'officer-queue-title': t.queue
             };
-            Object.entries(labels).forEach(([id, text]) => { document.getElementById(id).textContent = text; });
+            Object.entries(labels).forEach(([id, text]) => {
+                const element = document.getElementById(id);
+                if (element) element.textContent = text;
+            });
             document.documentElement.lang = language === 'ta' ? 'ta' : 'en';
+            initOfficerCommand();
             document.getElementById('officer-lang-en').className = language === 'en' ? 'underline font-bold' : '';
             document.getElementById('officer-lang-ta').className = language === 'ta' ? 'underline font-bold' : '';
             updateOfficerReadButton('speechSynthesis' in window && window.speechSynthesis.speaking);
@@ -279,6 +452,16 @@
             document.getElementById('officer-contrast').setAttribute('aria-pressed', String(enabled));
         });
         document.getElementById('officer-read-aloud').addEventListener('click', readOfficerQueue);
+        document.getElementById('officer-menu-toggle').addEventListener('click', () => {
+            const panel = document.getElementById('officer-accessibility-panel');
+            const expanded = panel.classList.toggle('is-open');
+            document.getElementById('officer-menu-toggle').setAttribute('aria-expanded', String(expanded));
+        });
+        document.getElementById('officer-not-assigned').addEventListener('click', () => selectOfficerWorkflow('not_assigned'));
+        document.getElementById('officer-assigned').addEventListener('click', () => selectOfficerWorkflow('assigned'));
+        document.getElementById('officer-completed').addEventListener('click', () => selectOfficerWorkflow('completed'));
+        document.getElementById('officer-calendar-prev').addEventListener('click', () => { officerCalendarDate.setMonth(officerCalendarDate.getMonth() - 1); renderOfficerCalendar(); });
+        document.getElementById('officer-calendar-next').addEventListener('click', () => { officerCalendarDate.setMonth(officerCalendarDate.getMonth() + 1); renderOfficerCalendar(); });
 
         function openWorkerModal() {
             document.getElementById('add-worker-modal').classList.remove('hidden');
@@ -292,10 +475,13 @@
         async function fetchWorkers() {
             try {
                 const res = await fetch("/api/users/workers/");
-                workerOptionsList = await res.json();
+                const data = await res.json();
+                if (!res.ok || !Array.isArray(data)) throw new Error(data.error || 'Worker list unavailable.');
+                workerOptionsList = data;
                 workersLoaded = true;
             } catch (e) {
                 console.error("Worker fetch failed", e);
+                workerOptionsList = [];
             }
         }
 
@@ -332,25 +518,14 @@
         });
 
         async function initOfficerCommand() {
-            if (officerRefreshInFlight) return;
+            const requestId = ++officerRequestId;
             officerRefreshInFlight = true;
             if (!workersLoaded) await fetchWorkers();
 
-            if (!officerMapInstance) {
-                officerMapInstance = L.map('officer-map').setView([13.0450, 80.2400], 12);
-                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 18 }).addTo(officerMapInstance);
-                officerMarkerLayer = L.layerGroup().addTo(officerMapInstance);
-            }
-
-            officerMarkerLayer.clearLayers();
-            if (officerHeatLayer) {
-                officerMapInstance.removeLayer(officerHeatLayer);
-                officerHeatLayer = null;
-            }
-
             try {
-                const res = await fetch("/api/issues/");
+                const res = await fetch(`/api/issues/?date=${encodeURIComponent(officerSelectedDate)}&workflow=${encodeURIComponent(officerWorkflow)}`);
                 const issues = await res.json();
+                if (requestId !== officerRequestId) return;
                 const queueContainer = document.getElementById('master-ticket-queue');
                 queueContainer.innerHTML = "";
 
@@ -359,93 +534,288 @@
                     return;
                 }
 
-                const terminalStatuses = new Set(['resolved', 'citizen_verified', 'closed']);
-                const activeIssues = issues.filter(issue => !terminalStatuses.has(issue.status));
+                const reviewIssues = issues.filter(issue => (issue.status === 'submitted' && !issue.officer_decision) || issue.status === 'awaiting_verification');
+                const activeIssueStatuses = new Set(['assigned', 'in_progress', 'awaiting_verification', 'reopened', 'escalated']);
+                const allActiveIssues = issues.filter(issue => activeIssueStatuses.has(issue.status) && issue.assigned_to);
+                const resolvedIssues = issues.filter(issue => ['resolved', 'citizen_verified', 'closed'].includes(issue.status));
+                const stalledIssues = issues.filter(issue => (issue.is_stalled || issue.is_overdue) && issue.status !== 'dismissed');
+                const criticalIssues = allActiveIssues.filter(issue => issue.severity === 'critical' || Number(issue.priority_score || 0) >= 200);
+                const activeIssues = issues;
                 const today = new Date().toDateString();
-                document.getElementById('kpi-total').textContent = activeIssues.length;
-                document.getElementById('kpi-critical').textContent = activeIssues.filter(issue => issue.severity === 'critical').length;
-                document.getElementById('kpi-sla').textContent = activeIssues.filter(issue => issue.sla_breached).length;
-                document.getElementById('kpi-resolved').textContent = issues.filter(issue => issue.resolved_at && new Date(issue.resolved_at).toDateString() === today).length;
+                document.getElementById('officer-queue-title').textContent = officerWorkflow === 'not_assigned' ? 'Not Assigned' : officerWorkflow === 'assigned' ? 'Assigned' : 'Completed';
 
-                const heatPoints = [];
                 const escapeHtml = (value) => String(value ?? '').replace(/[&<>\'"]/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[character]));
 
-                issues.forEach(iss => {
+                activeIssues.forEach(iss => {
                     const lat = iss.location.latitude;
                     const lng = iss.location.longitude;
                     const isCritical = iss.severity === 'critical';
-                    const markerColor = isCritical ? '#ba1a1a' : (iss.severity === 'high' ? '#f59e0b' : '#006e25');
+                    const criticalReason = iss.severity === 'critical' ? 'Critical severity' : `High priority score: ${Number(iss.priority_score || 0).toFixed(1)}`;
+                    const overdue = Boolean(iss.is_overdue);
+                    const pendingDays = Math.max(0, Number(iss.pending_days || 0));
+                    const stalled = Boolean(iss.is_stalled);
+                    const stalledDays = Math.max(0, Number(iss.stalled_days || 0));
+                    const statusLabel = iss.status_label || iss.status || 'Reported';
+                    const beforeImage = iss.photo_urls?.[0] || '';
+                    const afterImage = iss.resolution_proof?.photo_url || '';
 
-                    L.circleMarker([lat, lng], {
-                        color: markerColor,
-                        fillColor: markerColor,
-                        radius: isCritical ? 9 : 7,
-                        fillOpacity: 0.85
-                    }).addTo(officerMarkerLayer).bindPopup(`
-                        <div style="font-family:sans-serif; min-width:180px;">
-                            <b style="font-size:13px;">${escapeHtml(iss.title)}</b><br/>
-                            <span style="color:${markerColor}; font-weight:bold;">${escapeHtml(iss.severity).toUpperCase()}</span> • Priority: <b>${escapeHtml(iss.priority_score)}</b><br/>
-                            <span style="font-size:11px; color:#555;">${escapeHtml(iss.address)}</span>
-                        </div>
-                    `);
-
-                    heatPoints.push([lat, lng, isCritical ? 1.0 : 0.6]);
-
-                    // Generate Dynamic Worker Dropdown Options
                     let workerOptionsHtml = `<option value="">${officerTranslations[officerLanguage].assign}</option>`;
                     workerOptionsList.forEach(w => {
                         const selected = iss.assigned_to === w.name || iss.assigned_to === w.phone ? 'selected' : '';
                         workerOptionsHtml += `<option value="${escapeHtml(w.name)}" ${selected}>${escapeHtml(w.name)} (${escapeHtml(w.department)})</option>`;
                     });
 
-                    // Add Ticket Card to Queue
+                    let assignedDisplay = 'Awaiting assignment';
+                    if (iss.assigned_to) {
+                        const match = workerOptionsList.find(w => (w.name === iss.assigned_to) || (w.phone === iss.assigned_to) || (w.id === iss.assigned_to));
+                        assignedDisplay = match ? match.name : iss.assigned_to;
+                    }
+
+                    const overdueBadge = overdue ? `<div class="inline-flex items-center gap-1 rounded-full bg-red-100 text-red-700 text-[10px] font-bold px-2 py-1"><span class="material-symbols-outlined text-[12px]">warning</span> Pending for ${pendingDays.toFixed(0)} days - Action Required</div>` : '';
+                    const stalledBadge = stalled ? `<div class="inline-flex items-center gap-1 rounded-full bg-amber-100 text-amber-800 text-[10px] font-bold px-2 py-1"><span class="material-symbols-outlined text-[12px]">schedule</span> ${escapeHtml(iss.stalled_reason || 'No progress')} for ${stalledDays.toFixed(0)} days - Review</div>` : '';
+                    const progressSteps = Array.isArray(iss.public_status) ? iss.public_status : [];
+                    const progressHtml = progressSteps.length ? `<div class="officer-progress"><div class="flex items-center justify-between mb-1.5"><span class="text-[9px] font-bold uppercase tracking-wide text-on-surface-variant">Progress</span><span class="text-[9px] text-on-surface-variant">${escapeHtml(statusLabel)}</span></div><div class="status-stepper" aria-label="Progress: ${escapeHtml(statusLabel)}">${progressSteps.map(step => `<div class="status-step ${step.complete ? 'complete' : ''} ${step.active ? 'active' : ''}"><span class="status-node"></span><span class="status-step-label">${escapeHtml(step.label)}</span></div>`).join('')}</div></div>` : '';
+                    const proof = iss.resolution_proof || {};
+                    const reportDate = iss.created_at ? new Date(iss.created_at).toLocaleString() : 'Unavailable';
+                    const assignmentDate = iss.assigned_at ? new Date(iss.assigned_at).toLocaleString() : 'Not assigned';
+                    const startedDate = iss.started_at ? new Date(iss.started_at).toLocaleString() : 'Not started';
+                    const fullTicket = `<details class="border-t border-outline-variant pt-2"><summary class="cursor-pointer text-xs font-bold text-primary">Open full ticket</summary><div class="mt-2 space-y-1 text-[10px] text-on-surface-variant">${beforeImage ? `<img src="${escapeHtml(beforeImage)}" alt="Original citizen report" class="review-evidence-image rounded-lg border border-outline-variant mb-2">` : ''}<p><strong class="text-on-surface">Citizen report:</strong> ${escapeHtml(iss.category)} · ${escapeHtml(iss.description || 'No description provided.')}</p><p><strong class="text-on-surface">Reported:</strong> ${escapeHtml(reportDate)}</p><p><strong class="text-on-surface">Original location:</strong> ${escapeHtml(iss.address || `${lat.toFixed(6)}, ${lng.toFixed(6)}`)}</p><p><strong class="text-on-surface">Assigned worker:</strong> ${escapeHtml(assignedDisplay)}</p><p><strong class="text-on-surface">Assigned:</strong> ${escapeHtml(assignmentDate)}</p><p><strong class="text-on-surface">Work started:</strong> ${escapeHtml(startedDate)}</p><p><strong class="text-on-surface">Resolved:</strong> ${iss.resolved_at ? escapeHtml(new Date(iss.resolved_at).toLocaleString()) : 'Not resolved'}</p><p><strong class="text-on-surface">Upvotes:</strong> ${Number(iss.upvote_count || 0)} · <strong class="text-on-surface">Priority:</strong> ${escapeHtml(iss.priority_score)}</p>${afterImage ? `<p><strong class="text-on-surface">Completion evidence:</strong> ${escapeHtml(proof.submitted_at ? new Date(proof.submitted_at).toLocaleString() : 'Submitted')}</p>` : ''}</div></details>`;
+                    const completionLocation = proof.worker_location ? `${Number(proof.worker_location.latitude).toFixed(6)}, ${Number(proof.worker_location.longitude).toFixed(6)}` : 'Location unavailable';
+                    const locationWarning = iss.location_verification?.warning ? `<div class="mt-2 rounded-lg border border-amber-400 bg-amber-100 px-2.5 py-2 text-[10px] font-bold text-amber-900">Location differs by ${Number(iss.location_verification.distance_meters || proof.distance_from_issue || 0).toFixed(1)}m. Review manually; GPS is supporting evidence, not proof of completion.</div>` : '<p class="mt-2 text-[10px] text-on-surface-variant">GPS location is supporting evidence, not absolute proof of completion.</p>';
+                    const completionComparison = (iss.status === 'awaiting_verification' || resolvedIssues.includes(iss)) ? `<section class="border-2 border-emerald-300 rounded-xl p-3 bg-emerald-50"><h5 class="text-xs font-black uppercase tracking-wide text-emerald-900 mb-2">BEFORE | AFTER</h5><div class="grid grid-cols-2 gap-2"><div><p class="text-[10px] font-bold text-on-surface-variant mb-1">Citizen report</p>${beforeImage ? `<img src="${escapeHtml(beforeImage)}" alt="Original citizen report" class="review-comparison-image rounded-md border border-outline-variant">` : '<div class="review-comparison-image rounded-md bg-white flex items-center justify-center text-[10px] text-on-surface-variant">No original image</div>'}<p class="text-[10px] mt-1 text-on-surface-variant">${escapeHtml(iss.address || `${lat.toFixed(6)}, ${lng.toFixed(6)}`)}</p><p class="text-[10px] text-on-surface-variant">${escapeHtml(iss.category)} · ${escapeHtml(iss.description || 'No description')}</p></div><div><p class="text-[10px] font-bold text-on-surface-variant mb-1">Worker completion</p>${afterImage ? `<img src="${escapeHtml(afterImage)}" alt="Worker completion evidence" class="review-comparison-image rounded-md border border-outline-variant">` : '<div class="review-comparison-image rounded-md bg-white flex items-center justify-center text-[10px] text-on-surface-variant">No completion image</div>'}<p class="text-[10px] mt-1 text-on-surface-variant">${escapeHtml(completionLocation)}</p><p class="text-[10px] text-on-surface-variant">${proof.submitted_at ? `Submitted ${new Date(proof.submitted_at).toLocaleString()}` : 'Timestamp unavailable'}</p><p class="text-[10px] text-on-surface-variant">Worker: ${escapeHtml(proof.worker_id || assignedDisplay)}</p></div></div>${locationWarning}</section>` : '';
+                    const verificationControls = iss.status === 'awaiting_verification' && officerWorkflow === 'completed' ? `<div class="flex gap-2 pt-1"><button type="button" class="ticket-action officer-reject flex-1 border-2 border-red-300 text-red-700 py-2.5 rounded-xl font-bold text-xs" aria-label="Reject completion for ${escapeHtml(iss.title)}">Issue not resolved</button><button type="button" class="ticket-action officer-resolve flex-1 bg-emerald-600 text-white py-2.5 rounded-xl font-bold text-xs" aria-label="Verify completion for ${escapeHtml(iss.title)}">Mark issue resolved</button></div>` : (officerWorkflow === 'completed' ? `<div class="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-sm"><strong class="text-emerald-800 uppercase">Resolved</strong><p class="text-xs text-on-surface-variant mt-1">Completion accepted by officer.</p></div>` : (officerWorkflow === 'assigned' ? `<div class="p-3 rounded-xl bg-surface-container-low text-sm"><strong class="text-primary uppercase">${escapeHtml(statusLabel)}</strong><p class="text-xs text-on-surface-variant mt-1">Assigned to ${escapeHtml(assignedDisplay)}</p></div>` : `<div class="flex gap-2 pt-1"><button type="button" class="ticket-action review-dismiss flex-1 border-2 border-red-300 text-red-700 py-2.5 rounded-xl font-bold text-xs" aria-label="Dismiss ${escapeHtml(iss.title)}">Dismiss</button><button type="button" class="ticket-action review-verify flex-1 bg-secondary text-white py-2.5 rounded-xl font-bold text-xs" aria-label="Verify ${escapeHtml(iss.title)}">Verify</button></div>`));
+
                     const card = document.createElement('div');
-                    card.className = `bg-white border-2 ${isCritical ? 'border-red-400' : 'border-outline-variant'} rounded-xl p-3.5 shadow-sm flex flex-col gap-2 hover:shadow-md transition-shadow`;
-                    card.innerHTML = `
-                        <div class="flex justify-between items-start">
+                    card.className = `review-card officer-ticket-card bg-white border-2 ${overdue ? 'border-red-400' : (isCritical ? 'border-red-400' : 'border-outline-variant')} rounded-xl p-3 shadow-sm flex flex-col gap-2 hover:shadow-md transition-shadow`;
+                    const categoryText = escapeHtml(iss.category || 'Civic issue');
+                    const cardSummary = `<details class="w-full"><summary class="cursor-pointer list-none text-sm font-bold uppercase text-primary">${categoryText}</summary><div class="mt-3 space-y-2">${officerWorkflow === 'not_assigned' ? `${beforeImage ? `<img src="${escapeHtml(beforeImage)}" alt="Original report for ${escapeHtml(iss.title)}" class="review-evidence-image rounded-lg border border-outline-variant" loading="lazy">` : '<div class="review-evidence-image rounded-lg bg-surface-container-low flex items-center justify-center text-xs text-on-surface-variant">No report image</div>'}<p class="ticket-description text-xs text-on-surface-variant">${escapeHtml(iss.description || 'No description provided.')}</p>${verificationControls}` : `
+                        <div class="flex justify-between items-start gap-2">
                             <span class="px-2 py-0.5 rounded text-[10px] font-black uppercase ${isCritical ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-800'}">${escapeHtml(iss.severity)}</span>
-                            <span class="text-xs font-mono font-bold text-on-surface-variant">#${iss.id.slice(-6).toUpperCase()}</span>
+                            <div class="flex items-center gap-2"><span class="review-status-badge ${iss.status === 'awaiting_verification' ? 'bg-amber-100 text-amber-800' : 'bg-primary/10 text-primary'}">${escapeHtml(statusLabel)}</span><span class="text-xs font-mono font-bold text-on-surface-variant">#${iss.id.slice(-6).toUpperCase()}</span></div>
                         </div>
-                        <h4 class="font-bold text-sm text-on-surface">${escapeHtml(iss.title)}</h4>
-                        <p class="text-xs text-on-surface-variant flex items-center gap-1">
-                            <span class="material-symbols-outlined text-xs">location_on</span> ${escapeHtml(iss.address)}
-                        </p>
-                        <div class="grid grid-cols-2 gap-2 bg-surface-container-low p-2 rounded-lg text-xs">
-                            <div><span class="text-[10px] uppercase text-outline block">${officerTranslations[officerLanguage].priority}</span><span class="font-mono font-bold text-primary">${iss.priority_score}</span></div>
-                            <div><span class="text-[10px] uppercase text-outline block">${officerTranslations[officerLanguage].slaStatus}</span><span class="font-mono font-bold ${iss.sla_breached ? 'pulse-red' : 'text-emerald-700'}">${iss.sla_breached ? officerTranslations[officerLanguage].breached : officerTranslations[officerLanguage].onTrack}</span></div>
+                        <div class="flex items-start justify-between gap-2">
+                            <div class="min-w-0"><p class="text-[9px] font-bold uppercase tracking-wide text-primary">${categoryText}</p><h4 class="font-bold text-on-surface truncate">${escapeHtml(iss.title)}</h4></div>
+                            <div class="flex flex-wrap justify-end gap-1">${overdueBadge}${stalledBadge}</div>
                         </div>
-                        <div class="pt-2 border-t flex justify-between items-center text-xs">
-                            <select onchange="assignWorker('${iss.id}', this.value)" class="text-xs p-1.5 border rounded bg-white font-semibold outline-none focus:border-primary max-w-[260px]">
-                                ${workerOptionsHtml}
-                            </select>
-                            <div class="flex items-center gap-2">
-                                <span class="text-[11px] text-outline">${iss.upvote_count} Upvotes</span>
-                                ${iss.status === 'resolved' ? `<button type="button" onclick="deleteResolvedIssue('${iss.id}')" class="text-red-700 border border-red-200 bg-red-50 px-2 py-1 rounded font-bold hover:bg-red-100" aria-label="Delete resolved issue">Delete</button>` : ''}
-                            </div>
+                        ${officerShowCritical ? `<p class="text-[10px] font-bold text-red-700">Why critical: ${escapeHtml(criticalReason)}</p>` : ''}
+                        ${officerWorkflow === 'not_assigned' ? '<p class="mobile-swipe-hint text-[11px] text-on-surface-variant">Swipe right to verify · swipe left to dismiss</p>' : (officerWorkflow === 'completed' && iss.status === 'awaiting_verification' ? '<p class="mobile-swipe-hint text-[11px] text-on-surface-variant">Swipe right if resolved · swipe left if not resolved</p>' : '')}
+                        ${beforeImage ? `<img src="${escapeHtml(beforeImage)}" alt="Original report for ${escapeHtml(iss.title)}" class="review-evidence-image rounded-lg border border-outline-variant" loading="lazy">` : '<div class="review-evidence-image rounded-lg bg-surface-container-low flex items-center justify-center text-xs text-on-surface-variant">No report image</div>'}
+                        ${afterImage ? `<div class="grid grid-cols-2 gap-2 mt-1"><img src="${escapeHtml(beforeImage)}" alt="Before report photo" class="review-comparison-image rounded-md border border-outline-variant" loading="lazy"><img src="${escapeHtml(afterImage)}" alt="After completion photo" class="review-comparison-image rounded-md border border-outline-variant" loading="lazy"></div>` : ''}
+                        <div class="officer-compact-detail flex items-center justify-between text-[10px] text-on-surface-variant">
+                            <span class="font-bold uppercase text-primary">${escapeHtml(statusLabel)}</span>
+                            <span>${iss.status === 'in_progress' && iss.started_at ? `Started ${new Date(iss.started_at).toLocaleString()}` : (overdue ? `${pendingDays.toFixed(0)} day${pendingDays.toFixed(0) === '1' ? '' : 's'} pending` : 'Current queue')}</span>
                         </div>
-                    `;
+                        <p class="ticket-description text-on-surface-variant line-clamp-2">${escapeHtml(iss.description || 'No description provided.')}</p>
+                        <p class="officer-compact-detail text-[11px] text-on-surface-variant flex items-center gap-1 truncate" title="${escapeHtml(iss.address || 'Location unavailable')}"><span class="material-symbols-outlined text-xs">location_on</span> ${escapeHtml(iss.address || 'Location unavailable')}</p>
+                        <div class="ticket-meta-grid officer-compact-detail text-[10px] text-on-surface-variant"><span><strong class="text-on-surface">Assigned:</strong> ${escapeHtml(assignedDisplay)}</span><span><strong class="text-on-surface">Upvotes:</strong> <strong class="text-primary">${Number(iss.upvote_count || 0)}</strong></span><span><strong class="text-on-surface">Reported:</strong> ${iss.created_at ? new Date(iss.created_at).toLocaleString() : 'Unavailable'}</span><span><strong class="text-on-surface">Priority score:</strong> ${escapeHtml(iss.priority_score)}</span></div>
+                        ${progressHtml}
+                        ${completionComparison}
+                        <div class="officer-compact-detail bg-surface-container-low p-2 rounded-lg text-xs">
+                            <div><span class="text-[10px] uppercase text-outline block">Priority score</span><span class="font-mono font-bold text-primary">${iss.priority_score}</span></div>
+                        </div>
+                        ${fullTicket}
+                        ${verificationControls}`}</div></details>`;
+                    card.innerHTML = cardSummary;
+                    const ticketDetails = card.querySelector('details');
+                    if (ticketDetails) {
+                        const ticketSummary = ticketDetails.querySelector('summary');
+                        ticketSummary.setAttribute('role', 'button');
+                        ticketSummary.setAttribute('aria-expanded', 'false');
+                        if (officerWorkflow === 'not_assigned') ticketSummary.setAttribute('aria-label', `${categoryText}. Swipe right to verify, swipe left to dismiss.`);
+                        ticketSummary.addEventListener('pointerdown', (event) => event.stopPropagation());
+                        card.addEventListener('click', (event) => {
+                            if (!event.target.closest('summary')) return;
+                            event.preventDefault();
+                            ticketDetails.open = !ticketDetails.open;
+                            ticketSummary.setAttribute('aria-expanded', String(ticketDetails.open));
+                        });
+                    }
+                    if (!officerShowActive && card.querySelector('.review-dismiss')) {
+                        card.querySelector('.review-dismiss').addEventListener('click', () => reviewIssue(iss.id, card, 'dismissed'));
+                        card.querySelector('.review-verify').addEventListener('click', () => reviewIssue(iss.id, card, 'verified'));
+                    }
+                    if (card.querySelector('.officer-resolve')) {
+                        card.querySelector('.officer-resolve').addEventListener('click', async () => {
+                            const res = await fetch(`/api/issues/${iss.id}/review/`, {
+                                method: 'PATCH',
+                                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': document.querySelector('#add-worker-form input[name="csrfmiddlewaretoken"]').value },
+                                body: JSON.stringify({ decision: 'resolved' })
+                            });
+                            const data = await res.json();
+                            if (!res.ok) {
+                                alert(data.error || 'Could not resolve this ticket.');
+                                return;
+                            }
+                            announceOfficer('Issue marked as resolved after officer verification.');
+                            card.remove();
+                            initOfficerCommand();
+                        });
+                    }
+                    if (card.querySelector('.officer-reject')) {
+                        card.querySelector('.officer-reject').addEventListener('click', () => reviewIssue(iss.id, card, 'rejected'));
+                    }
+                    const allowSwipeReview = !officerShowActive && !officerShowCritical && !officerShowResolved && !officerShowStalled && ((officerWorkflow === 'not_assigned' && ['submitted', 'verified'].includes(iss.status)) || (officerWorkflow === 'completed' && iss.status === 'awaiting_verification'));
+                    if (!allowSwipeReview) {
+                        queueContainer.appendChild(card);
+                        return;
+                    }
+                    let swipeStartX = null;
+                    card.addEventListener('pointerdown', (event) => {
+                        if (!window.matchMedia('(max-width: 767px)').matches || event.target.closest('button, a, select, input')) return;
+                        swipeStartX = event.clientX;
+                        card.classList.add('swiping');
+                        card.setPointerCapture(event.pointerId);
+                    });
+                    card.addEventListener('pointermove', (event) => {
+                        if (swipeStartX === null) return;
+                        const distance = Math.max(-80, Math.min(80, event.clientX - swipeStartX));
+                        card.style.transform = `translateX(${distance}px)`;
+                    });
+                    card.addEventListener('pointerup', (event) => {
+                        if (swipeStartX === null) return;
+                        const distance = event.clientX - swipeStartX;
+                        swipeStartX = null;
+                        card.classList.remove('swiping');
+                        card.style.transform = '';
+                        if (Math.abs(distance) < 80) return;
+                        card.classList.add(distance > 0 ? 'swipe-right' : 'swipe-left');
+                        const isCompletionReview = Boolean(card.querySelector('.officer-resolve'));
+                        reviewIssue(iss.id, card, distance > 0 ? (isCompletionReview ? 'resolved' : 'verified') : (isCompletionReview ? 'rejected' : 'dismissed'));
+                        setTimeout(() => card.classList.remove('swipe-right', 'swipe-left'), 220);
+                    });
+                    card.addEventListener('pointercancel', () => {
+                        swipeStartX = null;
+                        card.classList.remove('swiping');
+                        card.style.transform = '';
+                    });
                     queueContainer.appendChild(card);
                 });
-
-                if (window.L.heatLayer && heatPoints.length > 0) {
-                    officerHeatLayer = L.heatLayer(heatPoints, { radius: 25, blur: 15, maxZoom: 14 }).addTo(officerMapInstance);
-                }
 
             } catch (err) {
                 console.error(err);
             } finally {
-                officerRefreshInFlight = false;
+                if (requestId === officerRequestId) officerRefreshInFlight = false;
             }
         }
 
         async function assignWorker(issueId, workerName) {
-            if (!workerName) return;
-            await fetch(`/api/issues/${issueId}/assign/`, {
+            if (!workerName) return false;
+            const response = await fetch(`/api/issues/${issueId}/assign/`, {
                 method: "PATCH",
                 headers: { "Content-Type": "application/json", "X-CSRFToken": document.querySelector('#add-worker-form input[name="csrfmiddlewaretoken"]').value },
                 body: JSON.stringify({ worker_id: workerName, officer_id: "Officer_Chennai" })
             });
-            alert(`Task assigned to ${workerName}!`);
+            const data = await response.json();
+            if (!response.ok) {
+                alert(data.error || 'Could not assign this issue.');
+                return false;
+            }
+            announceOfficer(`Task assigned to ${workerName}.`);
+            return true;
+        }
+
+        async function chooseWorkerForIssue(issueId) {
+            if (!workerOptionsList.length) await fetchWorkers();
+            if (!workerOptionsList.length) {
+                alert('No field workers are available. Add a worker before assigning this issue.');
+                return false;
+            }
+            pendingAssignmentIssueId = issueId;
+            const select = document.getElementById('assign-worker-select');
+            select.innerHTML = workerOptionsList.map(worker => `<option value="${escapeHtml(worker.name)}">${escapeHtml(worker.name)} (${escapeHtml(worker.department || 'Public Works')})</option>`).join('');
+            document.getElementById('assign-worker-modal').classList.remove('hidden');
+            select.focus();
+            return new Promise(resolve => { select.dataset.assignmentResolve = 'pending'; select._assignmentResolve = resolve; });
+        }
+
+        function showInlineAssignment(card, issueId) {
+            const assignment = document.createElement('div');
+            assignment.className = 'mt-2 p-3 rounded-xl border-2 border-secondary/30 bg-secondary/5';
+            assignment.innerHTML = `<label class="block text-xs font-bold text-on-surface mb-1" for="assign-${issueId}">Assign this verified issue</label><div class="assignment-row"><select id="assign-${issueId}" class="min-w-0 p-2 border rounded-lg bg-white text-xs font-semibold">${workerOptionsList.map(worker => `<option value="${escapeHtml(worker.name)}">${escapeHtml(worker.name)} (${escapeHtml(worker.department || 'Public Works')})</option>`).join('')}</select><select class="assignment-priority min-w-0 p-2 border rounded-lg bg-white text-xs font-semibold" aria-label="Set work priority"><option value="">Priority</option><option value="1">Low</option><option value="2">Medium</option><option value="3">High</option></select><button type="button" class="assign-inline bg-secondary text-white px-3 py-2 rounded-lg text-xs font-bold">Assign</button></div>`;
+            assignment.querySelector('.assign-inline').addEventListener('click', async () => {
+                const workerName = assignment.querySelector('select').value;
+                const priority = assignment.querySelector('.assignment-priority').value;
+                const button = assignment.querySelector('.assign-inline');
+                if (!priority) {
+                    announceOfficer('Select a priority before assigning this issue.');
+                    return;
+                }
+                button.disabled = true;
+                const response = await fetch(`/api/issues/${issueId}/review/`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': document.querySelector('#add-worker-form input[name="csrfmiddlewaretoken"]').value },
+                    body: JSON.stringify({ decision: 'verified', worker_id: workerName, priority })
+                });
+                const data = await response.json();
+                if (response.ok && data.success) {
+                    assignment.innerHTML = `<p class="text-sm font-bold text-secondary">Assigned to ${escapeHtml(workerName)}</p>`;
+                    card.querySelectorAll('button').forEach(button => { button.disabled = true; button.classList.add('opacity-50'); });
+                    announceOfficer(`Issue verified and assigned to ${workerName}.`);
+                    setTimeout(() => card.remove(), 500);
+                } else {
+                    button.disabled = false;
+                    announceOfficer(data.error || 'Could not verify and assign this issue.');
+                }
+            });
+            card.appendChild(assignment);
+        }
+
+        function closeAssignmentModal(result) {
+            const select = document.getElementById('assign-worker-select');
+            document.getElementById('assign-worker-modal').classList.add('hidden');
+            const resolve = select._assignmentResolve;
+            select._assignmentResolve = null;
+            pendingAssignmentIssueId = null;
+            if (resolve) resolve(result);
+        }
+
+        document.getElementById('confirm-assign-worker').addEventListener('click', async () => {
+            const issueId = pendingAssignmentIssueId;
+            const workerName = document.getElementById('assign-worker-select').value;
+            if (!issueId || !workerName) return;
+            const assigned = await assignWorker(issueId, workerName);
+            if (assigned) closeAssignmentModal(true);
+        });
+        document.getElementById('cancel-assign-worker').addEventListener('click', () => closeAssignmentModal(false));
+        async function reviewIssue(issueId, card, decision) {
+            let feedback = '';
+            if (decision === 'rejected') {
+                feedback = window.prompt('What needs to be corrected before this ticket can be resolved?', '')?.trim() || '';
+                if (!feedback) {
+                    announceOfficer('Rejection cancelled. Feedback is required.');
+                    return;
+                }
+            }
+            if (decision === 'verified') {
+                if (!workerOptionsList.length) await fetchWorkers();
+                if (!workerOptionsList.length) {
+                    announceOfficer('No field workers are available.');
+                    return;
+                }
+                showInlineAssignment(card, issueId);
+                card.querySelectorAll('.review-dismiss, .review-verify').forEach(button => { button.disabled = true; button.classList.add('opacity-50'); });
+                announceOfficer('Choose a worker to verify and assign this issue.');
+                return;
+            }
+            try {
+                const res = await fetch(`/api/issues/${issueId}/review/`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': document.querySelector('#add-worker-form input[name="csrfmiddlewaretoken"]').value },
+                    body: JSON.stringify({ decision, feedback })
+                });
+                const data = await res.json();
+                if (!res.ok) {
+                    announceOfficer(data.error || 'Could not save the review.');
+                    return;
+                }
+                card.remove();
+                announceOfficer(decision === 'resolved' ? 'Issue marked as resolved.' : decision === 'rejected' ? 'Completion rejected and returned to active work.' : 'Issue dismissed.');
+                initOfficerCommand();
+                const remaining = document.querySelector('#master-ticket-queue').children.length;
+                if (!remaining) document.getElementById('master-ticket-queue').innerHTML = '<p class="text-sm text-on-surface-variant p-3">All reports have been reviewed.</p>';
+            } catch (error) {
+                announceOfficer(`Review failed: ${error.message}`);
+            }
         }
 
         async function deleteResolvedIssue(issueId) {
@@ -460,64 +830,11 @@
             initOfficerCommand();
         }
 
-        async function createVolunteerDrive() {
-            const title = prompt('Drive title:');
-            if (!title) return;
-            const scheduledAtInput = document.createElement('input');
-            scheduledAtInput.type = 'datetime-local';
-            scheduledAtInput.min = new Date().toISOString().slice(0, 16);
-            scheduledAtInput.value = scheduledAtInput.min;
-            document.body.appendChild(scheduledAtInput);
-            scheduledAtInput.showPicker?.();
-            const scheduledAtLocal = await new Promise((resolve) => {
-                scheduledAtInput.addEventListener('change', () => resolve(scheduledAtInput.value), { once: true });
-                scheduledAtInput.addEventListener('blur', () => resolve(scheduledAtInput.value), { once: true });
-            });
-            scheduledAtInput.remove();
-            if (!scheduledAtLocal) return;
-            const scheduledAt = new Date(scheduledAtLocal).toISOString();
-            const zone = prompt('Zone:') || 'Zone 5 - Adyar';
-            const locationSource = prompt('Enter an existing issue ID to use its location, or leave blank to click the map:');
-            let latitude;
-            let longitude;
-
-            if (locationSource) {
-                const issueResponse = await fetch('/api/issues/');
-                const issues = await issueResponse.json();
-                const issue = Array.isArray(issues) ? issues.find((item) => item.id === locationSource.trim()) : null;
-                if (!issue) {
-                    alert('Issue not found. Enter the full issue ID or choose a map location.');
-                    return;
-                }
-                latitude = issue.location.latitude;
-                longitude = issue.location.longitude;
-            } else {
-                if (!officerMapInstance) {
-                    alert('The map is not ready yet. Try again in a moment.');
-                    return;
-                }
-                alert('Click the map to choose the volunteer drive location.');
-                const selectedPoint = await new Promise((resolve) => {
-                    officerMapInstance.once('click', (event) => resolve(event.latlng));
-                });
-                latitude = selectedPoint.lat;
-                longitude = selectedPoint.lng;
-            }
-
-            const res = await fetch('/api/issues/volunteer-drives/', {
-                method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': document.querySelector('#add-worker-form input[name="csrfmiddlewaretoken"]').value },
-                body: JSON.stringify({ title, scheduled_at: scheduledAt, latitude, longitude, zone })
-            });
-            const data = await res.json();
-            alert(data.success ? 'Volunteer drive scheduled.' : (data.error || 'Could not schedule drive.'));
-        }
-
         window.addEventListener('DOMContentLoaded', () => {
+            updateOfficerDateSelector();
+            renderOfficerCalendar();
             setOfficerLanguage(officerLanguage);
             const storedUser = JSON.parse(localStorage.getItem('civix_user') || 'null');
-            if (storedUser) {
-                document.getElementById('officer-zone-label').textContent = `${storedUser.zone || 'All Zones'} • ${storedUser.department || 'Municipal Administration'}`;
-            }
             if (localStorage.getItem('civix-contrast') === 'on') {
                 document.body.classList.add('high-contrast');
                 document.getElementById('officer-contrast').setAttribute('aria-pressed', 'true');

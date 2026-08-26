@@ -1,6 +1,7 @@
 from django.urls import path
 from users.views import (
     UserLoginView,
+    UserLogoutView,
     UserRegisterView,
     WorkerAddView,
     UserProfileView,
@@ -8,17 +9,20 @@ from users.views import (
     WorkerListView,
     AdminMetricsView,
     AdminConfigView,
-    AdminAnalyticsView, AdminUsersView, AdminAuditLogsView, AdminCreateUserView, AdminUpdateUserView, NotificationListView,
+    AdminAnalyticsView, AdminUsersView, AdminAuditLogsView, AdminCreateUserView, AdminUpdateUserView, AdminResetPasswordView, NotificationListView,
+        DevLoginView,
 )
 
 urlpatterns = [
     path("login/", UserLoginView.as_view(), name="user-login"),
+    path("logout/", UserLogoutView.as_view(), name="user-logout"),
     path("register/", UserRegisterView.as_view(), name="user-register"),
     path("workers/add/", WorkerAddView.as_view(), name="worker-add"),
     path("workers/", WorkerListView.as_view(), name="worker-list"),
     path("profile/", UserProfileView.as_view(), name="user-profile"),
     path("notifications/", NotificationListView.as_view(), name="notifications"),
     path("leaderboard/", LeaderboardView.as_view(), name="user-leaderboard"),
+        path("dev-login/", DevLoginView.as_view(), name="dev-login"),
     path("admin/metrics/", AdminMetricsView.as_view(), name="admin-metrics"),
     path("admin/config/", AdminConfigView.as_view(), name="admin-config"),
     path("admin/analytics/", AdminAnalyticsView.as_view(), name="admin-analytics"),
@@ -26,5 +30,6 @@ urlpatterns = [
     path("admin/audit-logs/", AdminAuditLogsView.as_view(), name="admin-audit-logs"),
     path("admin/users/create/", AdminCreateUserView.as_view(), name="admin-create-user"),
     path("admin/users/<str:user_id>/", AdminUpdateUserView.as_view(), name="admin-update-user"),
+    path("admin/users/<str:user_id>/reset-password/", AdminResetPasswordView.as_view(), name="admin-reset-password"),
     path("admin/config/sla/", AdminConfigView.as_view(), name="admin-sla-config"),
 ]

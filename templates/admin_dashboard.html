@@ -4,48 +4,80 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>CIVIX - System Admin</title>
+    <title>Nagara Setu - System Admin</title>
     <link rel="stylesheet" href="{% static 'css/tailwind.css' %}">
-    <link rel="icon" href="{% static 'favicon.svg' %}" type="image/svg+xml">
+    <link rel="icon" href="{% static 'nagara_setu_logo.svg' %}" type="image/svg+xml">
     <style>
+        :root { --civix-radius: .75rem; --civix-control-height: 2.5rem; --civix-card-border: #d9d9e0; --civix-card-shadow: 0 2px 8px rgba(18, 33, 51, .06); }
         @media (max-width: 767px) {
-            main { padding: 1rem; }
-            header { align-items: flex-start; }
-            header nav { width: 100%; justify-content: space-between; }
+            body { overflow-x: hidden; font-size: .875rem; }
+            main { padding: .75rem; }
+            header { align-items: center; padding: .5rem .625rem; gap: .5rem; white-space: nowrap; }
+            header > div { min-width: 0; }
+            header h1 { font-size: .875rem; line-height: 1rem; }
+            header nav { width: auto; margin-left: auto; justify-content: flex-end; gap: .35rem; }
+            header button, header a { min-height: 1.75rem; min-width: 1.75rem; padding: .15rem .25rem; font-size: .625rem; }
+            #metric-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .5rem; }
+            #metric-grid > article { padding: .75rem; }
+            main .civix-panel { padding: .75rem; }
+            main h2 { font-size: 1rem; }
+            #create-user-form { grid-template-columns: minmax(0, 1fr); }
+            main button, main input, main select { min-height: 2.25rem; }
+            .text-sm { font-size: .8125rem; }
+            .text-base { font-size: .875rem; }
+            .text-lg { font-size: 1rem; }
         }
+        body.high-contrast { --hc-bg: #101820; --hc-surface: #17232d; --hc-surface-strong: #20313d; --hc-text: #ffffff; --hc-muted: #d7e3ea; --hc-border: #a9c2cf; --hc-primary: #7dd3fc; background: var(--hc-bg) !important; color: var(--hc-text) !important; }
+        body.high-contrast, body.high-contrast main, body.high-contrast header, body.high-contrast nav, body.high-contrast section, body.high-contrast article, body.high-contrast div, body.high-contrast form, body.high-contrast label, body.high-contrast .bg-white, body.high-contrast .bg-surface { background-color: var(--hc-surface) !important; color: var(--hc-text) !important; }
+        body.high-contrast * { border-color: var(--hc-border) !important; }
+        body.high-contrast p, body.high-contrast span, body.high-contrast h1, body.high-contrast h2, body.high-contrast h3, body.high-contrast h4, body.high-contrast label { color: var(--hc-text) !important; }
+        body.high-contrast .text-on-surface-variant { color: var(--hc-muted) !important; }
+        body.high-contrast .text-primary { color: var(--hc-primary) !important; }
+        body.high-contrast button, body.high-contrast select, body.high-contrast input { background-color: var(--hc-surface-strong) !important; color: var(--hc-text) !important; border: 2px solid var(--hc-border) !important; }
+        body.high-contrast button:hover, body.high-contrast button:focus-visible, body.high-contrast a:hover { background-color: #315064 !important; color: #ffffff !important; }
+        body.high-contrast .bg-primary { background-color: #075985 !important; color: #ffffff !important; }
+        body.high-contrast a { color: var(--hc-primary) !important; }
+        .civix-panel, #metric-grid > article { border-radius: var(--civix-radius); border-color: var(--civix-card-border); box-shadow: var(--civix-card-shadow); }
+        button, select, input { min-height: var(--civix-control-height); border-radius: .5rem; }
     </style>
 </head>
-<body class="min-h-screen bg-slate-100 text-slate-900 font-sans civix-enter">
-    <a href="#main-content" class="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:bg-white focus:px-4 focus:py-2 focus:text-slate-900 focus:font-bold focus:shadow-lg">Skip to main content</a>
-    <header class="bg-slate-950 text-white px-6 py-4 flex flex-wrap gap-4 items-center justify-between">
-        <div><p class="text-xs uppercase tracking-widest text-cyan-300">CIVIX</p><h1 class="text-xl font-bold">System Administration</h1></div>
-        <nav aria-label="Portal navigation" class="flex gap-4 text-sm"><a href="/citizen/" class="underline">Citizen</a><a href="/officer/" class="underline">Command</a><a href="/worker/" class="underline">Worker</a></nav>
+<body class="min-h-screen bg-surface text-on-surface font-sans civix-enter">
+    <a href="#main-content" class="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:bg-white focus:px-4 focus:py-2 focus:text-primary focus:font-bold focus:shadow-lg">Skip to main content</a>
+    <header class="bg-primary text-white px-6 py-4 flex flex-wrap gap-4 items-center justify-between">
+        <div class="flex items-center gap-3">
+            <img src="{% static 'nagara_setu_logo.svg' %}" alt="Nagara Setu logo" class="w-10 h-10 object-contain rounded-full bg-white/10 p-0.5"/>
+            <div>
+                <p class="text-xs uppercase tracking-widest text-secondary-container">Nagara Setu</p>
+                <h1 class="text-xl font-bold">System Administration</h1>
+            </div>
+        </div>
+        <nav aria-label="Portal navigation" class="flex gap-4 text-sm"><button id="admin-contrast" type="button" aria-pressed="false" aria-label="Toggle high contrast mode">Contrast</button><a href="/api/users/logout/" class="underline">Logout</a></nav>
     </header>
     <main id="main-content" tabindex="-1" class="max-w-6xl mx-auto p-6 space-y-6">
         <section id="metric-grid" class="grid grid-cols-2 md:grid-cols-5 gap-3" aria-label="Platform health metrics"></section>
         <section class="grid lg:grid-cols-2 gap-6">
-            <div class="bg-white border border-slate-200 p-5 rounded-lg shadow-sm civix-panel">
+            <div class="bg-white border border-outline-variant p-5 rounded-lg shadow-sm civix-panel">
                 <h2 class="font-bold text-lg mb-4">Issue Status Distribution</h2>
                 <div id="status-list" class="space-y-2" aria-live="polite"></div>
             </div>
-            <form id="config-form" class="bg-white border border-slate-200 p-5 rounded-lg shadow-sm civix-panel space-y-4">
+            <form id="config-form" class="bg-white border border-outline-variant p-5 rounded-lg shadow-sm civix-panel space-y-4">
                 <h2 class="font-bold text-lg">Department Configuration</h2>
                 <label class="block text-sm font-semibold">Critical SLA hours<input id="critical-sla" type="number" min="1" class="mt-1 w-full border rounded p-2"></label>
                 <label class="block text-sm font-semibold">High SLA hours<input id="high-sla" type="number" min="1" class="mt-1 w-full border rounded p-2"></label>
                 <label class="block text-sm font-semibold">Upvote priority weight<input id="upvote-weight" type="number" min="0" class="mt-1 w-full border rounded p-2"></label>
-                <button class="bg-cyan-700 text-white px-4 py-2 rounded font-bold" type="submit">Save Configuration</button>
+                <button class="bg-primary text-white px-4 py-2 rounded font-bold" type="submit">Save Configuration</button>
                 <p id="config-status" class="text-sm" role="status"></p>
             </form>
         </section>
-        <section class="bg-white border border-slate-200 p-5 rounded-lg shadow-sm civix-panel space-y-4">
+        <section class="bg-white border border-outline-variant p-5 rounded-lg shadow-sm civix-panel space-y-4">
             <div class="flex flex-wrap items-center justify-between gap-3">
                 <div>
                     <h2 class="font-bold text-lg">User Management</h2>
-                    <p class="text-sm text-slate-500">Manage citizens, workers, officers, and administrators. Passwords are never displayed.</p>
+                    <p class="text-sm text-on-surface-variant">Manage citizens, workers, officers, and administrators. Passwords are never displayed.</p>
                 </div>
                 <p id="user-status" class="text-sm" role="status"></p>
             </div>
-            <form id="create-user-form" class="grid sm:grid-cols-2 lg:grid-cols-4 gap-3 border-b border-slate-200 pb-4">
+            <form id="create-user-form" class="grid sm:grid-cols-2 lg:grid-cols-4 gap-3 border-b border-outline-variant pb-4">
                 <input id="new-user-name" required placeholder="Full name" aria-label="New user full name" class="border rounded p-2 text-sm">
                 <input id="new-user-username" placeholder="Username (optional)" aria-label="New user username" class="border rounded p-2 text-sm">
                 <input id="new-user-phone" required placeholder="Phone number" aria-label="New user phone number" class="border rounded p-2 text-sm">
@@ -59,12 +91,12 @@
                 </select>
                 <input id="new-user-department" placeholder="Department" aria-label="New user department" class="border rounded p-2 text-sm">
                 <input id="new-user-zone" value="Zone 5 - Adyar" placeholder="Zone" aria-label="New user zone" class="border rounded p-2 text-sm">
-                <button type="submit" class="bg-cyan-700 text-white px-4 py-2 rounded font-bold text-sm">Add User</button>
+                <button type="submit" class="bg-primary text-white px-4 py-2 rounded font-bold text-sm">Add User</button>
             </form>
             <div class="overflow-x-auto">
                 <table class="w-full min-w-[900px] text-sm text-left">
-                    <caption class="sr-only">All CIVIX users and account controls</caption>
-                    <thead class="border-b text-xs uppercase text-slate-500">
+                    <caption class="sr-only">All Nagara Setu users and account controls</caption>
+                    <thead class="border-b text-xs uppercase text-on-surface-variant">
                         <tr><th class="p-2">Name</th><th class="p-2">Username</th><th class="p-2">Phone</th><th class="p-2">Role</th><th class="p-2">Department</th><th class="p-2">Zone</th><th class="p-2">Active</th><th class="p-2">Actions</th></tr>
                     </thead>
                     <tbody id="user-list"></tbody>
@@ -79,6 +111,9 @@
         const metricLabels = [['total_issues', 'Total Issues'], ['resolved_count', 'Resolved'], ['resolution_rate', 'Resolution Rate'], ['average_turnaround_hours', 'Avg Turnaround (h)'], ['active_field_workers', 'Active Workers']];
         let adminUsers = [];
         const escapeHtml = (value) => String(value ?? '').replace(/[&<>'"]/g, (character) => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'}[character]));
+        const adminContrast = document.getElementById('admin-contrast');
+        if (localStorage.getItem('civix-contrast') === 'on') { document.body.classList.add('high-contrast'); adminContrast.setAttribute('aria-pressed', 'true'); }
+        adminContrast.addEventListener('click', () => { const enabled = document.body.classList.toggle('high-contrast'); localStorage.setItem('civix-contrast', enabled ? 'on' : 'off'); adminContrast.setAttribute('aria-pressed', String(enabled)); });
 
         function renderUsers() {
             document.getElementById('user-list').innerHTML = adminUsers.map((user) => `<tr class="border-b align-top">
@@ -89,7 +124,7 @@
                 <td class="p-2"><input id="user-department-${user.id}" value="${escapeHtml(user.department)}" aria-label="Department for ${escapeHtml(user.full_name)}" class="w-32 border rounded p-1"></td>
                 <td class="p-2"><input id="user-zone-${user.id}" value="${escapeHtml(user.zone)}" aria-label="Zone for ${escapeHtml(user.full_name)}" class="w-32 border rounded p-1"></td>
                 <td class="p-2"><label class="flex items-center gap-1"><input id="user-active-${user.id}" type="checkbox" ${user.is_active !== false ? 'checked' : ''}> Active</label></td>
-                <td class="p-2 space-y-1"><input id="user-password-${user.id}" type="password" minlength="6" autocomplete="new-password" placeholder="New password" aria-label="New password for ${escapeHtml(user.full_name)}" class="w-32 border rounded p-1"><button type="button" onclick="updateUser('${user.id}')" class="block bg-cyan-700 text-white px-2 py-1 rounded font-semibold">Update</button></td>
+                <td class="p-2 space-y-1"><input id="user-password-${user.id}" type="password" minlength="8" autocomplete="new-password" placeholder="Reset password" aria-label="Reset password for ${escapeHtml(user.full_name)}" class="w-32 border rounded p-1"><div class="flex gap-1"><button type="button" onclick="updateUser('${user.id}')" class="bg-primary text-white px-2 py-1 rounded font-semibold">Update</button><button type="button" onclick="resetUserPassword('${user.id}')" class="bg-secondary text-white px-2 py-1 rounded font-semibold">Reset access</button></div></td>
             </tr>`).join('') || '<tr><td colspan="8" class="p-3">No users found.</td></tr>';
         }
 
@@ -118,6 +153,20 @@
             if (response.ok) await loadUsers();
         }
 
+        async function resetUserPassword(userId) {
+            const passwordInput = document.getElementById(`user-password-${userId}`);
+            const password = passwordInput.value.trim();
+            if (password.length < 8) {
+                document.getElementById('user-status').textContent = 'Enter a reset password with at least 8 characters.';
+                passwordInput.focus();
+                return;
+            }
+            const response = await fetch(`/api/users/admin/users/${userId}/reset-password/`, {method: 'PATCH', headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrfToken()}, body: JSON.stringify({password})});
+            const data = await response.json();
+            document.getElementById('user-status').textContent = response.ok ? 'Access password reset securely.' : (data.error || 'Could not reset access.');
+            if (response.ok) passwordInput.value = '';
+        }
+
         document.getElementById('create-user-form').addEventListener('submit', async (event) => {
             event.preventDefault();
             const body = {full_name: document.getElementById('new-user-name').value, username: document.getElementById('new-user-username').value, phone: document.getElementById('new-user-phone').value, password: document.getElementById('new-user-password').value, role: document.getElementById('new-user-role').value, department: document.getElementById('new-user-department').value || 'General', zone: document.getElementById('new-user-zone').value};
@@ -131,7 +180,7 @@
             const metrics = await metricsResponse.json();
             const config = await configResponse.json();
             if (!metricsResponse.ok || !configResponse.ok) throw new Error(metrics.error || config.error || 'Admin data unavailable');
-            document.getElementById('metric-grid').innerHTML = metricLabels.map(([key, label]) => `<article class="bg-white border border-slate-200 p-4 rounded-lg"><p class="text-xs uppercase text-slate-500">${label}</p><strong class="text-2xl">${metrics[key]}${key === 'resolution_rate' ? '%' : ''}</strong></article>`).join('');
+            document.getElementById('metric-grid').innerHTML = metricLabels.map(([key, label]) => `<article class="bg-white border border-outline-variant p-4 rounded-lg"><p class="text-xs uppercase text-on-surface-variant">${label}</p><strong class="text-2xl">${metrics[key]}${key === 'resolution_rate' ? '%' : ''}</strong></article>`).join('');
             document.getElementById('status-list').innerHTML = Object.entries(metrics.status_counts).map(([status, count]) => `<div class="flex justify-between border-b py-2"><span>${status.replace('_', ' ')}</span><strong>${count}</strong></div>`).join('') || '<p>No issues found.</p>';
             document.getElementById('critical-sla').value = config.sla_deadlines.critical || 24;
             document.getElementById('high-sla').value = config.sla_deadlines.high || 48;

@@ -20,6 +20,7 @@ VALID_CATEGORIES = [
 ]
 
 VALID_SEVERITIES = ["critical", "high", "medium", "low"]
+CAMERA_MIN_CONFIDENCE = 0.80
 _offline_model = None
 
 
@@ -44,15 +45,25 @@ def _offline_yolo_classifier(image_bytes):
             detected_objects.append({"label": names[int(class_id)], "confidence": round(float(confidence), 3)})
 
         labels = {item["label"] for item in detected_objects}
+        confidence = max((item["confidence"] for item in detected_objects), default=0.0)
         if labels & {"bottle", "cup", "bowl", "backpack"}:
             category, issue_type, severity = "waste", "visible_discarded_object", "medium"
         elif labels & {"car", "bus", "truck", "motorcycle", "bicycle"}:
             category, issue_type, severity = "road", "roadside_traffic_obstruction", "medium"
         else:
-            category, issue_type, severity = "other", "unclassified_civic_scene", "low"
+            return {
+                "accepted": False,
+                "category": "other",
+                "issue_type": "unclassified_civic_scene",
+                "severity": "low",
+                "confidence": confidence,
+                "suggested_title": "Image does not show a supported civic hazard",
+                "detected_objects": detected_objects,
+                "raw_response": {"model": "YOLO local", "cloud": "Offline Vision"},
+            }
 
-        confidence = max((item["confidence"] for item in detected_objects), default=0.0)
         return {
+            "accepted": confidence >= CAMERA_MIN_CONFIDENCE,
             "category": category,
             "issue_type": issue_type,
             "severity": severity,
@@ -65,7 +76,7 @@ def _offline_yolo_classifier(image_bytes):
         return None
 
 
-def classify_issue_image(image_bytes=None, image_url=None, title_hint=""):
+def classify_issue_image(image_bytes=None, image_url=None, title_hint="", requested_category=""):
     """
     Classify a civic issue photo using Vision AI.
     """
@@ -77,34 +88,79 @@ def classify_issue_image(image_bytes=None, image_url=None, title_hint=""):
         "openai": (openai_key, _call_openai_vision),
         "gemini": (gemini_key, _call_gemini_vision),
     }
-    selected = providers.get(ai_provider)
-    if selected:
+    provider_order = [ai_provider] + [name for name in providers if name != ai_provider]
+    provider_errors = []
+    for provider_name in provider_order:
+        selected = providers.get(provider_name)
+        if not selected:
+            continue
         api_key, provider_call = selected
         if api_key and not api_key.startswith(("sk-your", "your-gemini")) and "insufficient_quota" not in api_key:
             try:
-                return provider_call(image_bytes, image_url, title_hint, api_key)
-            except Exception:
-                pass
+                return _validate_classification(
+                    provider_call(image_bytes, image_url, title_hint, api_key, requested_category),
+                    bool(image_bytes or image_url),
+                    requested_category,
+                )
+            except Exception as error:
+                detail = str(error).replace("\n", " ")[:180]
+                provider_errors.append(f"{provider_name}: {type(error).__name__}: {detail}")
 
-    offline_result = _offline_yolo_classifier(image_bytes)
-    if offline_result:
-        return offline_result
+    if image_bytes or image_url:
+        return {
+            "accepted": False,
+            "category": "other",
+            "issue_type": "vision_provider_error",
+            "severity": "low",
+            "confidence": 0.0,
+            "suggested_title": "AI service could not analyze this image. Try Analyze Again.",
+            "raw_response": {
+                "model": "civix-vision-v1",
+                "cloud": "Vision providers unavailable",
+                "provider_errors": provider_errors,
+            },
+        }
 
     # Text heuristic fallback when local vision is unavailable.
     return _heuristic_classifier(title_hint, image_bytes)
 
 
-def _call_openai_vision(image_bytes, image_url, title_hint, api_key):
+def _validate_classification(result, has_image, requested_category=""):
+    """Accept camera images only when the model verifies the requested category."""
+    result = dict(result or {})
+    if not has_image:
+        return result
+    category = str(result.get("category", "")).strip().lower()
+    issue_type = str(result.get("issue_type", "")).strip().lower().replace(" ", "_")
+    try:
+        confidence = float(result.get("confidence", 0.0))
+    except (TypeError, ValueError):
+        confidence = 0.0
+    result["category"] = category if category in VALID_CATEGORIES else "other"
+    result["issue_type"] = issue_type
+    result["confidence"] = max(0.0, min(confidence, 1.0))
+    result["accepted"] = (
+        category in VALID_CATEGORIES
+        and result["confidence"] >= CAMERA_MIN_CONFIDENCE
+        and (not requested_category or category == requested_category)
+    )
+    if has_image and not result["accepted"]:
+        result["suggested_title"] = "Image rejected: capture a clear example of the selected issue category"
+    return result
+
+
+def _call_openai_vision(image_bytes, image_url, title_hint, api_key, requested_category=""):
     prompt = (
-        "Analyze this urban civic hazard photo. Respond ONLY with a valid JSON object:\n"
+        "Analyze this urban civic issue photo using visible image evidence only. Do not classify from the description alone. Respond ONLY with a valid JSON object:\n"
         "{\n"
         '  "category": "road" | "water" | "waste" | "electricity" | "drainage" | "public_safety" | "environment" | "other",\n'
-        '  "issue_type": "short specific string e.g. pothole, broken_wire, garbage_dump, pipe_leak",\n'
+        '  "issue_type": "specific issue such as pothole, fallen_tree, pipeline_leak, garbage_dump, streetlight_outage, blocked_drain, open_manhole, or damaged_footpath",\n'
         '  "severity": "critical" | "high" | "medium" | "low",\n'
-        '  "confidence": float between 0.80 and 0.98,\n'
+        '  "confidence": float between 0.0 and 1.0; use below 0.80 when uncertain,\n'
         '  "suggested_title": "concise 5-8 word title"\n'
         "}"
     )
+    category_instruction = requested_category or "any one of the listed categories"
 
     image_content = []
     if image_url:
@@ -116,7 +172,7 @@ def _call_openai_vision(image_bytes, image_url, title_hint, api_key):
     messages = [
         {
             "role": "user",
-            "content": [{"type": "text", "text": prompt + f"\nDescription hint: {title_hint}"}] + image_content
+            "content": [{"type": "text", "text": prompt + f"\nThe image must match category: {category_instruction}. A garbage collection truck, overflowing bin, or dumped trash belongs to waste; a road vehicle alone is not a pothole. A fallen tree or damaged park vegetation belongs to environment. If the requested category is not visibly supported, return category 'other' and confidence below 0.80.\nDescription hint (secondary context only): {title_hint}"}] + image_content
         }
     ]
 
@@ -139,14 +195,15 @@ def _call_openai_vision(image_bytes, image_url, title_hint, api_key):
     raise ValueError(data.get("error", {}).get("message", "OpenAI Vision error"))
 
 
-def _call_gemini_vision(image_bytes, image_url, title_hint, api_key):
-    model = os.getenv("GEMINI_MODEL", "gemini-2.0-flash")
+def _call_gemini_vision(image_bytes, image_url, title_hint, api_key, requested_category=""):
+    model = os.getenv("GEMINI_MODEL", "gemini-3.6-flash")
     url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
     prompt = (
-        "Analyze this urban civic hazard photo. Respond ONLY in valid JSON format: "
-        "{\"category\": \"road|water|waste|electricity|drainage|public_safety\", "
-        "\"issue_type\": \"string\", \"severity\": \"critical|high|medium|low\", "
-        "\"confidence\": float, \"suggested_title\": \"string\"}"
+        "Analyze this photo for the selected urban civic issue category using visible evidence only, not the description alone. Respond ONLY in valid JSON format: "
+        "{\"category\": \"road|water|waste|electricity|drainage|public_safety|environment|other\", "
+        "\"issue_type\": \"specific issue or unknown\", \"severity\": \"critical|high|medium|low\", "
+        "\"confidence\": float, \"suggested_title\": \"string\"}. "
+        f"The selected category is {requested_category or 'not specified'}. A garbage collection truck, overflowing bin, or dumped trash belongs to waste; a road vehicle alone is not a pothole. A fallen tree or damaged park vegetation belongs to environment. Return confidence below 0.80 when the image does not visibly match the selected category."
     )
 
     parts = [{"text": prompt + f" Hint: {title_hint}"}]

@@ -4,9 +4,9 @@
 <head>
     <meta charset="utf-8"/>
     <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-    <title>CIVIX — Citizen Portal</title>
+    <title>Nagara Setu — Citizen Portal</title>
     <link rel="stylesheet" href="{% static 'css/tailwind.css' %}">
-    <link rel="icon" href="{% static 'favicon.svg' %}" type="image/svg+xml">
+    <link rel="icon" href="{% static 'nagara_setu_logo.svg' %}" type="image/svg+xml">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet"/>
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
     
@@ -16,27 +16,131 @@
     <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
 
     <style>
+        :root { --civix-radius: .75rem; --civix-control-height: 2.5rem; --civix-card-padding: .75rem; --civix-card-border: #d9d9e0; --civix-card-shadow: 0 2px 8px rgba(18, 33, 51, .06); }
         .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
         .tab-content { display: none; }
         .tab-content.active { display: flex; }
-        .high-contrast, .high-contrast main, .high-contrast nav, .high-contrast section,
-        .high-contrast .bg-white, .high-contrast .bg-surface-container-low { background-color: #000 !important; color: #fff !important; }
-        .high-contrast * { border-color: #ffff00 !important; }
-        .high-contrast button, .high-contrast select, .high-contrast textarea { background: #000 !important; color: #fff !important; }
-        .high-contrast .text-primary, .high-contrast .text-on-surface-variant, .high-contrast .text-outline { color: #ffff00 !important; }
-        .high-contrast .bg-primary { background-color: #000 !important; color: #ffff00 !important; }
-        .high-contrast a { color: #00ffff !important; }
+        body.high-contrast { --hc-bg: #101820; --hc-surface: #17232d; --hc-surface-strong: #20313d; --hc-text: #ffffff; --hc-muted: #d7e3ea; --hc-border: #a9c2cf; --hc-primary: #7dd3fc; --hc-secondary: #fcd34d; --hc-danger: #fda4af; --hc-success: #86efac; background: var(--hc-bg) !important; color: var(--hc-text) !important; }
+        body.high-contrast, body.high-contrast main, body.high-contrast header, body.high-contrast nav, body.high-contrast section, body.high-contrast article, body.high-contrast div, body.high-contrast form, body.high-contrast label, body.high-contrast .bg-white, body.high-contrast .bg-surface, body.high-contrast .bg-surface-container-low { background-color: var(--hc-surface) !important; color: var(--hc-text) !important; }
+        body.high-contrast * { border-color: var(--hc-border) !important; }
+        body.high-contrast p, body.high-contrast span, body.high-contrast h1, body.high-contrast h2, body.high-contrast h3, body.high-contrast h4, body.high-contrast label { color: var(--hc-text) !important; }
+        body.high-contrast .text-on-surface-variant, body.high-contrast .text-outline { color: var(--hc-muted) !important; }
+        body.high-contrast .text-primary, body.high-contrast .text-secondary { color: var(--hc-primary) !important; }
+        body.high-contrast button, body.high-contrast select, body.high-contrast textarea, body.high-contrast input { background-color: var(--hc-surface-strong) !important; color: var(--hc-text) !important; border: 2px solid var(--hc-border) !important; }
+        body.high-contrast button:hover, body.high-contrast button:focus-visible, body.high-contrast a:hover { background-color: #315064 !important; color: #ffffff !important; }
+        body.high-contrast .bg-primary, body.high-contrast .bg-secondary { background-color: #075985 !important; color: #ffffff !important; }
+        body.high-contrast .bg-emerald-100, body.high-contrast .bg-emerald-50 { background-color: #14532d !important; color: var(--hc-success) !important; }
+        body.high-contrast .bg-amber-100, body.high-contrast .bg-amber-50 { background-color: #713f12 !important; color: var(--hc-secondary) !important; }
+        body.high-contrast .text-emerald-700, body.high-contrast .text-emerald-800 { color: var(--hc-success) !important; }
+        body.high-contrast .text-amber-700, body.high-contrast .text-amber-800 { color: var(--hc-secondary) !important; }
+        body.high-contrast .text-red-700, body.high-contrast .text-error { color: var(--hc-danger) !important; }
+        body.high-contrast a { color: var(--hc-primary) !important; }
         #leaflet-map-nearby { height: 260px; border-radius: 0.75rem; z-index: 10; }
+        .issue-card { border-radius: var(--civix-radius); padding: var(--civix-card-padding); border-color: var(--civix-card-border); box-shadow: var(--civix-card-shadow); transition: transform .18s ease, box-shadow .18s ease; }
+        .issue-card button { min-height: var(--civix-control-height); border-radius: .5rem; }
+        .impact-report-card { border-radius: var(--civix-radius); box-shadow: var(--civix-card-shadow); }
+        .issue-card:hover { transform: translateY(-1px); box-shadow: 0 8px 20px rgba(18, 33, 51, 0.08); }
+        .feed-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .75rem; }
+        .feed-grid.hidden { display: none; }
+        .feed-grid > .issue-card { min-width: 0; }
+        .issue-card-image { width: 6rem; height: 5rem; object-fit: cover; flex: 0 0 6rem; }
+        .issue-card-title { font-size: .875rem; line-height: 1.25rem; font-weight: 700; }
+        .issue-card-description { font-size: .6875rem; line-height: 1rem; }
+        .status-stepper { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: .25rem; }
+        .status-step { position: relative; min-width: 0; text-align: center; }
+        .status-step:not(:last-child)::after { content: ''; position: absolute; top: .35rem; left: 50%; width: 100%; height: 2px; background: #d9d9e0; z-index: 0; }
+        .status-step.complete:not(:last-child)::after { background: #10b981; }
+        .status-node { position: relative; z-index: 1; display: block; width: .7rem; height: .7rem; margin: 0 auto .3rem; border: 2px solid #d9d9e0; border-radius: 9999px; background: #fff; }
+        .status-step.complete .status-node { border-color: #059669; background: #059669; box-shadow: 0 0 0 2px #d1fae5; }
+        .status-step.active .status-node { border-color: #006e25; background: #fff; box-shadow: 0 0 0 3px rgba(0, 110, 37, .16); }
+        .status-step-label { display: block; font-size: .55rem; line-height: .75rem; color: #6b7280; }
+        .status-step.complete .status-step-label, .status-step.active .status-step-label { color: #122133; font-weight: 700; }
+        .impact-report-card { min-height: 0; }
+        .impact-report-image { width: 5rem; height: 4rem; flex: 0 0 5rem; object-fit: cover; }
+        .impact-meta { font-size: .625rem; line-height: .875rem; }
+        .vote-button { transition: transform .18s ease, opacity .18s ease, background-color .18s ease; }
+        .vote-button.animating { animation: vote-pop .24s ease; }
+        .notification-panel { position: absolute; top: calc(100% + .5rem); right: 0; width: min(22rem, calc(100vw - 2rem)); max-height: 18rem; overflow-y: auto; z-index: 60; }
+        #accessibility-controls { min-width: 12rem; }
+        #accessibility-controls #btn-contrast, #accessibility-controls #btn-easy-read { width: 100% !important; flex-basis: auto !important; display: flex !important; }
+        .notification-item + .notification-item { border-top: 1px solid #d9d9e0; }
+        #nearby-feed-list .issue-card, #resolved-feed-list .issue-card { min-width: 0; overflow: hidden; }
+        #nearby-feed-list .issue-card > div:first-child, #resolved-feed-list .issue-card > div:first-child { min-width: 0; }
+        #nearby-feed-list .issue-card > div:last-child > span.text-primary, #resolved-feed-list .issue-card > div:last-child > span.text-primary { display: none; }
+        .category-filter { border: 1px solid #cbd5e1; border-radius: 9999px; padding: .35rem .65rem; font-size: .6875rem; font-weight: 700; color: #475569; background: #fff; }
+        .category-filter.active { border-color: #0f7a72; color: #fff; background: #0f7a72; }
+        #resolved-feed-list .vote-button { display: none; }
+        @keyframes vote-pop { 0% { transform: scale(1); } 40% { transform: scale(1.12); } 100% { transform: scale(1); } }
         .sr-only-focusable:focus { position: static; width: auto; height: auto; margin: 0; overflow: visible; clip: auto; }
         @media (max-width: 767px) {
-            body { padding-bottom: 1.5rem; }
-            body > header { align-items: flex-start; flex-wrap: wrap; gap: .5rem; }
-            body > header > div:last-child { width: 100%; justify-content: space-between; flex-wrap: wrap; gap: .5rem; }
-            body > nav[aria-label="Primary navigation"] { align-items: flex-start; flex-wrap: wrap; gap: .75rem; }
-            body > nav[aria-label="Primary navigation"] > div:last-child { width: 100%; justify-content: space-between; }
-            #main-content { padding-left: .75rem; padding-right: .75rem; }
-            .tab-btn { min-height: 52px; font-size: .75rem; }
-            #leaflet-map-nearby { height: 220px; }
+            body { padding-bottom: 1.5rem; overflow-x: hidden; font-size: .875rem; }
+            body > nav[aria-label="Primary navigation"] { order: 1; }
+            body > header { order: 2; }
+            body > main { order: 3; }
+            body > header { align-items: center; flex-wrap: nowrap; gap: .35rem; padding: .35rem .5rem; white-space: nowrap; }
+            body > header > div:first-child { width: auto; flex-shrink: 0; }
+            body > header > div:first-child { gap: .2rem; }
+            body > header > div:last-child { min-width: 0; width: auto; margin-left: auto; justify-content: flex-end; flex-wrap: nowrap; gap: .2rem; }
+            body > header > div:last-child > div { gap: .35rem; }
+            body > header > div:last-child > div:first-child { min-width: 0; }
+            body > header button, body > header a { min-height: 28px; min-width: 28px; padding: 0 3px; font-size: 10px; line-height: 14px; }
+                #btn-contrast, #btn-easy-read { flex-basis: 28px !important; width: 28px !important; }
+            body > header > div:first-child { gap: 3px; }
+            body > header > div:first-child > button { min-width: 24px; width: auto; }
+            body > header > div:last-child > div { gap: 2px; }
+            body > header > div:last-child > div > button { min-width: 24px; width: 24px; }
+                body > header > div:last-child > nav a { min-width: 42px !important; width: 42px !important; }
+            body > header > div:last-child { overflow: hidden; }
+            body > header > div:last-child > div { flex-shrink: 0; }
+            body > header > div:last-child > nav { flex-shrink: 0; margin-left: 0; }
+            #btn-contrast, #btn-easy-read { display: inline-flex; flex: 0 0 1.75rem; justify-content: center; border: 1px solid rgba(255,255,255,.45); border-radius: .375rem; }
+            body > header > div:last-child > div { gap: .15rem; }
+            body > header button, body > header a { min-height: 1.75rem; min-width: 1.75rem; padding: .15rem .25rem; font-size: .625rem; }
+            body > header .material-symbols-outlined { font-size: 1rem; }
+            body > nav[aria-label="Primary navigation"] { align-items: center; flex-wrap: nowrap; gap: .35rem; padding: .4rem .5rem; min-height: 3.25rem; }
+            body > nav[aria-label="Primary navigation"] > div:first-child { min-width: 0; flex: 1 1 auto; gap: .35rem; }
+            body > nav[aria-label="Primary navigation"] > div:first-child img { width: 2rem; height: 2rem; }
+            body > nav[aria-label="Primary navigation"] > div:first-child h1 { min-width: 0; font-size: 1rem; line-height: 1.25rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+            body > nav[aria-label="Primary navigation"] > div:first-child #role-pill { display: none; }
+            body > nav[aria-label="Primary navigation"] > div:last-child { width: auto; min-width: 0; margin-left: auto; justify-content: flex-end; gap: .25rem; }
+            #user-points-pill { display: none; }
+            body > nav[aria-label="Primary navigation"] > div:last-child > div:nth-child(2) { padding: .25rem; }
+            #btn-read-aloud { width: 2rem; max-width: 2rem; padding: .25rem; overflow: hidden; white-space: nowrap; }
+            #btn-read-aloud [data-i18n="readAloud"] { display: none; }
+            #main-content { padding: .75rem; }
+            .tab-btn { min-height: 48px; padding: .5rem .25rem; font-size: .6875rem; line-height: 1rem; }
+            .tab-btn .material-symbols-outlined { font-size: 1rem; }
+            #leaflet-map-nearby { height: 200px; }
+            .feed-grid { grid-template-columns: minmax(0, 1fr); }
+            .issue-card { padding: .625rem; }
+            .issue-card-image { width: 5rem; height: 4.25rem; flex-basis: 5rem; }
+            #nearby-feed-list .issue-card > div:first-child, #resolved-feed-list .issue-card > div:first-child { flex-direction: column; gap: .625rem; }
+            #nearby-feed-list .issue-card .issue-card-image, #resolved-feed-list .issue-card .issue-card-image { width: 100%; height: 8rem; flex: 0 0 8rem; }
+            #nearby-feed-list .issue-card > div:first-child > div, #resolved-feed-list .issue-card > div:first-child > div { width: 100%; }
+            #nearby-feed-list .issue-card .issue-card-title, #resolved-feed-list .issue-card .issue-card-title { white-space: normal; }
+            .notification-panel { position: fixed; top: 3.5rem; left: .5rem; right: .5rem; width: auto; max-height: min(18rem, calc(100vh - 5rem)); }
+            #tab-report > *, #tab-nearby > *, #tab-impact > * { max-width: 100%; }
+            .text-sm { font-size: .8125rem; }
+            .text-base { font-size: .875rem; }
+            .text-lg { font-size: 1rem; }
+            #accessibility-controls #txt-contrast, #accessibility-controls #txt-easy-read { display: inline !important; }
+            #accessibility-controls { position: fixed; top: 2.5rem; right: .5rem; left: .5rem; width: auto; min-width: 0; }
+            body > header button, body > header a { min-height: 28px !important; min-width: 28px !important; padding: 0 3px; font-size: 10px !important; line-height: 14px; }
+            #btn-contrast, #btn-easy-read { display: inline-flex !important; flex: 0 0 28px !important; width: 28px !important; height: 28px !important; }
+            body > header > div:last-child > div > button { min-width: 24px !important; width: 24px !important; height: 28px !important; }
+            body > header > div:last-child > nav a { min-width: 42px !important; width: 42px !important; }
+            #lang-ta { width: 54px !important; min-width: 54px !important; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+            body > header > div:last-child > div { gap: 0 !important; }
+            body > header > div:last-child > div > button { min-width: 20px !important; width: 20px !important; padding: 0 !important; }
+            body > header > div:last-child > nav a { min-width: 38px !important; width: 38px !important; padding: 0 !important; }
+        }
+        @media (min-width: 768px) and (max-width: 1023px) {
+            body > header { padding: .5rem .75rem; gap: .75rem; }
+            body > header > div:last-child { min-width: 0; gap: .5rem; }
+            body > header > div:last-child > div { gap: .5rem; }
+            body > nav[aria-label="Primary navigation"] { padding: .75rem 1rem; }
+            body > nav[aria-label="Primary navigation"] h1 { font-size: 1.375rem; }
+            #main-content { padding-left: 1rem; padding-right: 1rem; }
         }
         @media (min-width: 768px) {
             #main-content { padding-top: 1.5rem; padding-bottom: 1.5rem; }
@@ -47,34 +151,36 @@
     <a href="#main-content" class="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:bg-white focus:px-4 focus:py-2 focus:text-primary focus:font-bold focus:shadow-lg">Skip to main content</a>
 
     <!-- Global Accessibility Header -->
-    <header class="bg-primary text-on-primary py-2 px-4 flex justify-between items-center text-xs font-semibold shadow-sm z-50">
+    <header class="bg-primary text-on-primary py-2 px-4 flex justify-between items-center text-xs font-semibold shadow-sm z-50 relative">
         <div class="flex items-center gap-2">
-            <span class="material-symbols-outlined text-sm">language</span>
-            <button id="lang-en" onclick="setLanguage('en')" class="underline font-bold" aria-label="Switch interface language to English">EN</button>
-            <span aria-hidden="true">/</span>
-            <button id="lang-ta" onclick="setLanguage('ta')" class="hover:underline" aria-label="தமிழில் இடைமுகத்தை மாற்றவும்">தமிழ் (TA)</button>
+            <button id="btn-language" type="button" class="p-1 rounded hover:bg-white/20" aria-label="Switch interface language to Tamil" title="Switch language">
+                <span class="material-symbols-outlined text-sm">language</span>
+            </button>
         </div>
         <div class="flex items-center gap-3">
-            <button id="btn-contrast" type="button" class="flex items-center gap-1 hover:text-secondary-container transition-colors" aria-pressed="false" aria-label="Toggle high contrast mode">
-                <span class="material-symbols-outlined text-sm">contrast</span>
-                <span id="txt-contrast">Contrast</span>
-            </button>
-            <button id="btn-easy-read" type="button" class="flex items-center gap-1 hover:text-secondary-container transition-colors" aria-pressed="false" aria-label="Toggle Easy Read mode">
-                <span class="material-symbols-outlined text-sm">text_fields</span>
-                <span id="txt-easy-read">Easy Read</span>
-            </button>
-            <div class="flex items-center gap-1 border-l border-white/30 pl-2">
-                <button type="button" onclick="setFontSize('100%')" class="px-1 py-0.5 rounded hover:bg-white/20" aria-label="Use normal text size">A</button>
-                <button type="button" onclick="setFontSize('115%')" class="px-1 py-0.5 rounded hover:bg-white/20 font-bold" aria-label="Increase text size">A+</button>
-                <button type="button" onclick="setFontSize('130%')" class="px-1 py-0.5 rounded hover:bg-white/20 text-sm font-black" aria-label="Use largest text size">A++</button>
+            <div class="relative">
+                <button id="btn-accessibility-menu" type="button" class="p-1 rounded hover:bg-white/20" aria-expanded="false" aria-controls="accessibility-controls" aria-label="Open accessibility options">
+                    <span class="material-symbols-outlined text-sm">menu</span>
+                </button>
+                <div id="accessibility-controls" class="hidden absolute right-0 top-full z-[100] mt-2 min-w-48 p-2 bg-white text-on-surface border border-outline-variant rounded-lg shadow-xl">
+                    <button id="btn-contrast" type="button" class="w-full flex items-center gap-2 px-2 py-1.5 rounded hover:bg-surface-container transition-colors" aria-pressed="false" aria-label="Toggle high contrast mode">
+                        <span class="material-symbols-outlined text-sm text-primary">contrast</span>
+                        <span id="txt-contrast">Contrast</span>
+                    </button>
+                    <button id="btn-easy-read" type="button" class="w-full flex items-center gap-2 px-2 py-1.5 rounded hover:bg-surface-container transition-colors" aria-pressed="false" aria-label="Toggle Easy Read mode">
+                        <span class="material-symbols-outlined text-sm text-primary">text_fields</span>
+                        <span id="txt-easy-read">Easy Read</span>
+                    </button>
+                    <div class="flex items-center justify-between gap-1 border-t border-outline-variant mt-1 pt-1">
+                        <button type="button" onclick="setFontSize('100%')" class="px-2 py-1 rounded hover:bg-surface-container" aria-label="Use normal text size">A</button>
+                        <button type="button" onclick="setFontSize('115%')" class="px-2 py-1 rounded hover:bg-surface-container font-bold" aria-label="Increase text size">A+</button>
+                        <button type="button" onclick="setFontSize('130%')" class="px-2 py-1 rounded hover:bg-surface-container text-sm font-black" aria-label="Use largest text size">A++</button>
+                    </div>
+                </div>
             </div>
             <!-- Portal Switcher Links -->
-            <nav aria-label="Portal navigation" class="flex items-center gap-1 border-l border-white/30 pl-2">
-                <a href="/worker/" class="hover:underline opacity-90" data-i18n="worker">Worker</a>
-                <span aria-hidden="true">|</span>
-                <a href="/officer/" class="hover:underline opacity-90" data-i18n="command">Command</a>
-                <span aria-hidden="true">|</span>
-                <a href="/login/" class="hover:underline opacity-90" data-i18n="logout">Logout</a>
+            <nav aria-label="Portal navigation" class="flex items-center justify-center gap-1 border-l border-white/30 pl-2">
+                <a href="/api/users/logout/" class="inline-flex items-center justify-center text-center hover:underline opacity-90" data-i18n="logout">Logout</a>
             </nav>
         </div>
     </header>
@@ -82,14 +188,23 @@
     <!-- Top App Navigation -->
     <nav aria-label="Primary navigation" class="flex justify-between items-center px-4 py-3 bg-white border-b border-outline-variant max-w-4xl w-full mx-auto civix-glass">
         <div class="flex items-center gap-2">
-            <div class="w-9 h-9 rounded-full bg-primary text-white flex items-center justify-center font-black text-lg">C</div>
-            <h1 class="font-extrabold text-2xl tracking-tight text-primary">CIVIX</h1>
+            <img src="{% static 'nagara_setu_logo.svg' %}" alt="Nagara Setu logo" class="w-10 h-10 object-contain rounded-full bg-white p-0.5"/>
+            <h1 class="font-extrabold text-2xl tracking-tight text-primary">Nagara Setu</h1>
             <span class="text-xs bg-primary/10 text-primary font-bold px-2 py-0.5 rounded-full" id="role-pill" data-i18n="citizen">Citizen</span>
         </div>
         <div class="flex items-center gap-3">
-            <div class="flex items-center gap-1.5 bg-secondary/10 text-secondary px-3 py-1 rounded-full text-xs font-bold">
-                <span class="material-symbols-outlined text-sm">stars</span>
-                <span id="user-points-pill">1,240 Pts</span>
+            <div class="relative">
+                <button id="btn-notifications" type="button" aria-label="Open notifications" aria-expanded="false" class="relative p-2 rounded-lg text-primary hover:bg-surface-container flex items-center justify-center">
+                    <span class="material-symbols-outlined text-xl">notifications</span>
+                    <span id="notification-count" class="hidden absolute -right-1 -top-1 min-w-4 h-4 px-1 rounded-full bg-red-600 text-white text-[10px] leading-4 font-bold">0</span>
+                </button>
+                <div id="notification-panel" class="notification-panel hidden bg-white border border-outline-variant rounded-xl shadow-lg" role="region" aria-label="Notifications">
+                    <div class="px-3 py-2 border-b border-outline-variant flex items-center justify-between">
+                        <span class="text-xs font-bold text-on-surface">Notifications</span>
+                        <span id="notification-summary" class="text-[10px] text-on-surface-variant">No new notifications</span>
+                    </div>
+                    <div id="notification-list"></div>
+                </div>
             </div>
             <!-- Read Aloud Text-to-Speech Trigger -->
             <button id="btn-read-aloud" type="button" title="Read Aloud Instructions (TTS)" aria-label="Read reporting instructions aloud" aria-pressed="false" class="px-2 py-1 rounded hover:bg-surface-container text-primary flex items-center justify-center gap-1">
@@ -104,13 +219,13 @@
 
         <!-- Tab Switcher -->
         <div class="flex border-b border-outline-variant mb-5">
-            <button class="tab-btn active flex-1 py-2.5 font-bold text-sm border-b-2 border-primary text-primary flex items-center justify-center gap-1.5" data-target="tab-report">
-                <span class="material-symbols-outlined text-lg">photo_camera</span>
-                <span id="txt-tab-report">Report Issue</span>
-            </button>
-            <button class="tab-btn flex-1 py-2.5 font-bold text-sm border-b-2 border-transparent text-on-surface-variant hover:text-primary flex items-center justify-center gap-1.5" data-target="tab-nearby">
+            <button class="tab-btn active flex-1 py-2.5 font-bold text-sm border-b-2 border-primary text-primary flex items-center justify-center gap-1.5" data-target="tab-nearby">
                 <span class="material-symbols-outlined text-lg">near_me</span>
                 <span id="txt-tab-nearby">Nearby & Upvote</span>
+            </button>
+            <button class="tab-btn flex-1 py-2.5 font-bold text-sm border-b-2 border-transparent text-on-surface-variant hover:text-primary flex items-center justify-center gap-1.5" data-target="tab-report">
+                <span class="material-symbols-outlined text-lg">photo_camera</span>
+                <span id="txt-tab-report">Report Issue</span>
             </button>
             <button class="tab-btn flex-1 py-2.5 font-bold text-sm border-b-2 border-transparent text-on-surface-variant hover:text-primary flex items-center justify-center gap-1.5" data-target="tab-impact">
                 <span class="material-symbols-outlined text-lg">military_tech</span>
@@ -121,7 +236,7 @@
         <!-- ================================================================= -->
         <!-- TAB 1: REPORT ISSUE (Direct In-Browser Camera & Atomic Live GPS)   -->
         <!-- ================================================================= -->
-        <section id="tab-report" class="tab-content active flex-col gap-4">
+        <section id="tab-report" class="tab-content flex-col gap-4">
             
             <!-- Live GPS Status Pill -->
             <div class="flex items-center justify-between bg-surface-container-low px-3.5 py-2 rounded-xl border border-outline-variant text-xs">
@@ -157,29 +272,6 @@
                 </div>
             </div>
 
-            <!-- Live AI Vision Detection Result HUD -->
-            <div id="ai-status-card" class="hidden bg-primary/5 border border-primary/20 rounded-xl p-3.5 flex flex-col gap-2">
-                <div class="flex items-center justify-between text-xs">
-                    <div class="font-bold text-primary flex items-center gap-1.5">
-                        <span class="material-symbols-outlined text-base">smart_toy</span>
-                        <span id="ai-model-tag">Vision AI Classifier</span>
-                    </div>
-                        <span id="ai-confidence-badge" class="bg-primary text-white font-bold px-2 py-0.5 rounded-full text-[10px]">Analyzing...</span>
-                </div>
-                
-                <div class="grid grid-cols-2 gap-2 text-xs">
-                    <div class="bg-white p-2 rounded-lg border">
-                        <span class="text-[10px] text-outline uppercase block">Detected Category</span>
-                        <span id="ai-category-val" class="font-bold text-primary capitalize" aria-live="polite">Road & Pavement</span>
-                    </div>
-                    <div class="bg-white p-2 rounded-lg border">
-                        <span class="text-[10px] text-outline uppercase block">Severity Level</span>
-                        <span id="ai-severity-val" class="font-bold text-red-600 capitalize" aria-live="polite">Critical (24h SLA)</span>
-                    </div>
-                </div>
-                <p id="ai-title-suggestion" class="text-xs text-on-surface-variant italic font-medium"></p>
-            </div>
-
             <!-- Category Manual Override Dropdown -->
             <div class="flex flex-col gap-1 text-xs">
                 <label class="font-bold uppercase text-on-surface-variant" id="lbl-category">Category</label>
@@ -211,28 +303,26 @@
             </div>
 
             <!-- Submit Button -->
-            <button id="btn-submit-report" type="button" class="w-full bg-primary text-white py-3.5 rounded-xl font-bold text-sm shadow-md hover:bg-primary-container active:scale-98 transition-all flex items-center justify-center gap-2">
+            <button id="btn-submit-report" type="button" disabled aria-disabled="true" class="w-full bg-primary text-white py-3.5 rounded-xl font-bold text-sm shadow-md hover:bg-primary-container active:scale-98 transition-all flex items-center justify-center gap-2 opacity-50 cursor-not-allowed">
                 <span class="material-symbols-outlined text-lg">send</span>
                 <span id="btn-submit-text">Submit Report</span>
-            </button>
-            <button id="btn-emergency-dispatch" type="button" class="w-full bg-red-700 text-white py-3 rounded-xl font-bold text-sm shadow-md hover:bg-red-800 transition-all flex items-center justify-center gap-2">
-                <span class="material-symbols-outlined text-lg">emergency</span>
-                <span>Emergency Quick Dispatch</span>
             </button>
         </section>
 
         <!-- ================================================================= -->
         <!-- TAB 2: NEARBY ISSUES & SPATIAL DEDUP / UPVOTE                     -->
         <!-- ================================================================= -->
-        <section id="tab-nearby" class="tab-content flex-col gap-4">
+        <section id="tab-nearby" class="tab-content active flex-col gap-4">
             <div id="leaflet-map-nearby"></div>
             <div class="flex justify-between items-center mt-1">
-                <h3 class="font-bold text-sm text-on-surface" id="txt-nearby-header">Live Tickets Nearby (50m - 5km)</h3>
-                <span class="text-xs text-primary font-bold">25 Active in Ward</span>
+                <button id="nearby-view-button" type="button" aria-expanded="true" aria-controls="nearby-feed-list" class="border border-primary bg-primary text-white px-2 py-1 rounded-md text-xs font-bold">Nearby Issues (<span id="nearby-issue-count">0</span>)</button>
+                <button id="resolved-view-button" type="button" aria-expanded="false" aria-controls="resolved-feed-list" class="border border-outline-variant px-2 py-1 rounded-md text-xs font-bold text-on-surface-variant">Resolved Issues (<span id="resolved-issue-count">0</span>)</button>
             </div>
-            <div id="nearby-feed-list" class="flex flex-col gap-3">
+            <div id="issue-category-filters" class="flex flex-wrap gap-2" role="group" aria-label="Filter nearby issues by category"></div>
+            <div id="nearby-feed-list" class="feed-grid" role="region" aria-live="polite" aria-label="Nearby issues">
                 <!-- Dynamically populated from API -->
             </div>
+            <div id="resolved-feed-list" class="feed-grid hidden" role="region" aria-live="polite" aria-label="Resolved issues"></div>
         </section>
 
         <!-- ================================================================= -->
@@ -240,48 +330,44 @@
         <!-- ================================================================= -->
         <section id="tab-impact" class="tab-content flex-col gap-4">
             <!-- Points Card -->
-            <div class="bg-gradient-to-r from-primary to-primary-container text-white p-5 rounded-2xl shadow-lg relative overflow-hidden">
+            <div class="bg-gradient-to-r from-primary to-primary-container text-white p-4 rounded-2xl shadow-lg relative overflow-hidden">
                 <div class="text-xs uppercase font-bold tracking-wider opacity-80" id="txt-impact-rank">Your Civic Standing</div>
                 <div class="flex items-center gap-3 my-2">
-                    <span class="material-symbols-outlined text-4xl text-amber-300">stars</span>
-                    <span id="impact-points" class="font-mono text-3xl font-black">1,240</span>
-                    <span class="text-xs bg-white/20 px-2.5 py-0.5 rounded-full font-bold">Level 6 Watchdog</span>
+                    <span class="material-symbols-outlined text-3xl text-amber-300">stars</span>
+                    <span id="impact-points" class="font-mono text-2xl font-black">0</span>
+                    <span id="impact-level" class="text-xs bg-white/20 px-2.5 py-0.5 rounded-full font-bold">Level 1</span>
                 </div>
                 <div class="w-full bg-black/20 h-2 rounded-full mt-2 overflow-hidden">
-                    <div class="bg-amber-300 h-full rounded-full" style="width: 78%"></div>
+                    <div id="impact-progress-bar" class="bg-amber-300 h-full rounded-full" style="width: 0%"></div>
                 </div>
                 <div class="text-[11px] opacity-80 mt-1 flex justify-between">
-                    <span>Rank: Zone 5 Top 5%</span>
-                    <span>260 pts to Level 7</span>
+                    <span id="impact-standing">Your civic contribution</span>
+                    <span id="impact-next-level">Build your next level</span>
                 </div>
             </div>
 
-            <h3 class="font-bold text-sm text-on-surface mt-1" id="txt-earned-badges">Earned Civic Badges</h3>
-            <div id="badges-grid" class="grid grid-cols-2 gap-3">
-                <!-- Populated dynamically -->
+            <div class="grid grid-cols-2 gap-3" aria-label="Contribution summary">
+                <div class="bg-white border border-outline-variant rounded-xl p-3"><span class="material-symbols-outlined text-primary text-lg">assignment</span><strong id="impact-report-count" class="block text-xl mt-1">0</strong><span class="text-[10px] text-on-surface-variant">Reports submitted</span></div>
+                <div class="bg-white border border-outline-variant rounded-xl p-3"><span class="material-symbols-outlined text-secondary text-lg">verified</span><strong id="impact-verification-count" class="block text-xl mt-1">0</strong><span class="text-[10px] text-on-surface-variant">Reports confirmed</span></div>
+                <div class="bg-white border border-outline-variant rounded-xl p-3"><span class="material-symbols-outlined text-emerald-600 text-lg">task_alt</span><strong id="impact-resolved-count" class="block text-xl mt-1">0</strong><span class="text-[10px] text-on-surface-variant">Issues resolved</span></div>
+                <div class="bg-white border border-outline-variant rounded-xl p-3"><span class="material-symbols-outlined text-primary text-lg">thumb_up</span><strong id="impact-upvote-count" class="block text-xl mt-1">0</strong><span class="text-[10px] text-on-surface-variant">Genuine issues upvoted</span></div>
             </div>
+
+            <section aria-labelledby="my-reports-heading" class="flex flex-col gap-3">
+                <h3 class="font-bold text-sm text-on-surface mt-1" id="my-reports-heading">Issues reported by you</h3>
+                <div id="impact-reports" class="flex flex-col gap-3"><!-- Populated dynamically --></div>
+            </section>
+
+            <section aria-labelledby="txt-earned-badges" class="flex flex-col gap-3">
+                <h3 class="font-bold text-sm text-on-surface mt-1" id="txt-earned-badges">Earned Civic Badges</h3>
+                <div id="badges-grid" class="grid grid-cols-2 gap-3"><!-- Populated dynamically --></div>
+            </section>
         </section>
 
     </main>
 
     <div id="status-live-region" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
     {% csrf_token %}
-
-    <!-- Spatial Deduplication Prompt Modal -->
-    <div id="dedup-modal" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="dedup-title">
-        <div class="bg-white rounded-2xl max-w-md w-full p-5 shadow-2xl flex flex-col gap-3 border border-outline-variant">
-            <div class="flex items-center gap-2 text-amber-600 font-bold text-sm">
-                <span class="material-symbols-outlined">warning</span>
-                <span id="dedup-title" data-i18n="similarIssue">Similar Issue Found Nearby (Within 50m)</span>
-            </div>
-            <p class="text-xs text-on-surface-variant">A citizen already reported this complaint nearby. Upvote it to increase priority instead of creating duplicates!</p>
-            <div id="dedup-card-slot" class="border border-outline-variant rounded-xl p-3 bg-surface-container-low text-xs"></div>
-            <div class="flex gap-2 mt-2">
-                <button id="btn-upvote-existing" class="flex-1 bg-secondary text-white py-2.5 rounded-xl font-bold text-xs">👍 Upvote Existing</button>
-                <button id="btn-force-submit" class="flex-1 bg-surface-container text-on-surface py-2.5 rounded-xl font-bold text-xs border">Submit Anyway</button>
-            </div>
-        </div>
-    </div>
 
     <!-- ================================================================= -->
     <!-- CLIENT JAVASCRIPT: CAMERA + GPS + AI PREVIEW + WEB SPEECH         -->
@@ -291,6 +377,7 @@
         let capturedPhotoBlob = null;
         let capturedLocation = null;
         let mapInstance = null;
+        let nearbyMarkerLayer = null;
         let currentLang = 'en';
         let easyRead = localStorage.getItem('civix-easy-read') === 'on';
         const submissionMessages = {
@@ -323,93 +410,50 @@
             return String(value ?? '').replace(/[&<>\'"]/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[character]));
         }
 
-        // Translation Dictionary (English & Tamil)
         const translations = {
-            en: {
-                tabReport: "Report Issue",
-                tabNearby: "Nearby & Upvote",
-                tabImpact: "My Impact",
-                categoryLbl: "Category",
-                descLbl: "Voice / Text Description",
-                submitBtn: "Submit Report",
-                contrast: "Contrast",
-                micStatus: "Tap mic to speak (EN/TA)",
-                nearbyHeader: "Live Tickets Nearby (50m - 5km)",
-                earnedBadges: "Earned Civic Badges",
-                citizen: "Citizen", cameraReady: "Live Viewfinder", worker: "Worker", command: "Command", logout: "Logout", readAloud: "Read aloud", stopReadAloud: "Stop reading", retake: "Retake", speak: "Speak",
-                roadOption: "Roads & Pavements (Potholes, Footpath)", waterOption: "Water Supply (Pipe Leaks, Contamination)", wasteOption: "Waste Management (Garbage, Dumps)", electricityOption: "Electricity (Streetlights, Transformers)", drainageOption: "Drainage & Sewage (Waterlogging, Flooding)", safetyOption: "Public Safety (Open Manholes, Signals)", environmentOption: "Environment & Parks", otherOption: "Other Civic Issues", takePhoto: "Take photo", descriptionPlaceholder: "E.g. Deep pothole causing two-wheeler accidents near the junction...", gps: "GPS", accuracy: "Acc:", cameraDemo: "Camera Demo Ready",
-                similarIssue: "Similar Issue Found Nearby (Within 50m)", listening: "Listening...", transcribed: "Transcribed!", ready: "Tap mic to speak (EN/TA)", speechUnavailable: "Voice input is unavailable; type your description.",
-                speechPrompt: "Welcome to CIVIX. Point your camera at the civic issue, tap the red capture button to take a photo and lock your GPS location, then speak or type your description."
-            },
-            ta: {
-                tabReport: "புகார் பதிவு",
-                tabNearby: "அருகிலுள்ள புகார்கள்",
-                tabImpact: "எனது பங்களிப்பு",
-                categoryLbl: "புகார் வகை",
-                descLbl: "குரல் / உரை விளக்கம்",
-                submitBtn: "புகாரை சமர்ப்பிக்கவும்",
-                contrast: "மாறுபாடு",
-                micStatus: "பேச மைக் பொத்தானை அழுத்தவும்",
-                nearbyHeader: "அருகிலுள்ள நேரடி புகார்கள் (50மீ - 5கிமீ)",
-                earnedBadges: "பெற்ற பேட்ஜ்கள்",
-                citizen: "குடிமகன்", cameraReady: "நேரடி காட்சி", worker: "பணியாளர்", command: "கட்டுப்பாடு", logout: "வெளியேறு", readAloud: "வாசிக்கவும்", stopReadAloud: "வாசிப்பை நிறுத்தவும்", retake: "மீண்டும் எடுக்கவும்", speak: "பேசவும்",
-                roadOption: "சாலைகள் மற்றும் நடைபாதைகள்", waterOption: "குடிநீர் வழங்கல்", wasteOption: "கழிவு மேலாண்மை", electricityOption: "மின்சாரம்", drainageOption: "வடிகால் மற்றும் கழிவுநீர்", safetyOption: "பொது பாதுகாப்பு", environmentOption: "சுற்றுச்சூழல் மற்றும் பூங்காக்கள்", otherOption: "பிற குடிமைப் பிரச்சினைகள்", takePhoto: "புகைப்படம் எடுக்கவும்", descriptionPlaceholder: "எ.கா. சந்திப்பிற்கு அருகில் ஆழமான பள்ளத்தால் இருசக்கர வாகன விபத்துகள்...", gps: "ஜிபிஎஸ்", accuracy: "துல்லியம்:", cameraDemo: "கேமரா சோதனைக்கு தயார்",
-                similarIssue: "அருகில் இதே போன்ற புகார் உள்ளது (50 மீட்டருக்குள்)", listening: "கேட்கிறது...", transcribed: "உரையாக மாற்றப்பட்டது!", ready: "பேச மைக் பொத்தானை அழுத்தவும்", speechUnavailable: "குரல் உள்ளீடு கிடைக்கவில்லை; உங்கள் விளக்கத்தைத் தட்டச்சு செய்யவும்.",
-                speechPrompt: "சிவிக்ஸ் தளத்திற்கு வரவேற்கிறோம். சிக்கலை நோக்கி கேமராவைத் திருப்பி, புகைப்படத்தைப் பிடித்து, உங்கள் இருப்பிடத்தை பதிவு செய்ய சிவப்பு பொத்தானை அழுத்தவும்."
-            }
+            en: { tabReport: 'Report Issue', tabNearby: 'Nearby & Upvote', tabImpact: 'My Impact', categoryLbl: 'Category', roadOption: 'Roads & Pavements (Potholes, Footpath)', waterOption: 'Water Supply (Pipe Leaks, Contamination)', wasteOption: 'Waste Management (Garbage, Dumps)', electricityOption: 'Electricity (Streetlights, Transformers)', drainageOption: 'Drainage & Sewage (Waterlogging, Flooding)', safetyOption: 'Public Safety (Open Manholes, Signals)', environmentOption: 'Environment & Parks', otherOption: 'Other Civic Issues', descLbl: 'Voice / Text Description', submitBtn: 'Submit Report', contrast: 'Contrast', micStatus: 'Tap mic to speak (EN/TA)', nearbyHeader: 'Nearby Issues', earnedBadges: 'Earned Civic Badges', citizen: 'Citizen', cameraReady: 'Live Viewfinder', worker: 'Worker', command: 'Command', logout: 'Logout', readAloud: 'Read aloud', stopReadAloud: 'Stop reading', retake: 'Retake', speak: 'Speak', takePhoto: 'Take photo', descriptionPlaceholder: 'Describe the civic issue...' , gps: 'GPS', accuracy: 'Acc:', listening: 'Listening...', transcribed: 'Transcribed!', ready: 'Tap mic to speak (EN/TA)', speechUnavailable: 'Voice input is unavailable; type your description.', speechPrompt: 'Welcome to Nagara Setu. Point your camera at the civic issue, capture a photo, and confirm your live location.' },
+            ta: { tabReport: 'புகார் பதிவு', tabNearby: 'அருகிலுள்ள புகார்கள்', tabImpact: 'எனது பங்களிப்பு', categoryLbl: 'புகார் வகை', roadOption: 'சாலைகள் மற்றும் நடைபாதைகள் (குழிகள், நடைபாதை)', waterOption: 'குடிநீர் வழங்கல் (குழாய் கசிவு, மாசுபாடு)', wasteOption: 'கழிவு மேலாண்மை (குப்பை, குப்பைக் குவியல்)', electricityOption: 'மின்சாரம் (தெருவிளக்குகள், மின்மாற்றிகள்)', drainageOption: 'வடிகால் மற்றும் கழிவுநீர் (நீர்த்தேக்கம், வெள்ளம்)', safetyOption: 'பொது பாதுகாப்பு (திறந்த கழிவுநீர் குழிகள், சிக்னல்கள்)', environmentOption: 'சுற்றுச்சூழல் மற்றும் பூங்காக்கள்', otherOption: 'பிற குடிமைப் பிரச்சினைகள்', descLbl: 'குரல் / உரை விளக்கம்', submitBtn: 'புகாரை சமர்ப்பிக்கவும்', contrast: 'மாறுபாடு', micStatus: 'பேச மைக் பொத்தானை அழுத்தவும்', nearbyHeader: 'அருகிலுள்ள புகார்கள்', earnedBadges: 'பெற்ற பேட்ஜ்கள்', citizen: 'குடிமகன்', cameraReady: 'நேரடி காட்சி', worker: 'பணியாளர்', command: 'கட்டுப்பாடு', logout: 'வெளியேறு', readAloud: 'வாசிக்கவும்', stopReadAloud: 'வாசிப்பை நிறுத்தவும்', retake: 'மீண்டும் எடுக்கவும்', speak: 'பேசவும்', takePhoto: 'புகைப்படம் எடுக்கவும்', descriptionPlaceholder: 'குடிமைப் பிரச்சினையை விவரிக்கவும்...', gps: 'ஜிபிஎஸ்', accuracy: 'துல்லியம்:', listening: 'கேட்கிறது...', transcribed: 'உரையாக மாற்றப்பட்டது!', ready: 'பேச மைக் பொத்தானை அழுத்தவும்', speechUnavailable: 'குரல் உள்ளீடு கிடைக்கவில்லை; தட்டச்சு செய்யவும்.', speechPrompt: 'நகரப் பிரச்சினையை நோக்கி கேமராவைத் திருப்பி புகைப்படம் எடுக்கவும்.' }
         };
 
-        function setLanguage(lang) {
-            currentLang = lang;
-            localStorage.setItem('civix-language', lang);
-            const t = translations[lang];
-            document.getElementById('txt-tab-report').textContent = t.tabReport;
-            document.getElementById('txt-tab-nearby').textContent = t.tabNearby;
-            document.getElementById('txt-tab-impact').textContent = t.tabImpact;
+        const localizedStatus = (status) => {
+            const labels = currentLang === 'ta' ? { submitted: 'புகார் பதிவு', verified: 'சரிபார்க்கப்பட்டது', assigned: 'ஒதுக்கப்பட்டது', in_progress: 'பணி நடைபெறுகிறது', awaiting_verification: 'அதிகாரி சரிபார்ப்புக்காக காத்திருக்கிறது', resolved: 'தீர்க்கப்பட்டது', citizen_verified: 'தீர்க்கப்பட்டது', closed: 'மூடப்பட்டது', dismissed: 'நிராகரிக்கப்பட்டது', reopened: 'மீண்டும் திறக்கப்பட்டது', escalated: 'மேல்முறையீடு' } : { submitted: 'Reported', verified: 'Verified', assigned: 'Assigned', in_progress: 'Work in Progress', awaiting_verification: 'Awaiting Officer Verification', resolved: 'Resolved', citizen_verified: 'Resolved', closed: 'Closed', dismissed: 'Dismissed', reopened: 'Reopened', escalated: 'Escalated' };
+            return labels[status] || status || (currentLang === 'ta' ? 'புதுப்பிக்கப்பட்டது' : 'Updated');
+        };
+
+        function setLanguage(language) {
+            currentLang = language;
+            localStorage.setItem('civix-language', language);
+            const t = translations[language];
+            if (recognition) recognition.lang = language === 'ta' ? 'ta-IN' : 'en-IN';
+            document.querySelectorAll('[data-i18n]').forEach((element) => { if (t[element.dataset.i18n]) element.textContent = t[element.dataset.i18n]; });
             document.getElementById('lbl-category').textContent = t.categoryLbl;
             document.getElementById('lbl-description').textContent = t.descLbl;
-            document.getElementById('btn-submit-text').textContent = t.submitBtn;
             document.getElementById('txt-contrast').textContent = t.contrast;
             document.getElementById('mic-status-label').textContent = t.micStatus;
-            document.getElementById('txt-nearby-header').textContent = t.nearbyHeader;
+            btnSpeech.setAttribute('aria-label', language === 'ta' ? 'தமிழில் விளக்கத்தைப் பேசவும்' : 'Speak the description in English');
+            btnSpeech.title = language === 'ta' ? 'தமிழில் பேசவும்' : 'Speak in English';
+            document.getElementById('nearby-view-button').innerHTML = `${t.nearbyHeader} (<span id="nearby-issue-count">${document.getElementById('nearby-issue-count')?.textContent || 0}</span>)`;
             document.getElementById('txt-earned-badges').textContent = t.earnedBadges;
-            document.getElementById('btn-capture').setAttribute('aria-label', t.takePhoto);
-            document.getElementById('issue-description').setAttribute('placeholder', t.descriptionPlaceholder);
+            document.getElementById('issue-description').placeholder = t.descriptionPlaceholder;
+            const languageButton = document.getElementById('btn-language');
+            const nextLanguage = language === 'ta' ? 'English' : 'Tamil';
+            languageButton.setAttribute('aria-label', `Switch interface language to ${nextLanguage}`);
+            languageButton.title = `Switch language to ${nextLanguage}`;
             updateGpsLabels();
-            document.querySelectorAll('[data-i18n]').forEach((element) => {
-                if (t[element.dataset.i18n]) element.textContent = t[element.dataset.i18n];
-            });
-            if (typeof readAloudButton !== 'undefined') {
-                updateReadAloudButton('speechSynthesis' in window && window.speechSynthesis.speaking);
-            }
-            document.documentElement.lang = lang === 'ta' ? 'ta' : 'en';
-
-            document.getElementById('lang-en').className = lang === 'en' ? 'underline font-bold' : 'hover:underline';
-            document.getElementById('lang-ta').className = lang === 'ta' ? 'underline font-bold' : 'hover:underline';
             updateEasyRead();
+            if (document.getElementById('nearby-feed-list')) loadNearbyFeed();
+            if (document.getElementById('tab-impact')?.classList.contains('active')) loadImpact();
         }
 
-        // 1. Text-to-Speech (Read Aloud)
         const readAloudButton = document.getElementById('btn-read-aloud');
         const readAloudIcon = document.getElementById('read-aloud-icon');
-
         function updateReadAloudButton(isReading) {
             const label = isReading ? translations[currentLang].stopReadAloud : translations[currentLang].readAloud;
             readAloudButton.querySelector('[data-i18n="readAloud"]').textContent = label;
             readAloudButton.title = label;
-            readAloudButton.setAttribute('aria-label', label);
-            readAloudButton.setAttribute('aria-pressed', String(isReading));
             readAloudIcon.textContent = isReading ? 'stop_circle' : 'volume_up';
         }
-
-        readAloudButton.addEventListener('click', () => {
-            if ('speechSynthesis' in window && window.speechSynthesis.speaking) {
-                window.speechSynthesis.cancel();
-                updateReadAloudButton(false);
-                return;
-            }
-            speakText(translations[currentLang].speechPrompt);
-        });
+        readAloudButton.addEventListener('click', () => speakText(translations[currentLang].speechPrompt));
 
         // 2. Direct Camera Stream
         const videoElem = document.getElementById('camera-stream');
@@ -417,141 +461,119 @@
         const previewElem = document.getElementById('captured-preview');
         const btnCapture = document.getElementById('btn-capture');
         const btnRetake = document.getElementById('btn-retake');
+        const submitReportButton = document.getElementById('btn-submit-report');
         btnCapture.disabled = true;
         btnCapture.classList.add('opacity-50', 'cursor-not-allowed');
 
+        function updateSubmitButton() {
+            const ready = Boolean(capturedLocation) && Boolean(capturedPhotoBlob);
+            submitReportButton.disabled = !ready;
+            submitReportButton.setAttribute('aria-disabled', String(!ready));
+            submitReportButton.classList.toggle('opacity-50', !ready);
+            submitReportButton.classList.toggle('cursor-not-allowed', !ready);
+        }
+
+        function enableCaptureWhenReady() {
+            if (!videoElem.videoWidth || !videoElem.videoHeight) return;
+            btnCapture.disabled = false;
+            btnCapture.classList.remove('opacity-50', 'cursor-not-allowed');
+            document.getElementById('camera-status-tag').textContent = 'Camera Ready - Tap to Capture';
+        }
+
+        videoElem.addEventListener('loadedmetadata', enableCaptureWhenReady);
+        videoElem.addEventListener('canplay', enableCaptureWhenReady);
+
         async function initCamera() {
             try {
-                if (!navigator.mediaDevices?.getUserMedia) {
-                    throw new Error('Camera access is unavailable in this browser or page context.');
-                }
+                if (!navigator.mediaDevices?.getUserMedia) throw new Error('Camera access is unavailable in this browser or page context.');
                 const stream = await navigator.mediaDevices.getUserMedia({
-                    video: { facingMode: { ideal: "environment" }, width: { ideal: 1280 }, height: { ideal: 720 } }
+                    video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } }
                 });
                 videoElem.srcObject = stream;
                 await videoElem.play();
-                btnCapture.disabled = false;
-                btnCapture.classList.remove('opacity-50', 'cursor-not-allowed');
+                enableCaptureWhenReady();
             } catch (err) {
-                console.warn("Camera access warning:", err);
                 const statusTag = document.getElementById('camera-status-tag');
-                const message = err.name === 'NotAllowedError'
-                    ? 'Camera permission denied. Allow camera access and reload.'
-                    : err.name === 'NotFoundError'
-                        ? 'No camera was found on this device.'
-                        : err.name === 'NotReadableError'
-                            ? 'Camera is already in use by another app or browser tab. Close it and reload.'
-                        : 'Camera unavailable. Check browser permissions and use HTTPS or localhost.';
-                statusTag.textContent = message;
+                statusTag.textContent = err.name === 'NotAllowedError' ? 'Camera permission denied. Allow access and reload.' : 'Camera unavailable. Check permissions and reload.';
                 statusTag.classList.add('text-red-300');
             }
         }
 
+        function getFreshLocation() {
+            return new Promise((resolve, reject) => {
+                if (!navigator.geolocation) return reject(new Error('Location services are unavailable in this browser.'));
+                navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: true, maximumAge: 0, timeout: 30000 });
+            });
+        }
+
+        function getCameraSnapshot() {
+            return new Promise((resolve, reject) => {
+                canvasElem.width = videoElem.videoWidth;
+                canvasElem.height = videoElem.videoHeight;
+                const context = canvasElem.getContext('2d');
+                if (!context) return reject(new Error('The browser could not prepare the camera snapshot.'));
+                context.drawImage(videoElem, 0, 0, canvasElem.width, canvasElem.height);
+                canvasElem.toBlob((blob) => blob ? resolve(blob) : reject(new Error('The browser could not encode the camera snapshot.')), 'image/jpeg', 0.85);
+            });
+        }
+
         btnCapture.addEventListener('click', async () => {
             if (btnCapture.disabled || !videoElem.srcObject || !videoElem.videoWidth) return;
-
-            let capturePosition;
+            btnCapture.disabled = true;
+            document.getElementById('camera-status-tag').textContent = 'Capturing photo...';
             try {
-                capturePosition = await new Promise((resolve, reject) => {
-                    if (!navigator.geolocation) {
-                        reject(new Error('Location services are unavailable in this browser.'));
-                        return;
-                    }
-
-                    let attempts = 0;
-                    const requestPosition = () => {
-                        attempts += 1;
-                        navigator.geolocation.getCurrentPosition(resolve, (err) => {
-                            if (err.code === 3 && attempts < 2) {
-                                requestPosition();
-                                return;
-                            }
-                            reject(err);
-                        }, {
-                            enableHighAccuracy: true,
-                            maximumAge: 0,
-                            timeout: 30000
-                        });
-                    };
-                    requestPosition();
-                });
-            } catch (err) {
-                const isInsecurePage = !window.isSecureContext && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1';
-                const message = isInsecurePage
-                    ? 'Location is blocked because this Wi-Fi link is not HTTPS. Open the site on localhost or use HTTPS, then allow location access.'
-                    : err.code === 1
-                        ? 'Location permission was denied. Allow location access for this site, reload, and try again.'
-                    : err.code === 2
-                        ? 'Your device could not determine its location. Turn on GPS and Wi-Fi/mobile location services, then try again.'
-                    : err.code === 3
-                        ? 'Getting your GPS location timed out. Move outdoors, wait a few seconds, and try again.'
-                        : 'A fresh location could not be obtained. Move to an area with GPS/network signal and try again.';
-                alert(message);
-                return;
-            }
-
-            capturedLocation = {
-                latitude: capturePosition.coords.latitude,
-                longitude: capturePosition.coords.longitude,
-                accuracy: capturePosition.coords.accuracy,
-                capturedAt: new Date().toISOString()
-            };
-            currentLat = capturedLocation.latitude;
-            currentLng = capturedLocation.longitude;
-            updateGpsLabels(capturedLocation.accuracy);
-
-            canvasElem.width = videoElem.videoWidth || 640;
-            canvasElem.height = videoElem.videoHeight || 480;
-            const ctx = canvasElem.getContext('2d');
-            ctx.drawImage(videoElem, 0, 0, canvasElem.width, canvasElem.height);
-            
-            canvasElem.toBlob(async (blob) => {
+                const blob = await getCameraSnapshot();
                 capturedPhotoBlob = blob;
                 previewElem.src = URL.createObjectURL(blob);
                 previewElem.classList.remove('hidden');
                 videoElem.classList.add('hidden');
                 btnRetake.classList.remove('hidden');
                 btnCapture.classList.add('hidden');
-
-                // Immediate Live Vision AI Classification Call
-                document.getElementById('ai-status-card').classList.remove('hidden');
-                document.getElementById('ai-category-val').textContent = "Analyzing Photo...";
-                
-                try {
-                    const aiForm = new FormData();
-                    aiForm.append("photo", blob, "preview.jpg");
-                    aiForm.append("description", document.getElementById('issue-description').value);
-
-                    const aiRes = await fetch("/api/issues/classify/", { method: "POST", headers: { "X-CSRFToken": csrfToken() }, body: aiForm });
-                    const aiData = await aiRes.json();
-
-                    if (aiData.category) {
-                        document.getElementById('ai-category-val').textContent = aiData.category.toUpperCase();
-                        document.getElementById('ai-severity-val').textContent = `${aiData.severity.toUpperCase()} (${aiData.issue_type || ''})`;
-                        document.getElementById('ai-confidence-badge').textContent = `${Math.round(aiData.confidence * 100)}% Confidence`;
-                        document.getElementById('ai-model-tag').textContent = aiData.raw_response?.cloud || 'Vision AI Classifier';
-                        document.getElementById('ai-title-suggestion').textContent = `Suggested: "${aiData.suggested_title}"`;
-                        
-                        // Auto-select category in dropdown
-                        const catSelect = document.getElementById('issue-category-select');
-                        if (catSelect.querySelector(`option[value="${aiData.category}"]`)) {
-                            catSelect.value = aiData.category;
-                        }
-                    }
-                } catch (e) {
-                    console.error("AI preview error:", e);
+                const locationPromise = currentLat !== null && currentLng !== null
+                    ? Promise.resolve({ coords: { latitude: currentLat, longitude: currentLng, accuracy: 10 } })
+                    : getFreshLocation();
+                locationPromise.then((position) => {
+                    capturedLocation = { latitude: position.coords.latitude, longitude: position.coords.longitude, accuracy: position.coords.accuracy, capturedAt: new Date().toISOString() };
+                    currentLat = capturedLocation.latitude;
+                    currentLng = capturedLocation.longitude;
+                    updateGpsLabels(capturedLocation.accuracy);
+                    updateSubmitButton();
+                }).catch(() => {
+                    document.getElementById('gps-accuracy-badge').textContent = 'Location unavailable';
+                    document.getElementById('gps-pulse').className = 'w-2.5 h-2.5 rounded-full bg-red-500';
+                });
+            } catch (err) {
+                if (err.name === 'AbortError') return;
+                if (!capturedPhotoBlob) capturedLocation = null;
+                const message = err.code === 1 ? 'Location permission was denied. Allow location access and try again.' : err.code === 2 ? 'Your location could not be detected. Turn on GPS and try again.' : err.code === 3 ? 'GPS timed out. Move outdoors and try again.' : err.message || 'Capture failed. Check camera and location permissions.';
+                alert(message);
+                if (!capturedPhotoBlob) {
+                    btnCapture.disabled = false;
+                    btnCapture.classList.remove('opacity-50', 'cursor-not-allowed');
+                    document.getElementById('camera-status-tag').textContent = 'Camera Ready - Tap to Capture';
                 }
-            }, 'image/jpeg', 0.85);
+            }
         });
 
         btnRetake.addEventListener('click', () => {
+            if (previewElem.src.startsWith('blob:')) URL.revokeObjectURL(previewElem.src);
             capturedPhotoBlob = null;
             capturedLocation = null;
             previewElem.classList.add('hidden');
             videoElem.classList.remove('hidden');
             btnRetake.classList.add('hidden');
             btnCapture.classList.remove('hidden');
-            document.getElementById('ai-status-card').classList.add('hidden');
+            submitReportButton.disabled = true;
+            submitReportButton.setAttribute('aria-disabled', 'true');
+            btnCapture.disabled = !videoElem.videoWidth;
+            btnCapture.classList.toggle('opacity-50', btnCapture.disabled);
+            btnCapture.classList.toggle('cursor-not-allowed', btnCapture.disabled);
+            document.getElementById('camera-status-tag').textContent = btnCapture.disabled ? 'Camera is still loading...' : 'Camera Ready - Tap to Capture';
+        });
+
+        document.getElementById('issue-category-select').addEventListener('change', () => {
+            if (!capturedPhotoBlob) return;
+            updateSubmitButton();
         });
 
         // 3. Continuous Geolocation Tracker
@@ -600,6 +622,56 @@
             document.getElementById('status-live-region').textContent = message;
         }
 
+        let citizenNotifications = [];
+        let notificationRefreshTimer = null;
+
+        async function loadCitizenNotifications() {
+            try {
+                const response = await fetch('/api/users/notifications/', { credentials: 'same-origin' });
+                if (!response.ok) return;
+                citizenNotifications = await response.json();
+                const unreadCount = citizenNotifications.filter((notification) => !notification.is_read).length;
+                const count = document.getElementById('notification-count');
+                const summary = document.getElementById('notification-summary');
+                const list = document.getElementById('notification-list');
+                count.textContent = unreadCount > 99 ? '99+' : String(unreadCount);
+                count.classList.toggle('hidden', unreadCount === 0);
+                summary.textContent = unreadCount ? `${unreadCount} new` : 'No new notifications';
+                list.innerHTML = citizenNotifications.length ? citizenNotifications.map((notification) => `
+                    <button type="button" class="notification-item w-full text-left px-3 py-2.5 ${notification.is_read ? 'bg-white' : 'bg-primary/5'}" data-notification-id="${escapeHtml(notification.id)}">
+                        <span class="block text-xs font-bold text-on-surface">${escapeHtml(notification.title)}</span>
+                        <span class="block mt-0.5 text-[11px] text-on-surface-variant">${escapeHtml(notification.message)}</span>
+                        <span class="block mt-1 text-[10px] text-on-surface-variant">${notification.created_at ? new Date(notification.created_at).toLocaleString() : ''}</span>
+                    </button>
+                `).join('') : '<p class="px-3 py-4 text-xs text-on-surface-variant">No notifications yet.</p>';
+            } catch (error) {
+                console.warn('Notifications unavailable:', error);
+            }
+        }
+
+        async function markCitizenNotificationRead(notificationId) {
+            await fetch('/api/users/notifications/', {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken() },
+                credentials: 'same-origin',
+                body: JSON.stringify({ notification_id: notificationId })
+            });
+            loadCitizenNotifications();
+        }
+
+        function toggleCitizenNotifications() {
+            const panel = document.getElementById('notification-panel');
+            const button = document.getElementById('btn-notifications');
+            const isOpen = panel.classList.toggle('hidden');
+            button.setAttribute('aria-expanded', String(!isOpen));
+        }
+
+        document.getElementById('btn-notifications').addEventListener('click', toggleCitizenNotifications);
+        document.getElementById('notification-list').addEventListener('click', (event) => {
+            const item = event.target.closest('[data-notification-id]');
+            if (item) markCitizenNotificationRead(item.dataset.notificationId);
+        });
+
         if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
             const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
             recognition = new SpeechRec();
@@ -628,9 +700,7 @@
                     if (evt.results[index].isFinal) finalText += transcript;
                     else interimText += transcript;
                 }
-                if (interimText) {
-                    document.getElementById('mic-status-label').textContent = currentLang === 'ta' ? 'பதிவு செய்கிறது...' : 'Recording...';
-                }
+                if (interimText) document.getElementById('mic-status-label').textContent = currentLang === 'ta' ? 'பதிவு செய்கிறது...' : 'Recording...';
                 if (finalText.trim()) {
                     descInput.value = (descInput.value + ' ' + finalText).trim();
                     btnSpeech.classList.remove('bg-red-500', 'text-white', 'animate-pulse');
@@ -654,160 +724,395 @@
             btnSpeech.title = translations[currentLang].speechUnavailable;
             btnSpeech.setAttribute('aria-label', translations[currentLang].speechUnavailable);
             document.getElementById('mic-status-label').textContent = translations[currentLang].speechUnavailable;
-        }
+            };
 
         // 5. Submit Report
-        document.getElementById('btn-submit-report').addEventListener('click', async () => {
+        async function submitReport(forceSubmit = false) {
             if (!capturedPhotoBlob || !capturedLocation) {
-                alert('Capture a photo first so its current location can be recorded.');
+                alert('Capture a photo and allow location access first.');
                 return;
             }
-
             const formData = new FormData();
-            formData.append("latitude", capturedLocation.latitude);
-            formData.append("longitude", capturedLocation.longitude);
-            formData.append("description", descInput.value);
-            formData.append("category", document.getElementById('issue-category-select').value);
-            formData.append("input_method", inputMethod);
-
-            if (capturedPhotoBlob) {
-                formData.append("photo", capturedPhotoBlob, "camera_snap.jpg");
-            }
-
+            formData.append('latitude', capturedLocation.latitude);
+            formData.append('longitude', capturedLocation.longitude);
+            formData.append('description', descInput.value);
+            formData.append('category', document.getElementById('issue-category-select').value);
+            formData.append('input_method', inputMethod);
+            formData.append('photo', capturedPhotoBlob, 'camera_snap.jpg');
+            if (forceSubmit) formData.append('force_submit', 'true');
             try {
-                const res = await fetch("/api/issues/report/", { method: "POST", headers: { "X-CSRFToken": csrfToken() }, body: formData });
-                const data = await res.json();
-
+                submitReportButton.disabled = true;
+                submitReportButton.setAttribute('aria-disabled', 'true');
+                const response = await fetch('/api/issues/report/', { method: 'POST', headers: { 'X-CSRFToken': csrfToken() }, body: formData });
+                const data = await response.json();
                 if (data.duplicate_detected) {
-                    const dup = data.nearby_issues[0];
-                    document.getElementById('dedup-card-slot').innerHTML = `
-                        <div class="font-bold text-on-surface">${escapeHtml(dup.title)}</div>
-                        <div class="text-outline text-[11px]">${escapeHtml(dup.address)} • Priority Score: ${escapeHtml(dup.priority_score)}</div>
-                    `;
-                    document.getElementById('dedup-modal').classList.remove('hidden');
-                    
-                    document.getElementById('btn-upvote-existing').onclick = async () => {
-                        await fetch(`/api/issues/${dup.id}/upvote/`, { method: "POST", headers: { "X-CSRFToken": csrfToken() } });
-                        speakText(currentLang === 'ta' ? "ஏற்கனவே உள்ள புகாருக்கு வாக்களிக்கப்பட்டது." : "Existing complaint upvoted.");
-                        setTimeout(() => location.reload(), 1200);
-                    };
-
-                    document.getElementById('btn-force-submit').onclick = async () => {
-                        const forcedFormData = new FormData();
-                        formData.forEach((value, key) => forcedFormData.append(key, value));
-                        forcedFormData.set("force_submit", "true");
-                        const forcedRes = await fetch("/api/issues/report/", { method: "POST", headers: { "X-CSRFToken": csrfToken() }, body: forcedFormData });
-                        const forcedData = await forcedRes.json();
-                        if (!forcedRes.ok || !forcedData.success) {
-                            throw new Error(forcedData.error || "Could not submit the report.");
-                        }
-                        speakText(currentSubmissionMessage());
-                        setTimeout(() => location.reload(), 1200);
-                    };
-                } else {
-                    speakText(currentSubmissionMessage());
-                    setTimeout(() => location.reload(), 1200);
+                    const submitAnyway = window.confirm(`${data.message || 'A similar issue already exists nearby.'}\n\nPress OK to submit this report anyway.`);
+                    if (submitAnyway) await submitReport(true);
+                    else {
+                        submitReportButton.disabled = false;
+                        submitReportButton.setAttribute('aria-disabled', 'false');
+                    }
+                    return;
                 }
-            } catch (err) {
-                alert("Error submitting report: " + err);
+                if (!response.ok || !data.success) throw new Error(data.error || 'Could not submit the report.');
+                alert(currentSubmissionMessage());
+                location.reload();
+            } catch (error) {
+                submitReportButton.disabled = false;
+                submitReportButton.setAttribute('aria-disabled', 'false');
+                alert('Error submitting report: ' + error.message);
             }
-        });
+        }
 
-        document.getElementById('btn-emergency-dispatch').addEventListener('click', async () => {
-            if (currentLat === null || currentLng === null) {
-                alert('Wait for live GPS before sending an emergency dispatch.');
-                return;
+        document.getElementById('btn-submit-report').addEventListener('click', () => submitReport());
+        function renderNearbyIssueMap(issues) {
+            if (!window.L || !document.getElementById('leaflet-map-nearby')) return;
+            if (!mapInstance) {
+                mapInstance = L.map('leaflet-map-nearby').setView([currentLat || 13.045, currentLng || 80.24], 12);
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 18, attribution: '&copy; OpenStreetMap contributors' }).addTo(mapInstance);
+                nearbyMarkerLayer = L.layerGroup().addTo(mapInstance);
             }
-            const emergencyType = prompt('Emergency type (for example: live electrical wires):');
-            if (!emergencyType) return;
-            const description = prompt('Briefly describe the danger:') || '';
-            const res = await fetch('/api/issues/emergency-dispatch/', {
-                method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken() },
-                body: JSON.stringify({ latitude: currentLat, longitude: currentLng, emergency_type: emergencyType, description })
+            nearbyMarkerLayer.clearLayers();
+            const points = [];
+            issues.forEach((issue) => {
+                const latitude = Number(issue.location?.latitude);
+                const longitude = Number(issue.location?.longitude);
+                if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return;
+                points.push([latitude, longitude]);
+                const color = issue.severity === 'critical' ? '#b91c1c' : issue.severity === 'high' ? '#ea580c' : issue.severity === 'medium' ? '#d97706' : '#15803d';
+                const completion = issue.location_verification?.completion;
+                const completionText = completion ? `<br/><span>Completion location: ${Number(completion.latitude).toFixed(4)}, ${Number(completion.longitude).toFixed(4)}</span>` : '';
+                L.circleMarker([latitude, longitude], { radius: issue.severity === 'critical' ? 9 : 7, color, fillColor: color, fillOpacity: 0.8, weight: 2 }).addTo(nearbyMarkerLayer).bindPopup(`<strong>${escapeHtml(issue.title || 'Civic issue')}</strong><br/><span>${escapeHtml(issue.category || 'Issue')} · ${escapeHtml(issue.status_label || issue.status || 'Reported')}</span><br/><span>${escapeHtml(issue.address || `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`)}</span><br/><span>Upvotes: ${Number(issue.upvote_count || 0)}</span>${completionText}`);
             });
-            const data = await res.json();
-            alert(data.message || data.error || 'Emergency dispatch request failed.');
-        });
+            if (points.length) mapInstance.fitBounds(points, { padding: [24, 24], maxZoom: 15 });
+            setTimeout(() => mapInstance.invalidateSize(), 100);
+        }
 
-        // 6. Nearby Feed & Badges Loader
-        async function loadNearbyFeed() {
+        let selectedIssueCategory = 'all';
+        let nearbyFeedRequestId = 0;
+        let nearbyIssuesCache = [];
+        const resolvedIssueStatuses = new Set(['resolved', 'citizen_verified', 'closed']);
+
+        function localizedCategory(category) {
+            const labels = {
+                en: { road: 'Roads', water: 'Water', waste: 'Waste', electricity: 'Electricity', drainage: 'Drainage', public_safety: 'Public Safety', environment: 'Environment', other: 'Other' },
+                ta: { road: 'சாலைகள்', water: 'குடிநீர்', waste: 'கழிவுகள்', electricity: 'மின்சாரம்', drainage: 'வடிகால்', public_safety: 'பொது பாதுகாப்பு', environment: 'சுற்றுச்சூழல்', other: 'பிற' }
+            };
+            return labels[currentLang][category] || category.replaceAll('_', ' ');
+        }
+
+        function renderCategoryFilters(issues) {
+            const categories = [...new Set(issues.filter((issue) => issue.status !== 'resolved' && issue.status !== 'citizen_verified' && issue.status !== 'closed').map((issue) => issue.category).filter(Boolean))].sort();
+            document.getElementById('issue-category-filters').innerHTML = [{ key: 'all', label: currentLang === 'ta' ? 'அனைத்தும்' : 'All' }, ...categories.map((category) => ({ key: category, label: localizedCategory(category) }))].map((category) => `<button type="button" class="category-filter ${selectedIssueCategory === category.key ? 'active' : ''}" data-category="${escapeHtml(category.key)}" onclick="selectIssueCategory('${escapeHtml(category.key)}')">${escapeHtml(category.label)}</button>`).join('');
+        }
+
+        function selectIssueCategory(category) {
+            selectedIssueCategory = category;
+            document.querySelectorAll('#issue-category-filters .category-filter').forEach((button) => button.classList.toggle('active', button.dataset.category === category));
+            if (nearbyIssuesCache.length) loadNearbyFeed(true);
+            else loadNearbyFeed();
+        }
+
+        function renderResolvedCards(issues) {
+            const container = document.getElementById('resolved-feed-list');
+            const resolvedIssues = issues.filter((issue) => resolvedIssueStatuses.has(issue.status) && (selectedIssueCategory === 'all' || issue.category === selectedIssueCategory));
+            container.innerHTML = resolvedIssues.length ? resolvedIssues.map((issue) => {
+                const latitude = issue.location?.latitude;
+                const longitude = issue.location?.longitude;
+                const location = issue.address || (latitude !== undefined && longitude !== undefined ? `${Number(latitude).toFixed(4)}, ${Number(longitude).toFixed(4)}` : 'Location recorded');
+                const image = issue.photo_urls?.[0] || '';
+                const status = localizedStatus(issue.status);
+                const resolved = ['resolved', 'citizen_verified', 'closed'].includes(issue.status);
+                return `<article class="issue-card bg-white p-3 rounded-xl border border-outline-variant shadow-sm"><div class="flex gap-3"><div class="issue-card-image">${image ? `<img src="${escapeHtml(image)}" alt="${escapeHtml(issue.title)}" class="w-full h-full object-cover rounded-lg border border-outline-variant">` : '<div class="w-full h-full rounded-lg bg-surface-container-low flex items-center justify-center text-[9px] text-on-surface-variant">No image</div>'}</div><div class="min-w-0 flex-1"><div class="flex items-start justify-between gap-2"><div class="min-w-0"><span class="inline-flex max-w-full rounded-full bg-primary/10 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-primary">${escapeHtml(localizedCategory(issue.category || 'Issue'))}</span><h4 class="issue-card-title truncate mt-1">${escapeHtml(issue.title || 'Civic issue')}</h4></div><span class="text-[9px] font-bold whitespace-nowrap ${resolved ? 'text-emerald-700' : 'text-primary'}">${escapeHtml(status)}</span></div><p class="issue-card-description mt-1 text-on-surface-variant line-clamp-2">${escapeHtml(issue.description || 'No description provided.')}</p></div></div><div class="mt-2 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 text-[10px] text-on-surface-variant"><span class="truncate" title="${escapeHtml(location)}">${escapeHtml(location)}</span><span class="whitespace-nowrap">${new Date(issue.created_at || Date.now()).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</span></div><div class="mt-2 flex items-center justify-between gap-2 border-t border-outline-variant pt-2"><span class="text-[10px] font-bold text-primary">${Number(issue.upvote_count || 0)} upvotes</span><button type="button" data-issue-id="${issue.id}" disabled aria-label="You already voted for this issue" class="vote-button inline-flex items-center gap-1 border border-emerald-400 bg-emerald-50 text-emerald-700 opacity-90 px-2 py-1 rounded-md font-bold text-[10px]"><span class="material-symbols-outlined text-sm">thumb_up</span><span class="vote-count">Voted</span></button></div></article>`;
+            }).join('') : '<p class="col-span-full text-sm text-on-surface-variant">No resolved issues yet.</p>';
+            resolvedIssues.forEach((issue, index) => {
+                const card = container.children[index];
+                if (!card) return;
+                card.querySelectorAll('.vote-button').forEach((button) => button.remove());
+                [...card.querySelectorAll('span')].filter((span) => /upvotes|Voted/i.test(span.textContent)).forEach((span) => span.remove());
+                const worker = document.createElement('div');
+                worker.className = 'mt-2 border-t border-outline-variant pt-2 text-[10px] text-on-surface-variant';
+                worker.innerHTML = `<span class="font-bold text-emerald-700">Resolved by:</span> ${escapeHtml(issue.resolved_by_name || 'Municipal worker')}`;
+                card.appendChild(worker);
+            });
+        }
+
+        async function loadNearbyFeed(useCache = false) {
+            const requestId = ++nearbyFeedRequestId;
+            const container = document.getElementById('nearby-feed-list');
             try {
-                const res = await fetch("/api/issues/");
-                const issues = await res.json();
-                const container = document.getElementById('nearby-feed-list');
-                container.innerHTML = "";
+                let issues;
+                if (useCache && nearbyIssuesCache.length) {
+                    issues = nearbyIssuesCache;
+                } else {
+                    const response = await fetch('/api/issues/');
+                    const data = await response.json();
+                    if (requestId !== nearbyFeedRequestId) return;
+                    issues = Array.isArray(data) ? data : (data.results || []);
+                    nearbyIssuesCache = issues;
+                }
+                if (requestId !== nearbyFeedRequestId) return;
+                renderNearbyIssueMap(issues);
+                renderResolvedCards(issues);
+                renderCategoryFilters(issues);
+                const nearbyIssues = issues.filter((issue) => !['resolved', 'citizen_verified', 'closed', 'dismissed'].includes(issue.status) && (selectedIssueCategory === 'all' || issue.category === selectedIssueCategory));
+                document.getElementById('nearby-issue-count').textContent = nearbyIssues.length;
+                document.getElementById('resolved-issue-count').textContent = issues.filter((issue) => resolvedIssueStatuses.has(issue.status) && (selectedIssueCategory === 'all' || issue.category === selectedIssueCategory)).length;
+                container.innerHTML = nearbyIssues.length ? nearbyIssues.slice(0, 10).map((issue) => {
+                    const status = localizedStatus(issue.status);
+                    const lat = issue.location?.latitude ?? null;
+                    const lng = issue.location?.longitude ?? null;
+                    const beforeImage = issue.photo_urls?.[0] || '';
+                    const afterImage = issue.resolution_proof?.photo_url || '';
+                    const statusTone = issue.status === 'resolved' || issue.status === 'citizen_verified' ? 'bg-emerald-100 text-emerald-800' : issue.status === 'awaiting_verification' ? 'bg-amber-100 text-amber-800' : 'bg-primary/10 text-primary';
+                    const alreadyVoted = Boolean(issue.already_voted);
+                    const lifecycle = Array.isArray(issue.public_status) ? issue.public_status : [
+                        { key: 'reported', label: 'Reported', active: issue.status === 'submitted', complete: true },
+                        { key: 'verified', label: 'Verified', active: issue.status === 'verified', complete: ['verified', 'assigned', 'in_progress', 'resolved', 'citizen_verified', 'closed'].includes(issue.status) },
+                        { key: 'assigned', label: 'Assigned', active: issue.status === 'assigned', complete: ['assigned', 'in_progress', 'resolved', 'citizen_verified', 'closed'].includes(issue.status) },
+                        { key: 'in_progress', label: 'Work in Progress', active: issue.status === 'in_progress', complete: ['in_progress', 'resolved', 'citizen_verified', 'closed'].includes(issue.status) },
+                        { key: 'resolved', label: 'Resolved', active: ['resolved', 'citizen_verified', 'closed'].includes(issue.status), complete: ['resolved', 'citizen_verified', 'closed'].includes(issue.status) }
+                    ];
+                    const locationText = issue.address || `${lat !== null && lng !== null ? `${lat.toFixed(4)}, ${lng.toFixed(4)}` : 'Location recorded'}`;
+                    return `
+                        <article class="issue-card bg-white p-3 rounded-xl border border-outline-variant shadow-sm">
+                            <div class="flex gap-2.5">
+                                ${beforeImage ? `<img src="${escapeHtml(beforeImage)}" alt="${escapeHtml(issue.title)}" class="issue-card-image rounded-lg border border-outline-variant" loading="lazy">` : '<div class="issue-card-image rounded-lg bg-surface-container-low flex items-center justify-center text-[9px] text-on-surface-variant">No image</div>'}
+                                <div class="min-w-0 flex-1 space-y-1.5">
+                                    <div class="flex items-start justify-between gap-2">
+                                        <div class="min-w-0">
+                                            <p class="text-[9px] font-bold uppercase tracking-wide text-primary">${escapeHtml(issue.category || 'Issue')}</p>
+                                            <h4 class="issue-card-title text-on-surface truncate">${escapeHtml(issue.title || 'Civic issue')}</h4>
+                                        </div>
+                                        <span class="inline-flex text-[9px] font-bold px-1.5 py-0.5 rounded-full ${statusTone}">${escapeHtml(status)}</span>
+                                    </div>
+                                    <p class="issue-card-description text-on-surface-variant line-clamp-2">${escapeHtml(issue.description || 'No description provided.')}</p>
+                                    <div class="flex items-center justify-between text-[9px] text-on-surface-variant gap-2">
+                                        <span class="truncate" title="${escapeHtml(locationText)}">${escapeHtml(locationText)}</span>
+                                        ${lat !== null && lng !== null ? `<span class="font-bold text-primary whitespace-nowrap">${Math.round((issue.distance || 0))}m</span>` : ''}
+                                    </div>
+                                    <div class="flex items-center justify-between gap-2 border-t border-outline-variant pt-2">
+                                        <span class="text-[10px] font-bold text-primary">${issue.upvote_count || 0} upvotes</span>
+                                        <button type="button" data-issue-id="${issue.id}" onclick="upvoteIssue('${issue.id}', this)" aria-label="${alreadyVoted ? 'You already voted for this issue' : 'Thumbs up this issue'}" class="vote-button inline-flex items-center gap-1 border px-2 py-1 rounded-md font-bold text-[10px] ${alreadyVoted ? 'border-emerald-400 bg-emerald-50 text-emerald-700 opacity-90' : 'border-primary/30 bg-primary/5 text-primary'}"><span class="material-symbols-outlined text-sm">thumb_up</span><span class="vote-count">${issue.upvote_count || 0}</span></button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="mt-2 border-t border-outline-variant pt-2">
+                                <div class="flex items-center justify-between mb-1.5">
+                                    <span class="text-[9px] font-bold uppercase tracking-wide text-on-surface-variant">Public status</span>
+                                    <span class="text-[9px] text-on-surface-variant">${escapeHtml(status)}</span>
+                                </div>
+                                <div class="status-stepper">
+                                    ${lifecycle.map((step) => `
+                                        <div class="status-step ${step.complete ? 'complete' : ''} ${step.active ? 'active' : ''}">
+                                            <span class="status-node"></span>
+                                            <span class="status-step-label">${escapeHtml(step.label)}</span>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </div>
+                            <div class="mt-2 border-t border-outline-variant pt-2 text-[10px] text-on-surface-variant space-y-2">
+                                <div class="flex items-center justify-between gap-2">
+                                    <span class="font-bold text-on-surface">Category</span>
+                                    <span>${escapeHtml(issue.category || 'Unspecified')}</span>
+                                </div>
+                                <div class="flex items-center justify-between gap-2">
+                                    <span class="font-bold text-on-surface">Reported</span>
+                                    <span>${new Date(issue.created_at || Date.now()).toLocaleString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                                </div>
+                                <div class="flex items-center justify-between gap-2">
+                                    <span class="font-bold text-on-surface">Location</span>
+                                    <span class="text-right truncate max-w-[60%]" title="${escapeHtml(locationText)}">${escapeHtml(locationText)}</span>
+                                </div>
+                            </div>
+                            ${beforeImage || afterImage ? `<div class="mt-2 border-t border-outline-variant pt-2">
+                                <div class="flex items-center justify-between mb-1.5">
+                                    <span class="text-[9px] font-bold uppercase tracking-wide text-on-surface-variant">Evidence</span>
+                                    <span class="text-[9px] text-on-surface-variant">${afterImage ? 'Before / After' : 'Original report'}</span>
+                                </div>
+                                <div class="grid ${afterImage ? 'grid-cols-2' : 'grid-cols-1'} gap-2">
+                                    ${beforeImage ? `<img src="${escapeHtml(beforeImage)}" alt="Original issue report" class="h-16 w-full object-cover rounded-md border border-outline-variant" loading="lazy">` : ''}
+                                    ${afterImage ? `<img src="${escapeHtml(afterImage)}" alt="Completion proof" class="h-16 w-full object-cover rounded-md border border-outline-variant" loading="lazy">` : ''}
+                                </div>
+                            </div>` : ''}
+                        </article>`;
+                }).join('') : '<p class="text-sm text-on-surface-variant">No nearby issues found.</p>';
+            } catch (error) {
+                container.innerHTML = '<p class="text-sm text-error">Nearby issues are temporarily unavailable.</p>';
+            }
+        }
 
-                if (!res.ok || !Array.isArray(issues)) {
-                    container.innerHTML = `<p class="text-sm text-on-surface-variant p-3">${issues.error || 'Issue data is temporarily unavailable.'}</p>`;
+        let pendingUpvoteId = null;
+        function animateVoteCount(node, nextValue) {
+            if (!node) return;
+            const startValue = Number(node.dataset.currentValue || node.textContent || 0);
+            const targetValue = Number(nextValue || 0);
+            node.dataset.currentValue = String(targetValue);
+            node.textContent = targetValue;
+            node.animate([
+                { transform: 'scale(1)' },
+                { transform: 'scale(1.2)' },
+                { transform: 'scale(1)' }
+            ], { duration: 220, easing: 'ease-out' });
+            if (startValue !== targetValue) {
+                node.classList.add('text-primary');
+                setTimeout(() => node.classList.remove('text-primary'), 220);
+            }
+        }
+
+        async function upvoteIssue(id, button) {
+            if (!button || button.dataset.upvoting === 'true') return;
+            const countNode = button.querySelector('.vote-count');
+            const oldValue = Number(countNode?.dataset.currentValue || countNode?.textContent || 0);
+            button.dataset.upvoting = 'true';
+            try {
+                const res = await fetch(`/api/issues/${id}/upvote/`, { method: "POST", headers: { "X-CSRFToken": csrfToken() } });
+                const data = await res.json();
+                if (res.status === 401) {
+                    pendingUpvoteId = id;
+                    showLoginModal();
+                    return;
+                }
+                if (res.status === 403) {
+                    alert(data.error || 'You are not allowed to perform this action.');
+                    return;
+                }
+                if (!res.ok) {
+                    alert(data.error || 'Could not register your vote.');
                     return;
                 }
 
-                if (!mapInstance) {
-                    mapInstance = L.map('leaflet-map-nearby').setView([13.0400, 80.2400], 12);
-                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 18 }).addTo(mapInstance);
+                const nextCount = Number(data.upvote_count || 0);
+                if (countNode) {
+                    animateVoteCount(countNode, nextCount);
                 }
-
-                issues.forEach(iss => {
-                    const markerColor = iss.severity === 'critical' ? 'red' : iss.severity === 'high' ? 'orange' : 'green';
-                    L.circleMarker([iss.location.latitude, iss.location.longitude], {
-                        color: markerColor, radius: 7, fillOpacity: 0.8
-                    }).addTo(mapInstance).bindPopup(`<b>${escapeHtml(iss.title)}</b><br>${escapeHtml(iss.severity).toUpperCase()} • Score: ${escapeHtml(iss.priority_score)}`);
-
-                    const card = document.createElement('div');
-                    card.className = "bg-white p-3.5 rounded-xl border border-outline-variant shadow-sm flex flex-col gap-2";
-                    card.innerHTML = `
-                        <div class="flex justify-between items-start">
-                            <span class="text-[10px] font-bold uppercase px-2 py-0.5 rounded ${iss.severity === 'critical' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-800'}">${escapeHtml(iss.severity)}</span>
-                            <span class="text-xs font-mono font-bold text-primary">Score: ${escapeHtml(iss.priority_score)}</span>
-                        </div>
-                        <h4 class="font-bold text-sm text-on-surface">${escapeHtml(iss.title)}</h4>
-                        <p class="text-xs text-on-surface-variant line-clamp-1">${escapeHtml(iss.address)}</p>
-                        <div class="flex items-center gap-1 text-[10px] font-bold uppercase" aria-label="Issue status timeline">
-                            ${['submitted', 'assigned', 'in_progress', 'resolved'].map((status) => `<span class="px-1.5 py-1 rounded ${iss.status === status || (status === 'submitted' && ['assigned', 'in_progress', 'resolved', 'citizen_verified'].includes(iss.status)) || (status === 'assigned' && ['in_progress', 'resolved', 'citizen_verified'].includes(iss.status)) || (status === 'in_progress' && ['resolved', 'citizen_verified'].includes(iss.status)) ? 'bg-secondary text-white' : 'bg-surface-container text-outline'}">${status.replace('_', ' ')}</span>`).join('<span class="text-outline">›</span>')}
-                        </div>
-                        ${iss.status === 'resolved' ? `<div class="flex gap-2"><button onclick="verifyIssue('${iss.id}', true)" class="flex-1 bg-secondary text-white py-2 rounded-lg font-bold text-xs">✓ Fixed</button><button onclick="verifyIssue('${iss.id}', false)" class="flex-1 bg-error-container text-error py-2 rounded-lg font-bold text-xs">Needs repair</button></div>` : ''}
-                        <div class="flex justify-between items-center pt-2 border-t border-outline-variant/60 text-xs">
-                            <button onclick="upvoteIssue('${iss.id}')" class="text-primary font-bold flex items-center gap-1 hover:bg-primary/10 px-2 py-1 rounded">
-                                <span class="material-symbols-outlined text-base">thumb_up</span> ${iss.upvote_count} Upvotes
-                            </button>
-                            <span class="text-outline text-[11px] font-semibold">${escapeHtml(iss.status).toUpperCase()}</span>
-                        </div>
-                    `;
-                    container.appendChild(card);
-                });
-
-                // Load Badges Grid
-                const profileRes = await fetch("/api/users/profile/");
-                const profileData = await profileRes.json();
-                if (profileData.user) {
-                    document.getElementById('user-points-pill').textContent = `${profileData.user.civic_points} Pts`;
-                    document.getElementById('impact-points').textContent = profileData.user.civic_points;
+                const isAlreadyVoted = Boolean(data.already_voted);
+                button.classList.add('animating');
+                button.disabled = isAlreadyVoted;
+                button.classList.toggle('opacity-60', isAlreadyVoted);
+                button.classList.toggle('border-emerald-400', isAlreadyVoted);
+                button.classList.toggle('bg-emerald-50', isAlreadyVoted);
+                button.classList.toggle('text-emerald-700', isAlreadyVoted);
+                button.setAttribute('aria-label', isAlreadyVoted ? 'You already voted for this issue' : 'You voted for this issue');
+                if (isAlreadyVoted) {
+                    button.classList.remove('border-primary/30', 'bg-primary/5', 'text-primary');
                 }
-
-                const badgesGrid = document.getElementById('badges-grid');
-                badgesGrid.innerHTML = "";
-                profileData.available_badges.forEach(b => {
-                    const badgeCard = document.createElement('div');
-                    badgeCard.className = "bg-white border border-outline-variant rounded-xl p-3 flex flex-col items-center text-center shadow-xs";
-                    badgeCard.innerHTML = `
-                        <div class="w-12 h-12 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-xl mb-1.5">${b.icon || '🏅'}</div>
-                        <h5 class="font-bold text-xs text-on-surface">${b.name}</h5>
-                        <p class="text-[10px] text-outline mt-0.5">${b.description}</p>
-                        <span class="text-[10px] text-secondary font-bold mt-1">+${b.points_reward} Pts</span>
-                    `;
-                    badgesGrid.appendChild(badgeCard);
-                });
-            } catch (e) {
-                console.error(e);
+                setTimeout(() => button.classList.remove('animating'), 260);
+                announce(isAlreadyVoted ? 'You already voted for this issue.' : `Vote recorded. ${nextCount} total votes.`);
+                if (!isAlreadyVoted && oldValue !== nextCount) {
+                    const allMatches = document.querySelectorAll(`[data-issue-id="${id}"]`);
+                    allMatches.forEach((match) => {
+                        const count = match.querySelector('.vote-count');
+                        if (count) animateVoteCount(count, nextCount);
+                    });
+                }
+            } catch (err) {
+                console.error('Upvote failed', err);
+                alert('Network error while recording vote. Please try again.');
+            } finally {
+                button.dataset.upvoting = 'false';
             }
         }
 
-        async function upvoteIssue(id) {
-            const res = await fetch(`/api/issues/${id}/upvote/`, { method: "POST", headers: { "X-CSRFToken": csrfToken() } });
-            const data = await res.json();
-            alert(`Upvoted! Total votes: ${data.upvote_count}`);
-            loadNearbyFeed();
+        function renderImpactProgress(issue) {
+            const fallback = [
+                { key: 'reported', label: 'Reported', active: issue.status === 'submitted', complete: true },
+                { key: 'verified', label: 'Verified', active: issue.status === 'verified', complete: ['verified', 'assigned', 'in_progress', 'resolved', 'citizen_verified', 'closed'].includes(issue.status) },
+                { key: 'assigned', label: 'Assigned', active: issue.status === 'assigned', complete: ['assigned', 'in_progress', 'resolved', 'citizen_verified', 'closed'].includes(issue.status) },
+                { key: 'in_progress', label: 'Work in Progress', active: issue.status === 'in_progress', complete: ['in_progress', 'resolved', 'citizen_verified', 'closed'].includes(issue.status) },
+                { key: 'resolved', label: 'Resolved', active: ['resolved', 'citizen_verified', 'closed'].includes(issue.status), complete: ['resolved', 'citizen_verified', 'closed'].includes(issue.status) }
+            ];
+            const steps = Array.isArray(issue.public_status) ? issue.public_status : fallback;
+            return `<div class="status-stepper" aria-label="Progress: ${escapeHtml(issue.status_label || issue.status || 'Reported')}">${steps.map(step => `
+                <div class="status-step ${step.complete ? 'complete' : ''} ${step.active ? 'active' : ''}"><span class="status-node"></span><span class="status-step-label">${escapeHtml(step.label)}</span></div>
+            `).join('')}</div>`;
         }
+
+        function reportLocationLabel(issue) {
+            const address = String(issue.address || '').trim();
+            const ward = String(issue.ward || '').trim();
+            const genericAddresses = new Set(['Chennai', 'Chennai, Tamil Nadu']);
+            const locality = ward.replace(/^zone\s*\d+\s*[-:]\s*/i, '').trim();
+            if (locality && locality !== ward) return locality;
+            if (ward) return ward;
+            if (address && !genericAddresses.has(address)) return address;
+            if (address) return address;
+            const latitude = issue.location?.latitude;
+            const longitude = issue.location?.longitude;
+            return latitude !== undefined && longitude !== undefined
+                ? `${Number(latitude).toFixed(4)}, ${Number(longitude).toFixed(4)}`
+                : 'Location recorded';
+        }
+
+        async function loadImpact() {
+            const [profileRes, reportsRes] = await Promise.all([fetch('/api/users/profile/'), fetch('/api/issues/my-reports/')]);
+            const profileData = await profileRes.json();
+            const reports = await reportsRes.json();
+            if (profileData.user) {
+                const user = profileData.user;
+                const points = Number(user.civic_points || 0);
+                const level = Number(user.level || 1);
+                const thresholds = [0, 50, 150, 300, 500, 800, 1200, 2000];
+                const currentThreshold = thresholds[Math.min(level - 1, thresholds.length - 1)] || 0;
+                const nextThreshold = thresholds[level] || currentThreshold;
+                const progress = nextThreshold > currentThreshold ? Math.min(100, Math.max(0, ((points - currentThreshold) / (nextThreshold - currentThreshold)) * 100)) : 100;
+                document.getElementById('user-points-pill').textContent = `${points.toLocaleString()} Pts`;
+                document.getElementById('impact-points').textContent = points.toLocaleString();
+                document.getElementById('impact-level').textContent = `Level ${level}`;
+                document.getElementById('impact-progress-bar').style.width = `${progress}%`;
+                document.getElementById('impact-standing').textContent = `${user.reports_submitted || 0} reports · ${user.upvotes_given || 0} upvotes`;
+                document.getElementById('impact-next-level').textContent = nextThreshold > points ? `${nextThreshold - points} pts to Level ${level + 1}` : 'Highest level reached';
+                document.getElementById('impact-report-count').textContent = Number(user.reports_submitted || 0).toLocaleString();
+                document.getElementById('impact-upvote-count').textContent = Number(user.upvotes_given || 0).toLocaleString();
+                document.getElementById('impact-resolved-count').textContent = Number(user.issues_resolved || 0).toLocaleString();
+                document.getElementById('impact-verification-count').textContent = Number(user.verifications_done || 0).toLocaleString();
+            }
+            const reportsList = document.getElementById('impact-reports');
+            reportsList.innerHTML = Array.isArray(reports) && reports.length ? reports.map(issue => {
+                const location = reportLocationLabel(issue);
+                const statusLabel = localizedStatus(issue.status);
+                const resolved = ['resolved', 'citizen_verified', 'closed'].includes(issue.status);
+                const image = issue.photo_urls?.[0] || '';
+                const proof = issue.resolution_proof?.photo_url || '';
+                return `<article class="impact-report-card bg-white border border-outline-variant rounded-xl p-3">
+                    <div class="flex gap-3">${image ? `<img src="${escapeHtml(image)}" alt="Original report: ${escapeHtml(issue.title)}" class="impact-report-image rounded-lg border border-outline-variant">` : '<div class="impact-report-image rounded-lg bg-surface-container-low flex items-center justify-center text-[9px] text-on-surface-variant">No image</div>'}
+                        <div class="min-w-0 flex-1"><div class="flex justify-between items-start gap-2"><div class="min-w-0"><p class="text-[9px] font-bold uppercase tracking-wide text-primary">${escapeHtml(issue.category || 'Issue')}</p><strong class="block text-sm leading-snug truncate">${escapeHtml(issue.title || 'Civic issue')}</strong></div><span class="text-[9px] font-bold px-1.5 py-0.5 rounded-full ${resolved ? 'bg-emerald-100 text-emerald-800' : 'bg-primary/10 text-primary'} whitespace-nowrap">${escapeHtml(statusLabel)}</span></div><p class="text-[11px] leading-4 text-on-surface-variant mt-1 line-clamp-2">${escapeHtml(issue.description || 'No description provided.')}</p></div>
+                    </div>
+                    <div class="impact-meta mt-2 grid grid-cols-2 gap-x-3 gap-y-1 text-on-surface-variant"><span><strong class="text-on-surface">Location:</strong> ${escapeHtml(location)}</span><span><strong class="text-on-surface">Reported:</strong> ${new Date(issue.created_at || Date.now()).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</span><span><strong class="text-on-surface">Status:</strong> ${escapeHtml(statusLabel)}</span><span><strong class="text-on-surface">Resolved:</strong> ${resolved ? 'Yes' : 'Not yet'}</span></div>
+                    <div class="mt-2 border-t border-outline-variant pt-2"><p class="text-[9px] font-bold uppercase tracking-wide text-on-surface-variant mb-1.5">Progress</p>${renderImpactProgress(issue)}</div>
+                    ${proof ? `<div class="mt-2 border-t border-outline-variant pt-2"><p class="text-[9px] font-bold uppercase tracking-wide text-emerald-700 mb-1.5">Completion proof</p><img src="${escapeHtml(proof)}" alt="Completion proof for ${escapeHtml(issue.title)}" class="w-full h-24 object-cover rounded-lg border border-outline-variant"><p class="mt-1 impact-meta text-on-surface-variant">Completion location: ${escapeHtml(issue.resolution_proof?.worker_location ? `${Number(issue.resolution_proof.worker_location.latitude).toFixed(6)}, ${Number(issue.resolution_proof.worker_location.longitude).toFixed(6)}` : 'Unavailable')} · ${issue.resolution_proof?.submitted_at ? `Submitted ${new Date(issue.resolution_proof.submitted_at).toLocaleString()}` : 'Timestamp unavailable'}</p></div>` : ''}
+                </article>`;
+            }).join('') : '<p class="text-sm text-on-surface-variant">No reports submitted yet.</p>';
+            const badgesList = document.getElementById('badges-grid');
+            badgesList.innerHTML = '';
+            const earnedBadges = profileData.user?.badges || [];
+            if (earnedBadges.length) earnedBadges.forEach(badge => { badgesList.insertAdjacentHTML('beforeend', `<div class="bg-white border border-outline-variant rounded-xl p-3 text-center"><div class="text-2xl">${escapeHtml(badge.badge_icon || 'Badge')}</div><strong class="block text-xs mt-1">${escapeHtml(badge.badge_name)}</strong><span class="text-[10px] text-secondary">Earned</span></div>`); });
+            else badgesList.innerHTML = '<p class="col-span-2 text-sm text-on-surface-variant">No badges earned yet.</p>';
+        }
+
+        function setPublicIssueView(view) {
+            const nearby = view === 'nearby';
+            document.getElementById('nearby-feed-list').classList.toggle('hidden', !nearby);
+            document.getElementById('resolved-feed-list').classList.toggle('hidden', nearby);
+            const nearbyButton = document.getElementById('nearby-view-button');
+            const resolvedButton = document.getElementById('resolved-view-button');
+            nearbyButton.className = `border px-2 py-1 rounded-md text-xs font-bold ${nearby ? 'border-primary bg-primary text-white' : 'border-outline-variant text-on-surface-variant'}`;
+            nearbyButton.innerHTML = `Nearby Issues (<span id="nearby-issue-count">${document.getElementById('nearby-issue-count')?.textContent || 0}</span>)`;
+            resolvedButton.className = `border px-2 py-1 rounded-md text-xs font-bold ${nearby ? 'border-outline-variant text-on-surface-variant' : 'border-primary bg-primary text-white'}`;
+            resolvedButton.innerHTML = `Resolved Issues (<span id="resolved-issue-count">${document.getElementById('resolved-issue-count')?.textContent || 0}</span>)`;
+            nearbyButton.setAttribute('aria-expanded', String(nearby));
+            resolvedButton.setAttribute('aria-expanded', String(!nearby));
+        }
+
+        document.getElementById('nearby-view-button').addEventListener('click', () => setPublicIssueView('nearby'));
+        document.getElementById('resolved-view-button').addEventListener('click', () => setPublicIssueView(document.getElementById('resolved-feed-list').classList.contains('hidden') ? 'resolved' : 'nearby'));
+        document.querySelectorAll('[role="tab"]').forEach((tab) => tab.addEventListener('keydown', (event) => {
+            if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
+            const tabs = [...document.querySelectorAll('[role="tab"]')];
+            const nextIndex = (tabs.indexOf(tab) + (event.key === 'ArrowRight' ? 1 : tabs.length - 1)) % tabs.length;
+            tabs[nextIndex].focus();
+            tabs[nextIndex].click();
+        }));
 
         async function verifyIssue(id, isFixed) {
             const response = await fetch(`/api/issues/${id}/verify/`, {
@@ -839,7 +1144,21 @@
                 if (btn.dataset.target === 'tab-nearby') {
                     setTimeout(() => { mapInstance && mapInstance.invalidateSize(); }, 200);
                 }
+                if (btn.dataset.target === 'tab-impact') loadImpact();
             });
+        });
+
+        document.getElementById('btn-language').addEventListener('click', () => {
+            setLanguage(currentLang === 'ta' ? 'en' : 'ta');
+        });
+
+        const accessibilityMenuButton = document.getElementById('btn-accessibility-menu');
+        const accessibilityControls = document.getElementById('accessibility-controls');
+        accessibilityMenuButton.addEventListener('click', () => {
+            const expanded = accessibilityMenuButton.getAttribute('aria-expanded') === 'true';
+            accessibilityMenuButton.setAttribute('aria-expanded', String(!expanded));
+            accessibilityMenuButton.setAttribute('aria-label', expanded ? 'Open accessibility options' : 'Close accessibility options');
+            accessibilityControls.classList.toggle('hidden', expanded);
         });
 
         document.getElementById('btn-contrast').addEventListener('click', () => {
@@ -854,6 +1173,14 @@
             localStorage.setItem('civix-easy-read', easyRead ? 'on' : 'off');
             updateEasyRead();
             announce(easyRead ? (currentLang === 'ta' ? 'எளிய வாசிப்பு இயக்கப்பட்டது' : 'Easy Read enabled') : (currentLang === 'ta' ? 'எளிய வாசிப்பு முடக்கப்பட்டது' : 'Easy Read disabled'));
+        });
+
+        document.querySelectorAll('#accessibility-controls button').forEach((button) => {
+            button.addEventListener('click', () => {
+                accessibilityMenuButton.setAttribute('aria-expanded', 'false');
+                accessibilityMenuButton.setAttribute('aria-label', 'Open accessibility options');
+                accessibilityControls.classList.add('hidden');
+            });
         });
 
         function setFontSize(scale) {
@@ -906,7 +1233,68 @@
             initCamera();
             initGPS();
             loadNearbyFeed();
+            loadCitizenNotifications();
+            notificationRefreshTimer = window.setInterval(loadCitizenNotifications, 3000);
         });
+        // --- Inline Login Modal ---
+        function showLoginModal() {
+            if (document.getElementById('login-modal')) return;
+            const modal = document.createElement('div');
+            modal.id = 'login-modal';
+            modal.className = 'fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4';
+            modal.innerHTML = `
+                <div class="bg-white rounded-xl max-w-md w-full p-5">
+                    <h3 class="font-bold text-lg mb-2">Sign in to upvote</h3>
+                    <p class="text-sm text-on-surface-variant mb-4">Use your phone number or username and password.</p>
+                    <div class="space-y-2">
+                        <input id="login-identifier" placeholder="Phone or username" class="w-full border rounded p-2" />
+                        <input id="login-password" type="password" placeholder="Password" class="w-full border rounded p-2" />
+                    </div>
+                    <div class="flex gap-2 mt-4">
+                        <button id="login-submit" class="flex-1 bg-primary text-white px-4 py-2 rounded font-bold">Sign in</button>
+                        <button id="login-cancel" class="flex-1 bg-surface border border-outline-variant px-4 py-2 rounded">Cancel</button>
+                    </div>
+                    <p class="text-xs text-on-surface-variant mt-3">Don't have an account? <a href="/register/" class="text-primary underline">Register</a></p>
+                </div>`;
+            document.body.appendChild(modal);
+            document.getElementById('login-cancel').addEventListener('click', hideLoginModal);
+            document.getElementById('login-submit').addEventListener('click', submitLogin);
+        }
+
+        function hideLoginModal() {
+            const m = document.getElementById('login-modal');
+            if (m) m.remove();
+        }
+
+        async function submitLogin() {
+            const identifier = document.getElementById('login-identifier').value.trim();
+            const password = document.getElementById('login-password').value;
+            if (!identifier || !password) { alert('Please enter identifier and password.'); return; }
+            try {
+                document.getElementById('login-submit').disabled = true;
+                const res = await fetch('/api/users/login/', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken() }, body: JSON.stringify({ identifier, password }) });
+                const data = await res.json();
+                if (!res.ok) { alert(data.error || 'Login failed'); document.getElementById('login-submit').disabled = false; return; }
+                // Save minimal profile locally for UI updates
+                if (data.user) localStorage.setItem('civix_user', JSON.stringify(data.user));
+                hideLoginModal();
+                // Refresh nearby feed to enable upvote
+                loadNearbyFeed();
+                alert(data.message || 'Logged in');
+                // If there was a pending upvote request, re-attempt it now
+                if (pendingUpvoteId) {
+                    const btn = document.querySelector(`[data-issue-id="${pendingUpvoteId}"]`);
+                    // clear pending id before retry to avoid loops
+                    const retryId = pendingUpvoteId;
+                    pendingUpvoteId = null;
+                    if (btn) upvoteIssue(retryId, btn);
+                }
+            } catch (err) {
+                console.error('Login error', err);
+                alert('Network error while logging in.');
+                document.getElementById('login-submit').disabled = false;
+            }
+        }
     </script>
 </body>
 </html>

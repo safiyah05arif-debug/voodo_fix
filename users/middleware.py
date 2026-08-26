@@ -22,7 +22,7 @@ class RoleAccessMiddleware:
         path = request.path
         if path in ("/", "/login/") or path.startswith("/static/"):
             return self.get_response(request)
-        if path.startswith("/api/users/login/") or path.startswith("/api/users/register/"):
+        if path.startswith("/api/users/login/") or path.startswith("/api/users/logout/") or path.startswith("/api/users/register/"):
             return self.get_response(request)
 
         role = request.session.get("civix_role")
@@ -54,7 +54,7 @@ class RoleAccessMiddleware:
             return {"citizen"}
         if path.startswith("/api/issues/volunteer-drives/"):
             return {"citizen", "officer", "zone_officer", "admin"}
-        if path == "/api/issues/" or path.startswith("/api/issues/classify/"):
+        if path == "/api/issues/":
             return {"citizen", "officer", "zone_officer", "admin"} if method == "GET" else {"citizen"}
         if path.startswith("/api/issues/report/"):
             return {"citizen"}
@@ -64,6 +64,8 @@ class RoleAccessMiddleware:
             if path.endswith("/resolve/") or path.endswith("/status/"):
                 return {"field_worker"}
             if path.endswith("/assign/") or path.endswith("/override-department/"):
+                return {"officer", "zone_officer", "admin"}
+            if path.endswith("/review/"):
                 return {"officer", "zone_officer", "admin"}
             if path.endswith("/delete/"):
                 return {"officer", "zone_officer", "admin"}

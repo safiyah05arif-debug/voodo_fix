@@ -103,20 +103,39 @@ DATABASES = {
 # All domain models in `issues/models.py` and `users/models.py` use this.
 # =============================================================================
 import mongoengine  # noqa: E402
+import certifi
 
 MONGODB_URI = os.getenv("MONGODB_URI", "")
 MONGODB_NAME = os.getenv("MONGODB_NAME", "civix_db")
 
 if MONGODB_URI:
     # Production / Atlas connection
-    mongoengine.connect(
-        db=MONGODB_NAME,
-        host=MONGODB_URI,
-        alias="default",
-        serverSelectionTimeoutMS=5000,
-        connectTimeoutMS=5000,
-    )
-    print(f"[CIVIX] Connected to MongoDB Atlas -- database: {MONGODB_NAME}")
+    connect_kwargs = {
+        "db": MONGODB_NAME,
+        "host": MONGODB_URI,
+        "alias": "default",
+        "connect": False,
+        "serverSelectionTimeoutMS": 5000,
+        "connectTimeoutMS": 5000,
+    }
+    # If Atlas SRV URI, ensure TLS uses certifi CA bundle
+    if MONGODB_URI.startswith("mongodb+srv://"):
+        connect_kwargs.update({"tls": True, "tlsCAFile": certifi.where()})
+
+    mongoengine.connect(**connect_kwargs)
+    print(f"[CIVIX] MongoDB Atlas configured -- database: {MONGODB_NAME} (lazy connection)")
+
+    # Validate the connection immediately; mongoengine.connect(..., connect=False)
+    # doesn't perform network operations, so test via civix_backend.db.check_connection().
+    try:
+        from civix_backend.db import check_connection
+        check = check_connection()
+        if check.get("status") != "connected":
+            raise RuntimeError(f"MongoDB connection validation failed: {check.get('error')}")
+    except Exception:
+        # Do not silently fall back to in-memory DB. Surface configuration/network
+        # errors so the environment (Atlas whitelist, TLS interception) can be fixed.
+        raise
 else:
     # Fallback: local MongoDB instance for development without Atlas
     mongoengine.connect(
@@ -124,10 +143,11 @@ else:
         host="localhost",
         port=27017,
         alias="default",
+        connect=False,
         serverSelectionTimeoutMS=5000,
         connectTimeoutMS=5000,
     )
-    print(f"[CIVIX] WARNING: No MONGODB_URI found -- using local MongoDB: {MONGODB_NAME}")
+    print(f"[CIVIX] WARNING: No MONGODB_URI found -- using local MongoDB: {MONGODB_NAME} (lazy connection)")
 
 
 # ── Password Validation ───────────────────────────────────────────────────────

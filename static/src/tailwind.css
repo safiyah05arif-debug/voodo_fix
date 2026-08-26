@@ -4,16 +4,16 @@
 
 @layer base {
 	:root {
-		--civix-ink: #10233f;
-		--civix-blue: #0757a6;
-		--civix-teal: #087f73;
-		--civix-coral: #e76f51;
-		--civix-mist: #f4f7fb;
-		--civix-line: #d8e1ee;
+		--civix-ink: #153d3d;
+		--civix-blue: #0d5d5a;
+		--civix-teal: #0f7a72;
+		--civix-coral: #ef7a58;
+		--civix-mist: #f3f8f6;
+		--civix-line: #d6e7e2;
 	}
 	html { background: var(--civix-mist); }
 	body { overflow-x: hidden; }
-	body { color: var(--civix-ink); background: radial-gradient(circle at 12% 0%, rgba(7, 87, 166, .08), transparent 30rem), linear-gradient(135deg, #f8fbff 0%, #eef5f5 100%); }
+	body { color: var(--civix-ink); background: radial-gradient(circle at 12% 0%, rgba(15, 122, 114, .10), transparent 30rem), linear-gradient(135deg, #f5fbf9 0%, #edf6f3 100%); }
 	h1, h2, h3, h4, h5, button { font-family: 'Space Grotesk', 'Segoe UI', sans-serif; }
 	input, select, textarea { transition: border-color .2s ease, box-shadow .2s ease, background-color .2s ease; }
 	button, a { transition: transform .2s ease, box-shadow .2s ease, background-color .2s ease, color .2s ease; }
@@ -28,8 +28,8 @@
 }
 
 @layer components {
-	.civix-panel { border-color: var(--civix-line); box-shadow: 0 18px 45px rgba(16, 35, 63, .08); }
-	.civix-glass { background: rgba(255, 255, 255, .84); backdrop-filter: blur(14px); }
+	.civix-panel { border-color: var(--civix-line); box-shadow: 0 18px 45px rgba(12, 74, 70, .08); }
+	.civix-glass { background: rgba(255, 255, 255, .85); backdrop-filter: blur(14px); }
 	.civix-enter { animation: civix-enter .45s ease both; }
 	@keyframes civix-enter { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 }

@@ -16,6 +16,7 @@ import os
 
 from dotenv import load_dotenv
 from pymongo import MongoClient
+import certifi
 
 load_dotenv()
 
@@ -32,7 +33,23 @@ def get_client():
     global _client
     if _client is None:
         uri = os.getenv("MONGODB_URI", "mongodb://localhost:27017")
-        _client = MongoClient(uri, serverSelectionTimeoutMS=5000, connectTimeoutMS=5000)
+        # If using Atlas SRV URI, ensure TLS uses a trusted CA bundle.
+        # For plain mongodb:// URIs (local dev), do not force TLS.
+        if uri.startswith("mongodb+srv://") or uri.startswith("mongodb+srv:"):
+            candidate = MongoClient(
+                uri,
+                serverSelectionTimeoutMS=5000,
+                connectTimeoutMS=5000,
+                tls=True,
+                tlsCAFile=certifi.where(),
+            )
+        else:
+            candidate = MongoClient(uri, serverSelectionTimeoutMS=5000, connectTimeoutMS=5000)
+
+        # Validate the candidate connection. Any failure should surface
+        # so the running environment can be corrected (network, IP whitelist, certs).
+        candidate.server_info()
+        _client = candidate
     return _client
 
 
