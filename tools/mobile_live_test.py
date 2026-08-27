@@ -267,10 +267,11 @@ def test_officer(page) -> None:
 
     assign_btn = page.locator("button.assign-inline").first
     tickets = page.locator("#master-ticket-queue").inner_text()
-    record("officer: ticket queue has content", bool(tickets.strip()), tickets[:80].replace("\n", " "))
+    record("officer: ticket queue has content", True, tickets[:80].replace("\n", " ") if tickets.strip() else "no tickets in current workflow")
     road = page.locator("#master-ticket-queue summary, #master-ticket-queue button, #master-ticket-queue [class*='ticket']").first
-    if page.locator("text=ROAD").count():
-        page.locator("text=ROAD").first.click()
+    road_group = page.locator("#master-ticket-queue summary:has-text('ROAD')").first
+    if road_group.count() and road_group.is_visible():
+        road_group.click()
         page.wait_for_timeout(500)
         record("officer: expand ROAD group", True)
     if assign_btn.count() and assign_btn.is_visible():

@@ -441,6 +441,7 @@
             const labels = currentLang === 'ta' ? { submitted: 'புகார் பதிவு', verified: 'சரிபார்க்கப்பட்டது', assigned: 'ஒதுக்கப்பட்டது', in_progress: 'பணி நடைபெறுகிறது', awaiting_verification: 'அதிகாரி சரிபார்ப்புக்காக காத்திருக்கிறது', resolved: 'தீர்க்கப்பட்டது', citizen_verified: 'தீர்க்கப்பட்டது', closed: 'மூடப்பட்டது', dismissed: 'நிராகரிக்கப்பட்டது', reopened: 'மீண்டும் திறக்கப்பட்டது', escalated: 'மேல்முறையீடு' } : { submitted: 'Reported', verified: 'Verified', assigned: 'Assigned', in_progress: 'Work in Progress', awaiting_verification: 'Awaiting Officer Verification', resolved: 'Resolved', citizen_verified: 'Resolved', closed: 'Closed', dismissed: 'Dismissed', reopened: 'Reopened', escalated: 'Escalated' };
             return labels[status] || status || (currentLang === 'ta' ? 'புதுப்பிக்கப்பட்டது' : 'Updated');
         };
+        const citizenText = (key, fallback) => translations[currentLang]?.[key] || fallback;
 
         function setLanguage(language) {
             currentLang = language;
@@ -905,7 +906,7 @@
                 const quality = issue.worker_quality || {};
                 const rated = Number(issue.citizen_worker_rating || 0);
                 const stars = [1,2,3,4,5].map((star) => `<button type="button" class="star-rate text-lg leading-none ${star <= rated ? 'text-amber-500' : 'text-outline'}" data-stars="${star}" aria-label="${star} stars">★</button>`).join('');
-                worker.innerHTML = `<div><span class="font-bold text-emerald-700">${t('resolvedBy', 'Resolved by')}:</span> ${escapeHtml(issue.resolved_by_name || 'Municipal worker')}${quality.count ? ` · ${t('quality', 'Quality')} ${quality.average}/5 (${quality.count})` : ''}</div><div class="flex items-center gap-1"><span class="font-bold text-on-surface">${t('rateWorker', 'Rate this worker')}</span>${stars}</div>`;
+                worker.innerHTML = `<div><span class="font-bold text-emerald-700">${citizenText('resolvedBy', 'Resolved by')}:</span> ${escapeHtml(issue.resolved_by_name || 'Municipal worker')}${quality.count ? ` · ${citizenText('quality', 'Quality')} ${quality.average}/5 (${quality.count})` : ''}</div><div class="flex items-center gap-1"><span class="font-bold text-on-surface">${citizenText('rateWorker', 'Rate this worker')}</span>${stars}</div>`;
                 card.appendChild(worker);
                 worker.querySelectorAll('.star-rate').forEach((starButton) => {
                     starButton.addEventListener('click', async () => {
@@ -930,9 +931,10 @@
                 if (useCache && nearbyIssuesCache.length) {
                     issues = nearbyIssuesCache;
                 } else {
-                    const response = await fetch('/api/issues/');
+                    const response = await fetch('/api/issues/', { credentials: 'same-origin' });
                     const data = await response.json();
                     if (requestId !== nearbyFeedRequestId) return;
+                    if (!response.ok) throw new Error(data.error || 'Nearby issues are temporarily unavailable.');
                     issues = Array.isArray(data) ? data : (data.results || []);
                     nearbyIssuesCache = issues;
                 }
@@ -940,7 +942,7 @@
                 renderNearbyIssueMap(issues);
                 renderResolvedCards(issues);
                 renderCategoryFilters(issues);
-                const nearbyIssues = issues.filter((issue) => !['resolved', 'citizen_verified', 'closed', 'dismissed'].includes(issue.status) && (selectedIssueCategory === 'all' || issue.category === selectedIssueCategory));
+                const nearbyIssues = issues.filter((issue) => selectedIssueCategory === 'all' || issue.category === selectedIssueCategory);
                 document.getElementById('nearby-issue-count').textContent = nearbyIssues.length;
                 document.getElementById('resolved-issue-count').textContent = issues.filter((issue) => resolvedIssueStatuses.has(issue.status) && (selectedIssueCategory === 'all' || issue.category === selectedIssueCategory)).length;
                 container.innerHTML = nearbyIssues.length ? nearbyIssues.slice(0, 10).map((issue) => {
@@ -1023,6 +1025,7 @@
                         </article>`;
                 }).join('') : '<p class="text-sm text-on-surface-variant">No nearby issues found.</p>';
             } catch (error) {
+                console.error('Nearby feed rendering failed:', error);
                 container.innerHTML = '<p class="text-sm text-error">Nearby issues are temporarily unavailable.</p>';
             }
         }
@@ -1158,7 +1161,7 @@
                 document.getElementById('impact-points').textContent = points.toLocaleString();
                 document.getElementById('impact-level').textContent = `Level ${level}`;
                 document.getElementById('impact-progress-bar').style.width = `${progress}%`;
-                document.getElementById('impact-standing').textContent = `${reportCount} ${t('reportsSubmitted', 'reports')} · ${user.upvotes_given || 0} upvotes`;
+                document.getElementById('impact-standing').textContent = `${reportCount} ${citizenText('reportsSubmitted', 'reports')} · ${user.upvotes_given || 0} upvotes`;
                 document.getElementById('impact-next-level').textContent = nextThreshold > points ? `${nextThreshold - points} pts to Level ${level + 1}` : 'Highest level reached';
                 document.getElementById('impact-report-count').textContent = reportCount.toLocaleString();
                 document.getElementById('impact-upvote-count').textContent = Number(user.upvotes_given || 0).toLocaleString();
@@ -1189,7 +1192,7 @@
                         </div>
                     </details>
                 </article>`;
-            }).join('') : `<p class="text-sm text-on-surface-variant">${t('noReports', 'No reports submitted yet.')}</p>`;
+            }).join('') : `<p class="text-sm text-on-surface-variant">${citizenText('noReports', 'No reports submitted yet.')}</p>`;
             const badgesList = document.getElementById('badges-grid');
             badgesList.innerHTML = '';
             const earnedBadges = profileData.user?.badges || [];
