@@ -15,6 +15,9 @@
         .pulse-red { animation: pulse-red 1.5s infinite; }
         @keyframes pulse-red { 0%, 100% { opacity: 1; color: #ba1a1a; } 50% { opacity: .4; color: #ba1a1a; } }
         body.high-contrast { --hc-bg: #101820; --hc-surface: #17232d; --hc-surface-strong: #20313d; --hc-text: #ffffff; --hc-muted: #d7e3ea; --hc-border: #a9c2cf; --hc-primary: #7dd3fc; --hc-secondary: #fcd34d; --hc-danger: #fda4af; --hc-success: #86efac; background: var(--hc-bg) !important; color: var(--hc-text) !important; }
+        body.easy-read { line-height: 1.7; }
+        body.easy-read .text-xs, body.easy-read .text-\[10px\], body.easy-read .text-\[11px\] { font-size: .8125rem; line-height: 1.35rem; }
+        body.easy-read button, body.easy-read select, body.easy-read input, body.easy-read textarea { min-height: 3rem; }
         body.high-contrast, body.high-contrast main, body.high-contrast header, body.high-contrast nav, body.high-contrast section, body.high-contrast article, body.high-contrast div, body.high-contrast form, body.high-contrast label, body.high-contrast .bg-white, body.high-contrast .bg-surface-container-low { background-color: var(--hc-surface) !important; color: var(--hc-text) !important; }
         body.high-contrast * { border-color: var(--hc-border) !important; }
         body.high-contrast p, body.high-contrast span, body.high-contrast h1, body.high-contrast h2, body.high-contrast h3, body.high-contrast h4, body.high-contrast label { color: var(--hc-text) !important; }
@@ -133,6 +136,8 @@
             #officer-contrast { width: 24px !important; min-width: 24px !important; border: 1px solid rgba(255,255,255,.65) !important; border-radius: 4px; overflow: hidden; }
             #officer-contrast .material-symbols-outlined { font-size: 14px; line-height: 1; }
             body > header > div:last-child > nav a { width: 34px !important; min-width: 34px !important; padding: 0 !important; }
+            body > header > div:last-child { overflow-x: auto; }
+            body > header button, body > header a { min-height: 44px !important; min-width: 44px !important; }
             #officer-accessibility-panel nav { width: 100%; }
             #officer-accessibility-panel nav a { min-height: 2rem; width: 100%; padding: .35rem .5rem; border-radius: .5rem; background: rgba(255,255,255,.1); text-decoration: none; }
             .officer-status-tabs { padding: 0 .75rem .5rem; }
@@ -173,15 +178,16 @@
                 <button id="officer-lang-en" type="button" aria-label="Switch interface language to English" class="underline">EN</button>
                 <button id="officer-lang-ta" type="button" aria-label="தமிழில் இடைமுகத்தை மாற்றவும்">தமிழ்</button>
                 <button id="officer-contrast" type="button" aria-pressed="false" aria-label="Toggle high contrast mode"><span class="material-symbols-outlined text-sm">contrast</span></button>
+                <button id="officer-easy-read" type="button" aria-pressed="false" aria-label="Turn on Easy Read mode"><span class="material-symbols-outlined text-sm">text_fields</span><span id="officer-easy-read-label">Easy Read</span></button>
                 <button type="button" onclick="setOfficerFontSize('100%')" aria-label="Use normal text size">A</button>
                 <button type="button" onclick="setOfficerFontSize('115%')" aria-label="Increase text size">A+</button>
                 <button type="button" onclick="setOfficerFontSize('130%')" aria-label="Use largest text size">A++</button>
                 <button id="officer-read-aloud" type="button" aria-pressed="false" aria-label="Read command center aloud">🔊 <span id="officer-read-label">Read aloud</span></button>
                 <nav aria-label="Portal navigation">
-                    <a id="officer-logout" href="/api/users/logout/" class="flex items-center justify-center gap-2 underline hover:text-secondary-container" aria-label="Log out">
+                    <button id="officer-logout" type="button" data-logout class="flex items-center justify-center gap-2 underline hover:text-secondary-container" aria-label="Log out">
                         <span class="material-symbols-outlined text-sm">logout</span>
                         <span>Logout</span>
-                    </a>
+                    </button>
                 </nav>
             </div>
         </div>
@@ -218,14 +224,14 @@
     </main>
 
     <!-- OFFICER MODAL: ADD / PROVISION FIELD WORKER -->
-    <div id="add-worker-modal" class="hidden fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-        <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl flex flex-col gap-4 border border-outline-variant">
+    <div id="add-worker-modal" class="hidden fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="add-worker-title">
+        <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl flex flex-col gap-4 border border-outline-variant" data-modal-content>
             <div class="flex justify-between items-center border-b pb-2 gap-2">
-                <h3 class="font-bold text-base text-on-surface flex items-center gap-2 min-w-0">
+                <h3 id="add-worker-title" class="font-bold text-base text-on-surface flex items-center gap-2 min-w-0">
                     <span class="material-symbols-outlined text-primary shrink-0">person_add</span>
                     <span class="leading-snug">Provision New Field Worker</span>
                 </h3>
-                <button onclick="closeWorkerModal()" class="text-on-surface-variant p-1 shrink-0" aria-label="Close add worker dialog">✕</button>
+                <button type="button" onclick="closeWorkerModal()" class="text-on-surface-variant p-1 shrink-0" aria-label="Close add worker dialog">✕</button>
             </div>
 
             <form id="add-worker-form" class="flex flex-col gap-3">
@@ -273,7 +279,7 @@
     </div>
 
     <div id="assign-worker-modal" class="hidden fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="assign-worker-title">
-        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl flex flex-col gap-4 border border-outline-variant">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl flex flex-col gap-4 border border-outline-variant" data-modal-content>
             <div>
                 <h3 id="assign-worker-title" class="font-bold text-base text-on-surface">Assign verified issue</h3>
                 <p class="text-xs text-on-surface-variant mt-1">Choose a field worker to receive the location, image, and description.</p>
@@ -287,7 +293,7 @@
         </div>
     </div>
 
-    <div id="officer-live-region" class="sr-only" role="status" aria-live="polite"></div>
+    <div id="officer-live-region" tabindex="-1" class="sr-only" role="status" aria-live="polite"></div>
 
     <script>
         let workersLoaded = false;
@@ -317,7 +323,21 @@
         };
 
         function announceOfficer(message) {
-            document.getElementById('officer-live-region').textContent = message;
+            const region = document.getElementById('officer-live-region');
+            region.textContent = '';
+            window.setTimeout(() => { region.textContent = message; }, 20);
+        }
+
+        document.querySelectorAll('[data-logout]').forEach((button) => {
+            button.addEventListener('click', () => { window.location.assign('/api/users/logout/'); });
+        });
+
+        function announceOfficerError(message) {
+            const region = document.getElementById('officer-live-region');
+            region.setAttribute('role', 'alert');
+            announceOfficer(message);
+            region.focus();
+            window.setTimeout(() => region.setAttribute('role', 'status'), 1000);
         }
 
         function officerDateKey(date) {
@@ -383,6 +403,7 @@
         function setOfficerLanguage(language) {
             officerLanguage = language;
             localStorage.setItem('civix-language', language);
+            saveOfficerAccessibilityPreference({ language });
             const t = officerTranslations[language];
             const labels = {
                 'officer-title': t.title, 'officer-total-label': t.total, 'officer-critical-label': t.critical,
@@ -402,8 +423,15 @@
         function setOfficerFontSize(scale) {
             document.documentElement.style.fontSize = scale;
             localStorage.setItem('civix-font-size', scale);
+            saveOfficerAccessibilityPreference({ font_size: scale === '130%' ? 'extra_large' : scale === '115%' ? 'large' : 'normal' });
             announceOfficer(officerLanguage === 'ta' ? 'எழுத்து அளவு மாற்றப்பட்டது' : 'Text size changed');
         }
+
+        function saveOfficerAccessibilityPreference(preference) {
+            fetch('/api/users/profile/', { method: 'PATCH', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': document.querySelector('#add-worker-form input[name="csrfmiddlewaretoken"]')?.value || '' }, credentials: 'same-origin', body: JSON.stringify(preference) }).catch(() => {});
+        }
+
+        let officerEasyRead = localStorage.getItem('civix-easy-read') === 'on';
 
         function updateOfficerReadButton(isReading) {
             const label = isReading ? officerTranslations[officerLanguage].stop : officerTranslations[officerLanguage].read;
@@ -449,7 +477,17 @@
         document.getElementById('officer-contrast').addEventListener('click', () => {
             const enabled = document.body.classList.toggle('high-contrast');
             localStorage.setItem('civix-contrast', enabled ? 'on' : 'off');
+            saveOfficerAccessibilityPreference({ high_contrast: enabled });
             document.getElementById('officer-contrast').setAttribute('aria-pressed', String(enabled));
+        });
+        document.getElementById('officer-easy-read').addEventListener('click', () => {
+            officerEasyRead = !officerEasyRead;
+            localStorage.setItem('civix-easy-read', officerEasyRead ? 'on' : 'off');
+            document.body.classList.toggle('easy-read', officerEasyRead);
+            document.getElementById('officer-easy-read').setAttribute('aria-pressed', String(officerEasyRead));
+            document.getElementById('officer-easy-read').setAttribute('aria-label', officerEasyRead ? 'Turn off Easy Read mode' : 'Turn on Easy Read mode');
+            saveOfficerAccessibilityPreference({ easy_read: officerEasyRead });
+            announceOfficer(officerEasyRead ? 'Easy Read enabled' : 'Easy Read disabled');
         });
         document.getElementById('officer-read-aloud').addEventListener('click', readOfficerQueue);
         document.getElementById('officer-menu-toggle').addEventListener('click', () => {
@@ -457,6 +495,7 @@
             const expanded = panel.classList.toggle('is-open');
             document.getElementById('officer-menu-toggle').setAttribute('aria-expanded', String(expanded));
         });
+        document.querySelectorAll('[data-modal-content]').forEach((panel) => panel.addEventListener('click', (event) => event.stopPropagation()));
         document.getElementById('officer-not-assigned').addEventListener('click', () => selectOfficerWorkflow('not_assigned'));
         document.getElementById('officer-assigned').addEventListener('click', () => selectOfficerWorkflow('assigned'));
         document.getElementById('officer-completed').addEventListener('click', () => selectOfficerWorkflow('completed'));
@@ -505,15 +544,15 @@
                 });
                 const data = await res.json();
                 if (res.ok) {
-                    alert(data.message);
+                    announceOfficer(data.message);
                     closeWorkerModal();
                     await fetchWorkers();
                     initOfficerCommand();
                 } else {
-                    alert(data.error || "Failed to add worker");
+                    announceOfficerError(data.error || "Failed to add worker");
                 }
             } catch (err) {
-                alert("Error adding worker: " + err);
+                announceOfficerError("Error adding worker: " + err.message);
             }
         });
 
@@ -643,7 +682,7 @@
                             });
                             const data = await res.json();
                             if (!res.ok) {
-                                alert(data.error || 'Could not resolve this ticket.');
+                                announceOfficerError(data.error || 'Could not resolve this ticket.');
                                 return;
                             }
                             announceOfficer('Issue marked as resolved after officer verification.');
@@ -707,7 +746,7 @@
             });
             const data = await response.json();
             if (!response.ok) {
-                alert(data.error || 'Could not assign this issue.');
+                announceOfficerError(data.error || 'Could not assign this issue.');
                 return false;
             }
             announceOfficer(`Task assigned to ${workerName}.`);
@@ -717,7 +756,7 @@
         async function chooseWorkerForIssue(issueId) {
             if (!workerOptionsList.length) await fetchWorkers();
             if (!workerOptionsList.length) {
-                alert('No field workers are available. Add a worker before assigning this issue.');
+                announceOfficerError('No field workers are available. Add a worker before assigning this issue.');
                 return false;
             }
             pendingAssignmentIssueId = issueId;
@@ -823,7 +862,7 @@
             const res = await fetch(`/api/issues/${issueId}/delete/`, { method: 'DELETE', headers: { 'X-CSRFToken': document.querySelector('#add-worker-form input[name="csrfmiddlewaretoken"]').value } });
             const data = await res.json();
             if (!res.ok) {
-                alert(data.error || 'Could not delete the issue.');
+                announceOfficerError(data.error || 'Could not delete the issue.');
                 return;
             }
             announceOfficer('Resolved issue deleted.');
@@ -840,6 +879,8 @@
                 document.getElementById('officer-contrast').setAttribute('aria-pressed', 'true');
             }
             if (localStorage.getItem('civix-font-size')) setOfficerFontSize(localStorage.getItem('civix-font-size'));
+            document.body.classList.toggle('easy-read', officerEasyRead);
+            document.getElementById('officer-easy-read').setAttribute('aria-pressed', String(officerEasyRead));
             initOfficerCommand();
         });
     </script>
