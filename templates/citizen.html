@@ -20,6 +20,12 @@
         .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
         .tab-content { display: none; }
         .tab-content.active { display: flex; }
+        body.easy-read { line-height: 1.7; }
+        body.easy-read .text-xs, body.easy-read .text-\[10px\], body.easy-read .text-\[11px\] { font-size: .8125rem; line-height: 1.35rem; }
+        body.easy-read .text-\[9px\] { font-size: .75rem; line-height: 1.2rem; }
+        body.easy-read button, body.easy-read select, body.easy-read textarea { min-height: 3rem; }
+        body.easy-read textarea { line-height: 1.6; }
+        body.easy-read .status-step-label { font-size: .7rem; line-height: 1rem; }
         body.high-contrast { --hc-bg: #101820; --hc-surface: #17232d; --hc-surface-strong: #20313d; --hc-text: #ffffff; --hc-muted: #d7e3ea; --hc-border: #a9c2cf; --hc-primary: #7dd3fc; --hc-secondary: #fcd34d; --hc-danger: #fda4af; --hc-success: #86efac; background: var(--hc-bg) !important; color: var(--hc-text) !important; }
         body.high-contrast, body.high-contrast main, body.high-contrast header, body.high-contrast nav, body.high-contrast section, body.high-contrast article, body.high-contrast div, body.high-contrast form, body.high-contrast label, body.high-contrast .bg-white, body.high-contrast .bg-surface, body.high-contrast .bg-surface-container-low { background-color: var(--hc-surface) !important; color: var(--hc-text) !important; }
         body.high-contrast * { border-color: var(--hc-border) !important; }
@@ -64,6 +70,8 @@
         #accessibility-controls { min-width: 12rem; }
         #accessibility-controls #btn-contrast, #accessibility-controls #btn-easy-read { width: 100% !important; flex-basis: auto !important; display: flex !important; }
         .notification-item + .notification-item { border-top: 1px solid #d9d9e0; }
+        .duplicate-modal-backdrop { background: rgba(18, 33, 51, .62); }
+        .duplicate-modal-panel { max-height: min(90vh, 42rem); overflow-y: auto; }
         #nearby-feed-list .issue-card, #resolved-feed-list .issue-card { min-width: 0; overflow: hidden; }
         #nearby-feed-list .issue-card > div:first-child, #resolved-feed-list .issue-card > div:first-child { min-width: 0; }
         #nearby-feed-list .issue-card > div:last-child > span.text-primary, #resolved-feed-list .issue-card > div:last-child > span.text-primary { display: none; }
@@ -133,6 +141,8 @@
             body > header > div:last-child > div { gap: 0 !important; }
             body > header > div:last-child > div > button { min-width: 20px !important; width: 20px !important; padding: 0 !important; }
             body > header > div:last-child > nav a { min-width: 38px !important; width: 38px !important; padding: 0 !important; }
+            body > header > div:last-child { overflow-x: auto; }
+            body > header button, body > header a { min-height: 44px !important; min-width: 44px !important; }
         }
         @media (min-width: 768px) and (max-width: 1023px) {
             body > header { padding: .5rem .75rem; gap: .75rem; }
@@ -218,16 +228,16 @@
     <main id="main-content" tabindex="-1" class="flex-1 w-full max-w-4xl mx-auto px-4 py-4">
 
         <!-- Tab Switcher -->
-        <div class="flex border-b border-outline-variant mb-5">
-            <button class="tab-btn active flex-1 py-2.5 font-bold text-sm border-b-2 border-primary text-primary flex items-center justify-center gap-1.5" data-target="tab-nearby">
+        <div class="flex border-b border-outline-variant mb-5" role="tablist" aria-label="Citizen portal sections">
+            <button id="tab-button-nearby" role="tab" aria-selected="true" aria-controls="tab-nearby" tabindex="0" class="tab-btn active flex-1 py-2.5 font-bold text-sm border-b-2 border-primary text-primary flex items-center justify-center gap-1.5" data-target="tab-nearby">
                 <span class="material-symbols-outlined text-lg">near_me</span>
                 <span id="txt-tab-nearby">Nearby & Upvote</span>
             </button>
-            <button class="tab-btn flex-1 py-2.5 font-bold text-sm border-b-2 border-transparent text-on-surface-variant hover:text-primary flex items-center justify-center gap-1.5" data-target="tab-report">
+            <button id="tab-button-report" role="tab" aria-selected="false" aria-controls="tab-report" tabindex="-1" class="tab-btn flex-1 py-2.5 font-bold text-sm border-b-2 border-transparent text-on-surface-variant hover:text-primary flex items-center justify-center gap-1.5" data-target="tab-report">
                 <span class="material-symbols-outlined text-lg">photo_camera</span>
                 <span id="txt-tab-report">Report Issue</span>
             </button>
-            <button class="tab-btn flex-1 py-2.5 font-bold text-sm border-b-2 border-transparent text-on-surface-variant hover:text-primary flex items-center justify-center gap-1.5" data-target="tab-impact">
+            <button id="tab-button-impact" role="tab" aria-selected="false" aria-controls="tab-impact" tabindex="-1" class="tab-btn flex-1 py-2.5 font-bold text-sm border-b-2 border-transparent text-on-surface-variant hover:text-primary flex items-center justify-center gap-1.5" data-target="tab-impact">
                 <span class="material-symbols-outlined text-lg">military_tech</span>
                 <span id="txt-tab-impact">My Impact</span>
             </button>
@@ -236,15 +246,15 @@
         <!-- ================================================================= -->
         <!-- TAB 1: REPORT ISSUE (Direct In-Browser Camera & Atomic Live GPS)   -->
         <!-- ================================================================= -->
-        <section id="tab-report" class="tab-content flex-col gap-4">
+        <section id="tab-report" role="tabpanel" aria-labelledby="tab-button-report" tabindex="0" class="tab-content flex-col gap-4">
             
             <!-- Live GPS Status Pill -->
-            <div class="flex items-center justify-between bg-surface-container-low px-3.5 py-2 rounded-xl border border-outline-variant text-xs">
-                <div class="flex items-center gap-2">
+            <div class="flex flex-wrap items-center justify-between gap-2 bg-surface-container-low px-3.5 py-2 rounded-xl border border-outline-variant text-xs">
+                <div class="flex min-w-0 flex-1 items-center gap-2">
                     <span id="gps-pulse" class="w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse"></span>
-                    <span id="gps-coords-text" class="font-mono font-bold text-on-surface" aria-live="polite">GPS: Acquiring live location...</span>
+                    <span id="gps-coords-text" class="min-w-0 truncate font-mono font-bold text-on-surface" aria-live="polite">GPS: Acquiring live location...</span>
                 </div>
-                    <span id="gps-accuracy-badge" class="bg-amber-100 text-amber-800 font-bold px-2 py-0.5 rounded-md text-[11px]">Waiting for GPS</span>
+                    <span id="gps-accuracy-badge" class="shrink-0 bg-amber-100 text-amber-800 font-bold px-2 py-0.5 rounded-md text-[11px]">Waiting for GPS</span>
             </div>
 
             <!-- In-Browser Direct Camera Viewfinder -->
@@ -312,8 +322,9 @@
         <!-- ================================================================= -->
         <!-- TAB 2: NEARBY ISSUES & SPATIAL DEDUP / UPVOTE                     -->
         <!-- ================================================================= -->
-        <section id="tab-nearby" class="tab-content active flex-col gap-4">
-            <div id="leaflet-map-nearby"></div>
+        <section id="tab-nearby" role="tabpanel" aria-labelledby="tab-button-nearby" tabindex="0" class="tab-content active flex-col gap-4">
+            <div id="leaflet-map-nearby" role="img" aria-label="Map of nearby civic issues"></div>
+            <p class="sr-only">Nearby issues are also listed below the map and can be used without the map.</p>
             <div class="flex justify-between items-center mt-1">
                 <button id="nearby-view-button" type="button" aria-expanded="true" aria-controls="nearby-feed-list" class="border border-primary bg-primary text-white px-2 py-1 rounded-md text-xs font-bold">Nearby Issues (<span id="nearby-issue-count">0</span>)</button>
                 <button id="resolved-view-button" type="button" aria-expanded="false" aria-controls="resolved-feed-list" class="border border-outline-variant px-2 py-1 rounded-md text-xs font-bold text-on-surface-variant">Resolved Issues (<span id="resolved-issue-count">0</span>)</button>
@@ -328,7 +339,7 @@
         <!-- ================================================================= -->
         <!-- TAB 3: GAMIFICATION & IMPACT DASHBOARD                            -->
         <!-- ================================================================= -->
-        <section id="tab-impact" class="tab-content flex-col gap-4">
+        <section id="tab-impact" role="tabpanel" aria-labelledby="tab-button-impact" tabindex="0" class="tab-content flex-col gap-4">
             <!-- Points Card -->
             <div class="bg-gradient-to-r from-primary to-primary-container text-white p-4 rounded-2xl shadow-lg relative overflow-hidden">
                 <div class="text-xs uppercase font-bold tracking-wider opacity-80" id="txt-impact-rank">Your Civic Standing</div>
@@ -366,8 +377,28 @@
 
     </main>
 
-    <div id="status-live-region" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
+    <div id="status-live-region" tabindex="-1" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
     {% csrf_token %}
+
+    <div id="duplicate-modal" class="duplicate-modal-backdrop hidden fixed inset-0 z-[80] items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="duplicate-modal-title" aria-describedby="duplicate-modal-message">
+        <div class="duplicate-modal-panel w-full max-w-lg rounded-2xl bg-white p-5 shadow-2xl">
+            <div class="flex items-start justify-between gap-4">
+                <div>
+                    <p class="text-xs font-bold uppercase tracking-wide text-primary">Existing issue found</p>
+                    <h2 id="duplicate-modal-title" class="mt-1 text-lg font-black text-on-surface">Is this the same issue?</h2>
+                </div>
+                <button id="duplicate-modal-close" type="button" class="rounded-md p-1 text-on-surface-variant hover:bg-surface-container-low" aria-label="Close duplicate issue dialog">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+            <p id="duplicate-modal-message" class="mt-2 text-sm text-on-surface-variant">A similar issue is already recorded nearby.</p>
+            <div id="duplicate-modal-issue" class="mt-4"></div>
+            <div class="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                <button id="duplicate-modal-no" type="button" class="rounded-lg border border-primary px-4 py-2.5 text-sm font-bold text-primary hover:bg-primary/5">No, create a new report</button>
+                <button id="duplicate-modal-yes" type="button" class="rounded-lg bg-primary px-4 py-2.5 text-sm font-bold text-white hover:bg-primary-container">Yes, this is the same issue</button>
+            </div>
+        </div>
+    </div>
 
     <!-- ================================================================= -->
     <!-- CLIENT JAVASCRIPT: CAMERA + GPS + AI PREVIEW + WEB SPEECH         -->
@@ -397,13 +428,19 @@
 
         function updateEasyRead() {
             const button = document.getElementById('btn-easy-read');
+            document.body.classList.toggle('easy-read', easyRead);
             button.setAttribute('aria-pressed', String(easyRead));
+            button.setAttribute('aria-label', easyRead ? 'Turn off Easy Read mode' : 'Turn on Easy Read mode');
             button.classList.toggle('font-bold', easyRead);
             document.getElementById('txt-easy-read').textContent = currentLang === 'ta' ? 'எளிய வாசிப்பு' : 'Easy Read';
         }
 
         function csrfToken() {
             return document.querySelector('input[name="csrfmiddlewaretoken"]')?.value || '';
+        }
+
+        function saveAccessibilityPreference(preference) {
+            fetch('/api/users/profile/', { method: 'PATCH', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken() }, credentials: 'same-origin', body: JSON.stringify(preference) }).catch(() => {});
         }
 
         function escapeHtml(value) {
@@ -423,6 +460,7 @@
         function setLanguage(language) {
             currentLang = language;
             localStorage.setItem('civix-language', language);
+            saveAccessibilityPreference({ language });
             const t = translations[language];
             if (recognition) recognition.lang = language === 'ta' ? 'ta-IN' : 'en-IN';
             document.querySelectorAll('[data-i18n]').forEach((element) => { if (t[element.dataset.i18n]) element.textContent = t[element.dataset.i18n]; });
@@ -494,7 +532,9 @@
                 enableCaptureWhenReady();
             } catch (err) {
                 const statusTag = document.getElementById('camera-status-tag');
-                statusTag.textContent = err.name === 'NotAllowedError' ? 'Camera permission denied. Allow access and reload.' : 'Camera unavailable. Check permissions and reload.';
+                const cameraMessage = err.name === 'NotAllowedError' ? (currentLang === 'ta' ? 'கேமரா அனுமதி மறுக்கப்பட்டது. அனுமதித்து மீண்டும் ஏற்றவும்.' : 'Camera permission denied. Allow access and reload.') : (currentLang === 'ta' ? 'கேமரா கிடைக்கவில்லை. அனுமதிகளைச் சரிபார்த்து மீண்டும் ஏற்றவும்.' : 'Camera unavailable. Check permissions and reload.');
+                statusTag.textContent = cameraMessage;
+                announceError(cameraMessage);
                 statusTag.classList.add('text-red-300');
             }
         }
@@ -539,14 +579,16 @@
                     updateGpsLabels(capturedLocation.accuracy);
                     updateSubmitButton();
                 }).catch(() => {
-                    document.getElementById('gps-accuracy-badge').textContent = 'Location unavailable';
+                    const locationMessage = currentLang === 'ta' ? 'இருப்பிடம் கிடைக்கவில்லை.' : 'Location unavailable';
+                    document.getElementById('gps-accuracy-badge').textContent = locationMessage;
+                    announceError(locationMessage);
                     document.getElementById('gps-pulse').className = 'w-2.5 h-2.5 rounded-full bg-red-500';
                 });
             } catch (err) {
                 if (err.name === 'AbortError') return;
                 if (!capturedPhotoBlob) capturedLocation = null;
                 const message = err.code === 1 ? 'Location permission was denied. Allow location access and try again.' : err.code === 2 ? 'Your location could not be detected. Turn on GPS and try again.' : err.code === 3 ? 'GPS timed out. Move outdoors and try again.' : err.message || 'Capture failed. Check camera and location permissions.';
-                alert(message);
+                announceError(message);
                 if (!capturedPhotoBlob) {
                     btnCapture.disabled = false;
                     btnCapture.classList.remove('opacity-50', 'cursor-not-allowed');
@@ -591,12 +633,15 @@
                         const badge = document.getElementById('gps-accuracy-badge');
                         pulse.className = 'w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse';
                         badge.className = 'bg-red-100 text-red-800 font-bold px-2 py-0.5 rounded-md text-[11px]';
-                        badge.textContent = err.code === 1 ? 'Location blocked' : 'GPS unavailable';
+                        const gpsMessage = err.code === 1 ? (currentLang === 'ta' ? 'இருப்பிட அனுமதி தடுக்கப்பட்டது.' : 'Location blocked') : (currentLang === 'ta' ? 'ஜிபிஎஸ் கிடைக்கவில்லை.' : 'GPS unavailable');
+                        badge.textContent = gpsMessage;
+                        announceError(gpsMessage);
                     },
                     { enableHighAccuracy: true, maximumAge: 0, timeout: 30000 }
                 );
             } else {
-                document.getElementById('gps-accuracy-badge').textContent = 'GPS unavailable';
+                document.getElementById('gps-accuracy-badge').textContent = currentLang === 'ta' ? 'ஜிபிஎஸ் கிடைக்கவில்லை.' : 'GPS unavailable';
+                announceError(currentLang === 'ta' ? 'ஜிபிஎஸ் கிடைக்கவில்லை.' : 'GPS unavailable');
             }
         }
 
@@ -619,7 +664,17 @@
         let inputMethod = 'direct_camera';
 
         function announce(message) {
-            document.getElementById('status-live-region').textContent = message;
+            const region = document.getElementById('status-live-region');
+            region.textContent = '';
+            window.setTimeout(() => { region.textContent = message; }, 20);
+        }
+
+        function announceError(message) {
+            const region = document.getElementById('status-live-region');
+            region.setAttribute('role', 'alert');
+            announce(message);
+            region.focus();
+            window.setTimeout(() => region.setAttribute('role', 'status'), 1000);
         }
 
         let citizenNotifications = [];
@@ -727,9 +782,71 @@
             };
 
         // 5. Submit Report
+        const duplicateModal = document.getElementById('duplicate-modal');
+        const duplicateModalIssue = document.getElementById('duplicate-modal-issue');
+        let duplicateModalDecision = null;
+        let duplicateModalPreviousFocus = null;
+
+        function renderDuplicateIssue(issue) {
+            const image = issue.photo_urls?.[0] || '';
+            const location = reportLocationLabel(issue);
+            return `<article class="rounded-xl border border-outline-variant bg-surface-container-low p-3">
+                <div class="flex gap-3">
+                    ${image ? `<img src="${escapeHtml(image)}" alt="${escapeHtml(issue.title || 'Existing issue')}" class="h-24 w-28 shrink-0 rounded-lg object-cover" loading="lazy">` : ''}
+                    <div class="min-w-0">
+                        <h3 class="font-bold text-on-surface">${escapeHtml(issue.title || 'Civic issue')}</h3>
+                        <p class="mt-1 text-xs text-on-surface-variant">${escapeHtml(issue.description || 'No description provided.')}</p>
+                        <p class="mt-2 text-xs font-semibold text-primary">${escapeHtml(issue.category || 'Unspecified')} · ${escapeHtml(issue.status_label || issue.status || 'Reported')}</p>
+                        <p class="mt-1 text-xs text-on-surface-variant">${escapeHtml(location)}</p>
+                    </div>
+                </div>
+            </article>`;
+        }
+
+        function askAboutDuplicate(issues, message) {
+            return new Promise((resolve) => {
+                duplicateModalDecision = resolve;
+                duplicateModalPreviousFocus = document.activeElement;
+                document.getElementById('duplicate-modal-message').textContent = message || 'A similar issue is already recorded nearby.';
+                duplicateModalIssue.innerHTML = issues?.length ? issues.map(renderDuplicateIssue).join('') : '<p class="text-sm text-on-surface-variant">The existing issue details are unavailable.</p>';
+                duplicateModal.classList.remove('hidden');
+                duplicateModal.classList.add('flex');
+                document.getElementById('duplicate-modal-yes').focus();
+            });
+        }
+
+        function closeDuplicateModal(decision) {
+            duplicateModal.classList.add('hidden');
+            duplicateModal.classList.remove('flex');
+            if (duplicateModalDecision) duplicateModalDecision(decision);
+            duplicateModalDecision = null;
+            duplicateModalPreviousFocus?.focus();
+            duplicateModalPreviousFocus = null;
+        }
+
+        duplicateModal.addEventListener('keydown', (event) => {
+            if (event.key !== 'Tab') return;
+            const focusable = [...duplicateModal.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')].filter((element) => !element.disabled);
+            if (!focusable.length) return;
+            const first = focusable[0];
+            const last = focusable[focusable.length - 1];
+            if (event.shiftKey && document.activeElement === first) {
+                event.preventDefault();
+                last.focus();
+            } else if (!event.shiftKey && document.activeElement === last) {
+                event.preventDefault();
+                first.focus();
+            }
+        });
+
+        document.getElementById('duplicate-modal-yes').addEventListener('click', () => closeDuplicateModal(true));
+        document.getElementById('duplicate-modal-no').addEventListener('click', () => closeDuplicateModal(false));
+        document.getElementById('duplicate-modal-close').addEventListener('click', () => closeDuplicateModal(false));
+        duplicateModal.addEventListener('click', (event) => { if (event.target === duplicateModal) closeDuplicateModal(false); });
+
         async function submitReport(forceSubmit = false) {
             if (!capturedPhotoBlob || !capturedLocation) {
-                alert('Capture a photo and allow location access first.');
+                announceError(currentLang === 'ta' ? 'முதலில் புகைப்படம் எடுத்து இருப்பிட அனுமதியை வழங்கவும்.' : 'Capture a photo and allow location access first.');
                 return;
             }
             const formData = new FormData();
@@ -746,21 +863,28 @@
                 const response = await fetch('/api/issues/report/', { method: 'POST', headers: { 'X-CSRFToken': csrfToken() }, body: formData });
                 const data = await response.json();
                 if (data.duplicate_detected) {
-                    const submitAnyway = window.confirm(`${data.message || 'A similar issue already exists nearby.'}\n\nPress OK to submit this report anyway.`);
-                    if (submitAnyway) await submitReport(true);
-                    else {
+                    const sameIssue = await askAboutDuplicate(data.nearby_issues, data.message);
+                    if (sameIssue) {
+                        const existingIssue = data.nearby_issues?.[0];
+                        if (existingIssue?.id) {
+                            const upvoteResponse = await fetch(`/api/issues/${encodeURIComponent(existingIssue.id)}/upvote/`, { method: 'POST', headers: { 'X-CSRFToken': csrfToken() } });
+                            if (!upvoteResponse.ok) throw new Error('The existing issue was found, but could not be upvoted.');
+                        }
+                        announce(currentLang === 'ta' ? 'புதிய புகார் உருவாக்கப்படவில்லை. ஏற்கனவே உள்ள புகார் பயன்படுத்தப்பட்டது.' : 'No new report was created. The existing issue was kept as the matching report.');
                         submitReportButton.disabled = false;
                         submitReportButton.setAttribute('aria-disabled', 'false');
+                    } else {
+                        await submitReport(true);
                     }
                     return;
                 }
                 if (!response.ok || !data.success) throw new Error(data.error || 'Could not submit the report.');
-                alert(currentSubmissionMessage());
+                announce(currentSubmissionMessage());
                 location.reload();
             } catch (error) {
                 submitReportButton.disabled = false;
                 submitReportButton.setAttribute('aria-disabled', 'false');
-                alert('Error submitting report: ' + error.message);
+                announceError((currentLang === 'ta' ? 'புகார் சமர்ப்பிக்க முடியவில்லை: ' : 'Error submitting report: ') + error.message);
             }
         }
 
@@ -974,11 +1098,11 @@
                     return;
                 }
                 if (res.status === 403) {
-                    alert(data.error || 'You are not allowed to perform this action.');
+                    announceError(data.error || (currentLang === 'ta' ? 'இந்த செயலுக்கு அனுமதி இல்லை.' : 'You are not allowed to perform this action.'));
                     return;
                 }
                 if (!res.ok) {
-                    alert(data.error || 'Could not register your vote.');
+                    announceError(data.error || (currentLang === 'ta' ? 'உங்கள் வாக்கைப் பதிவு செய்ய முடியவில்லை.' : 'Could not register your vote.'));
                     return;
                 }
 
@@ -1008,7 +1132,7 @@
                 }
             } catch (err) {
                 console.error('Upvote failed', err);
-                alert('Network error while recording vote. Please try again.');
+                announceError(currentLang === 'ta' ? 'வாக்கைப் பதிவு செய்ய முடியவில்லை. மீண்டும் முயற்சிக்கவும்.' : 'Network error while recording vote. Please try again.');
             } finally {
                 button.dataset.upvoting = 'false';
             }
@@ -1045,10 +1169,20 @@
         }
 
         async function loadImpact() {
-            const [profileRes, reportsRes] = await Promise.all([fetch('/api/users/profile/'), fetch('/api/issues/my-reports/')]);
-            const profileData = await profileRes.json();
-            const reports = await reportsRes.json();
-            if (profileData.user) {
+            const reportsList = document.getElementById('impact-reports');
+            try {
+                const [profileRes, reportsRes] = await Promise.all([
+                    fetch('/api/users/profile/', { credentials: 'same-origin' }),
+                    fetch('/api/issues/my-reports/', { credentials: 'same-origin' })
+                ]);
+                const profileData = await profileRes.json();
+                const reports = await reportsRes.json();
+                if (!profileRes.ok || !profileData.user) {
+                    throw new Error(profileData.error || 'Please sign in to view your impact.');
+                }
+                if (!reportsRes.ok || !Array.isArray(reports)) {
+                    throw new Error(reports.error || 'Your reports could not be loaded.');
+                }
                 const user = profileData.user;
                 const points = Number(user.civic_points || 0);
                 const level = Number(user.level || 1);
@@ -1056,7 +1190,8 @@
                 const currentThreshold = thresholds[Math.min(level - 1, thresholds.length - 1)] || 0;
                 const nextThreshold = thresholds[level] || currentThreshold;
                 const progress = nextThreshold > currentThreshold ? Math.min(100, Math.max(0, ((points - currentThreshold) / (nextThreshold - currentThreshold)) * 100)) : 100;
-                document.getElementById('user-points-pill').textContent = `${points.toLocaleString()} Pts`;
+                const userPointsPill = document.getElementById('user-points-pill');
+                if (userPointsPill) userPointsPill.textContent = `${points.toLocaleString()} Pts`;
                 document.getElementById('impact-points').textContent = points.toLocaleString();
                 document.getElementById('impact-level').textContent = `Level ${level}`;
                 document.getElementById('impact-progress-bar').style.width = `${progress}%`;
@@ -1066,8 +1201,6 @@
                 document.getElementById('impact-upvote-count').textContent = Number(user.upvotes_given || 0).toLocaleString();
                 document.getElementById('impact-resolved-count').textContent = Number(user.issues_resolved || 0).toLocaleString();
                 document.getElementById('impact-verification-count').textContent = Number(user.verifications_done || 0).toLocaleString();
-            }
-            const reportsList = document.getElementById('impact-reports');
             reportsList.innerHTML = Array.isArray(reports) && reports.length ? reports.map(issue => {
                 const location = reportLocationLabel(issue);
                 const statusLabel = localizedStatus(issue.status);
@@ -1088,6 +1221,10 @@
             const earnedBadges = profileData.user?.badges || [];
             if (earnedBadges.length) earnedBadges.forEach(badge => { badgesList.insertAdjacentHTML('beforeend', `<div class="bg-white border border-outline-variant rounded-xl p-3 text-center"><div class="text-2xl">${escapeHtml(badge.badge_icon || 'Badge')}</div><strong class="block text-xs mt-1">${escapeHtml(badge.badge_name)}</strong><span class="text-[10px] text-secondary">Earned</span></div>`); });
             else badgesList.innerHTML = '<p class="col-span-2 text-sm text-on-surface-variant">No badges earned yet.</p>';
+            } catch (error) {
+                reportsList.innerHTML = `<p class="text-sm text-error" role="alert">${escapeHtml(error.message || 'Your impact could not be loaded.')}</p>`;
+                announceError(error.message || 'Your impact could not be loaded.');
+            }
         }
 
         function setPublicIssueView(view) {
@@ -1122,7 +1259,7 @@
             });
             const data = await response.json();
             if (!response.ok) {
-                alert(data.error || 'Could not submit verification.');
+                announceError(data.error || (currentLang === 'ta' ? 'சரிபார்ப்பை சமர்ப்பிக்க முடியவில்லை.' : 'Could not submit verification.'));
                 return;
             }
             speakText(currentLang === 'ta' ? 'சரிபார்ப்பு பதிவு செய்யப்பட்டது.' : 'Repair verification submitted.');
@@ -1133,6 +1270,8 @@
         document.querySelectorAll('.tab-btn').forEach(btn => {
             btn.addEventListener('click', () => {
                 document.querySelectorAll('.tab-btn').forEach(b => {
+                    b.setAttribute('aria-selected', String(b === btn));
+                    b.setAttribute('tabindex', b === btn ? '0' : '-1');
                     b.classList.remove('active', 'border-primary', 'text-primary');
                     b.classList.add('border-transparent', 'text-on-surface-variant');
                 });
@@ -1144,7 +1283,10 @@
                 if (btn.dataset.target === 'tab-nearby') {
                     setTimeout(() => { mapInstance && mapInstance.invalidateSize(); }, 200);
                 }
-                if (btn.dataset.target === 'tab-impact') loadImpact();
+                if (btn.dataset.target === 'tab-impact') {
+                    document.getElementById('impact-reports').innerHTML = '<p class="text-sm text-on-surface-variant">Loading your impact...</p>';
+                    window.setTimeout(() => { loadImpact(); }, 0);
+                }
             });
         });
 
@@ -1164,6 +1306,7 @@
         document.getElementById('btn-contrast').addEventListener('click', () => {
             const enabled = document.body.classList.toggle('high-contrast');
             localStorage.setItem('civix-contrast', enabled ? 'on' : 'off');
+            saveAccessibilityPreference({ high_contrast: enabled });
             document.getElementById('btn-contrast').setAttribute('aria-pressed', String(enabled));
             announce(enabled ? (currentLang === 'ta' ? 'மாறுபட்ட காட்சி இயக்கப்பட்டது' : 'High contrast enabled') : (currentLang === 'ta' ? 'மாறுபட்ட காட்சி முடக்கப்பட்டது' : 'High contrast disabled'));
         });
@@ -1171,6 +1314,7 @@
         document.getElementById('btn-easy-read').addEventListener('click', () => {
             easyRead = !easyRead;
             localStorage.setItem('civix-easy-read', easyRead ? 'on' : 'off');
+            saveAccessibilityPreference({ easy_read: easyRead });
             updateEasyRead();
             announce(easyRead ? (currentLang === 'ta' ? 'எளிய வாசிப்பு இயக்கப்பட்டது' : 'Easy Read enabled') : (currentLang === 'ta' ? 'எளிய வாசிப்பு முடக்கப்பட்டது' : 'Easy Read disabled'));
         });
@@ -1186,6 +1330,7 @@
         function setFontSize(scale) {
             document.documentElement.style.fontSize = scale;
             localStorage.setItem('civix-font-size', scale);
+            saveAccessibilityPreference({ font_size: scale === '130%' ? 'extra_large' : scale === '115%' ? 'large' : 'normal' });
             announce(currentLang === 'ta' ? 'எழுத்து அளவு மாற்றப்பட்டது' : 'Text size changed');
         }
 
@@ -1230,6 +1375,7 @@
                 document.getElementById('btn-contrast').setAttribute('aria-pressed', 'true');
             }
             if (localStorage.getItem('civix-font-size')) setFontSize(localStorage.getItem('civix-font-size'));
+            updateEasyRead();
             initCamera();
             initGPS();
             loadNearbyFeed();
@@ -1269,18 +1415,18 @@
         async function submitLogin() {
             const identifier = document.getElementById('login-identifier').value.trim();
             const password = document.getElementById('login-password').value;
-            if (!identifier || !password) { alert('Please enter identifier and password.'); return; }
+            if (!identifier || !password) { announceError(currentLang === 'ta' ? 'பயனர் பெயர் மற்றும் கடவுச்சொல்லை உள்ளிடவும்.' : 'Please enter identifier and password.'); return; }
             try {
                 document.getElementById('login-submit').disabled = true;
                 const res = await fetch('/api/users/login/', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken() }, body: JSON.stringify({ identifier, password }) });
                 const data = await res.json();
-                if (!res.ok) { alert(data.error || 'Login failed'); document.getElementById('login-submit').disabled = false; return; }
+                if (!res.ok) { announceError(data.error || (currentLang === 'ta' ? 'உள்நுழைவு தோல்வியடைந்தது.' : 'Login failed')); document.getElementById('login-submit').disabled = false; return; }
                 // Save minimal profile locally for UI updates
                 if (data.user) localStorage.setItem('civix_user', JSON.stringify(data.user));
                 hideLoginModal();
                 // Refresh nearby feed to enable upvote
                 loadNearbyFeed();
-                alert(data.message || 'Logged in');
+                announce(data.message || (currentLang === 'ta' ? 'உள்நுழைந்துவிட்டீர்கள்.' : 'Logged in'));
                 // If there was a pending upvote request, re-attempt it now
                 if (pendingUpvoteId) {
                     const btn = document.querySelector(`[data-issue-id="${pendingUpvoteId}"]`);
@@ -1291,7 +1437,7 @@
                 }
             } catch (err) {
                 console.error('Login error', err);
-                alert('Network error while logging in.');
+                announceError(currentLang === 'ta' ? 'உள்நுழைய முடியவில்லை. மீண்டும் முயற்சிக்கவும்.' : 'Network error while logging in.');
                 document.getElementById('login-submit').disabled = false;
             }
         }

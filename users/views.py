@@ -81,6 +81,7 @@ def serialize_user(user):
             "high_contrast": user.accessibility.high_contrast if user.accessibility else False,
             "font_size": user.accessibility.font_size if user.accessibility else "normal",
             "easy_read": user.accessibility.easy_read if user.accessibility else False,
+            "voice_enabled": user.accessibility.voice_enabled if user.accessibility else False,
         }
     }
 
@@ -340,6 +341,33 @@ class UserProfileView(MongoSafeAPIView):
             "user": serialize_user(user),
             "available_badges": all_badges
         }, status=status.HTTP_200_OK)
+
+    def patch(self, request):
+        user_id = request.session.get("civix_user_id")
+        user = CivixUser.objects(id=user_id).first() if user_id and len(user_id) == 24 else None
+        if not user:
+            return Response({"error": "No user found or unauthorized"}, status=status.HTTP_404_NOT_FOUND)
+
+        allowed = {
+            "language": {"en", "ta"},
+            "font_size": {"normal", "large", "extra_large"},
+        }
+        preferences = user.accessibility or AccessibilityPreferences()
+        for field, values in allowed.items():
+            if field in request.data:
+                value = request.data[field]
+                if value not in values:
+                    return Response({"error": f"Invalid accessibility value for {field}."}, status=status.HTTP_400_BAD_REQUEST)
+                setattr(preferences, field, value)
+        for field in ("high_contrast", "easy_read", "voice_enabled"):
+            if field in request.data:
+                value = request.data[field]
+                if not isinstance(value, bool):
+                    return Response({"error": f"{field} must be true or false."}, status=status.HTTP_400_BAD_REQUEST)
+                setattr(preferences, field, value)
+        user.accessibility = preferences
+        user.save()
+        return Response({"success": True, "accessibility": serialize_user(user)["accessibility"]}, status=status.HTTP_200_OK)
 
 
 class LeaderboardView(MongoSafeAPIView):
