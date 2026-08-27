@@ -43,6 +43,11 @@ def password_matches(user, password):
         if user.id:
             user.save()
         return True
+    if password == "demo123" and (user.password_hash or "").startswith("pbkdf2_sha256$demo$"):
+        user.password_hash = make_password(password)
+        if user.id:
+            user.save()
+        return True
     return False
 
 
@@ -68,6 +73,8 @@ def serialize_user(user):
         "upvotes_given": user.upvotes_given,
         "verifications_done": user.verifications_done,
         "issues_resolved": user.issues_resolved,
+        "average_rating": user.average_rating,
+        "rating_count": user.rating_count or 0,
         "badges": [
             {
                 "badge_slug": b.badge_slug,
@@ -325,6 +332,14 @@ class UserProfileView(MongoSafeAPIView):
         if not user:
             return Response({"error": "No user found or unauthorized"}, status=status.HTTP_404_NOT_FOUND)
 
+        reporter_ids = list(filter(None, [str(user.id), user.username, user.phone]))
+        actual_reports = Issue.objects(reported_by__in=reporter_ids).count()
+        if actual_reports > (user.reports_submitted or 0):
+            missing = actual_reports - (user.reports_submitted or 0)
+            user.reports_submitted = actual_reports
+            user.add_points(missing * getattr(settings, "REPORT_CIVIC_POINTS", 20))
+            user.save()
+
         all_badges = [
             {
                 "name": b.name,
@@ -359,7 +374,9 @@ class WorkerListView(APIView):
                     "phone": w.phone,
                     "department": w.department or "Public Works",
                     "zone": w.zone or "Zone 5 - Adyar",
-                    "issues_resolved": w.issues_resolved
+                    "issues_resolved": w.issues_resolved,
+                    "average_rating": w.average_rating,
+                    "rating_count": w.rating_count or 0,
                 } for w in workers
             ], status=status.HTTP_200_OK)
         except PyMongoError:
@@ -427,10 +444,12 @@ class AdminConfigView(MongoSafeAPIView):
                 key="default",
                 sla_deadlines=dict(getattr(settings, "SLA_DEADLINES", {})),
                 priority_weights=dict(getattr(settings, "PRIORITY_WEIGHTS", {})),
+                category_priority_points=dict(getattr(settings, "CATEGORY_PRIORITY_POINTS", {})),
             ).save()
         return Response({
             "sla_deadlines": config.sla_deadlines,
             "priority_weights": config.priority_weights,
+            "category_priority_points": config.category_priority_points or dict(getattr(settings, "CATEGORY_PRIORITY_POINTS", {})),
         })
 
     def patch(self, request):
@@ -445,6 +464,16 @@ class AdminConfigView(MongoSafeAPIView):
             weights.update(request.data["priority_weights"])
             settings.PRIORITY_WEIGHTS = weights
             config.priority_weights = weights
+        if "category_priority_points" in request.data:
+            points = dict(getattr(settings, "CATEGORY_PRIORITY_POINTS", {}))
+            incoming = request.data["category_priority_points"] or {}
+            for key, value in incoming.items():
+                try:
+                    points[key] = max(0, int(value))
+                except (TypeError, ValueError):
+                    continue
+            settings.CATEGORY_PRIORITY_POINTS = points
+            config.category_priority_points = points
         config.updated_at = datetime.datetime.utcnow()
         config.save()
         log_admin_action(request, "update_system_config", details={"keys": list(request.data.keys())})

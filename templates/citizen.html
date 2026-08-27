@@ -61,8 +61,12 @@
         .vote-button { transition: transform .18s ease, opacity .18s ease, background-color .18s ease; }
         .vote-button.animating { animation: vote-pop .24s ease; }
         .notification-panel { position: absolute; top: calc(100% + .5rem); right: 0; width: min(22rem, calc(100vw - 2rem)); max-height: 18rem; overflow-y: auto; z-index: 60; }
-        #accessibility-controls { min-width: 12rem; }
-        #accessibility-controls #btn-contrast, #accessibility-controls #btn-easy-read { width: 100% !important; flex-basis: auto !important; display: flex !important; }
+        .app-action-bar, .accessibility-bar { position: relative; }
+        .a11y-panel { display: none; position: absolute; left: .5rem; top: calc(100% + .35rem); z-index: 80; min-width: 14rem; flex-direction: column; align-items: stretch; gap: .25rem; padding: .5rem; border-radius: .75rem; background: #fff; border: 1px solid #d9d9e0; box-shadow: 0 12px 32px rgba(18,33,51,.16); }
+        .a11y-panel.is-open { display: flex; }
+        .a11y-panel button { width: 100%; min-height: 2.25rem; justify-content: flex-start; }
+        .impact-report-card details > summary { list-style: none; cursor: pointer; }
+        .impact-report-card details > summary::-webkit-details-marker { display: none; }
         .notification-item + .notification-item { border-top: 1px solid #d9d9e0; }
         #nearby-feed-list .issue-card, #resolved-feed-list .issue-card { min-width: 0; overflow: hidden; }
         #nearby-feed-list .issue-card > div:first-child, #resolved-feed-list .issue-card > div:first-child { min-width: 0; }
@@ -74,10 +78,7 @@
         .sr-only-focusable:focus { position: static; width: auto; height: auto; margin: 0; overflow: visible; clip: auto; }
         @media (max-width: 767px) {
             body { padding-bottom: 1.5rem; overflow-x: hidden; font-size: .875rem; }
-            body > nav[aria-label="Primary navigation"] { order: 1; }
-            body > header { order: 2; }
-            body > main { order: 3; }
-            body > header { align-items: center; flex-wrap: nowrap; gap: .35rem; padding: .35rem .5rem; white-space: nowrap; }
+            body > header { align-items: center; flex-wrap: nowrap; gap: .35rem; padding: .5rem .75rem; white-space: nowrap; }
             body > header > div:first-child { width: auto; flex-shrink: 0; }
             body > header > div:first-child { gap: .2rem; }
             body > header > div:last-child { min-width: 0; width: auto; margin-left: auto; justify-content: flex-end; flex-wrap: nowrap; gap: .2rem; }
@@ -118,13 +119,13 @@
             #nearby-feed-list .issue-card .issue-card-image, #resolved-feed-list .issue-card .issue-card-image { width: 100%; height: 8rem; flex: 0 0 8rem; }
             #nearby-feed-list .issue-card > div:first-child > div, #resolved-feed-list .issue-card > div:first-child > div { width: 100%; }
             #nearby-feed-list .issue-card .issue-card-title, #resolved-feed-list .issue-card .issue-card-title { white-space: normal; }
-            .notification-panel { position: fixed; top: 3.5rem; left: .5rem; right: .5rem; width: auto; max-height: min(18rem, calc(100vh - 5rem)); }
+            .notification-panel { position: fixed; top: 6.5rem; left: .5rem; right: .5rem; width: auto; max-height: min(18rem, calc(100vh - 8rem)); }
             #tab-report > *, #tab-nearby > *, #tab-impact > * { max-width: 100%; }
             .text-sm { font-size: .8125rem; }
             .text-base { font-size: .875rem; }
             .text-lg { font-size: 1rem; }
             #accessibility-controls #txt-contrast, #accessibility-controls #txt-easy-read { display: inline !important; }
-            #accessibility-controls { position: fixed; top: 2.5rem; right: .5rem; left: .5rem; width: auto; min-width: 0; }
+            #accessibility-controls { position: fixed; top: 6.5rem; right: .5rem; left: .5rem; width: auto; min-width: 0; max-height: calc(100vh - 8rem); overflow-y: auto; }
             body > header button, body > header a { min-height: 28px !important; min-width: 28px !important; padding: 0 3px; font-size: 10px !important; line-height: 14px; }
             #btn-contrast, #btn-easy-read { display: inline-flex !important; flex: 0 0 28px !important; width: 28px !important; height: 28px !important; }
             body > header > div:last-child > div > button { min-width: 24px !important; width: 24px !important; height: 28px !important; }
@@ -150,69 +151,50 @@
 <body class="bg-surface text-on-surface min-h-screen flex flex-col font-sans pb-24 transition-all civix-enter">
     <a href="#main-content" class="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:bg-white focus:px-4 focus:py-2 focus:text-primary focus:font-bold focus:shadow-lg">Skip to main content</a>
 
-    <!-- Global Accessibility Header -->
-    <header class="bg-primary text-on-primary py-2 px-4 flex justify-between items-center text-xs font-semibold shadow-sm z-50 relative">
-        <div class="flex items-center gap-2">
-            <button id="btn-language" type="button" class="p-1 rounded hover:bg-white/20" aria-label="Switch interface language to Tamil" title="Switch language">
-                <span class="material-symbols-outlined text-sm">language</span>
-            </button>
-        </div>
-        <div class="flex items-center gap-3">
-            <div class="relative">
-                <button id="btn-accessibility-menu" type="button" class="p-1 rounded hover:bg-white/20" aria-expanded="false" aria-controls="accessibility-controls" aria-label="Open accessibility options">
-                    <span class="material-symbols-outlined text-sm">menu</span>
-                </button>
-                <div id="accessibility-controls" class="hidden absolute right-0 top-full z-[100] mt-2 min-w-48 p-2 bg-white text-on-surface border border-outline-variant rounded-lg shadow-xl">
-                    <button id="btn-contrast" type="button" class="w-full flex items-center gap-2 px-2 py-1.5 rounded hover:bg-surface-container transition-colors" aria-pressed="false" aria-label="Toggle high contrast mode">
-                        <span class="material-symbols-outlined text-sm text-primary">contrast</span>
-                        <span id="txt-contrast">Contrast</span>
-                    </button>
-                    <button id="btn-easy-read" type="button" class="w-full flex items-center gap-2 px-2 py-1.5 rounded hover:bg-surface-container transition-colors" aria-pressed="false" aria-label="Toggle Easy Read mode">
-                        <span class="material-symbols-outlined text-sm text-primary">text_fields</span>
-                        <span id="txt-easy-read">Easy Read</span>
-                    </button>
-                    <div class="flex items-center justify-between gap-1 border-t border-outline-variant mt-1 pt-1">
-                        <button type="button" onclick="setFontSize('100%')" class="px-2 py-1 rounded hover:bg-surface-container" aria-label="Use normal text size">A</button>
-                        <button type="button" onclick="setFontSize('115%')" class="px-2 py-1 rounded hover:bg-surface-container font-bold" aria-label="Increase text size">A+</button>
-                        <button type="button" onclick="setFontSize('130%')" class="px-2 py-1 rounded hover:bg-surface-container text-sm font-black" aria-label="Use largest text size">A++</button>
-                    </div>
-                </div>
-            </div>
-            <!-- Portal Switcher Links -->
-            <nav aria-label="Portal navigation" class="flex items-center justify-center gap-1 border-l border-white/30 pl-2">
-                <a href="/api/users/logout/" class="inline-flex items-center justify-center text-center hover:underline opacity-90" data-i18n="logout">Logout</a>
-            </nav>
-        </div>
+    <!-- App name header -->
+    <header class="app-name-bar bg-primary text-white py-3 px-4 flex items-center gap-2 shadow-sm z-50">
+        <img src="{% static 'nagara_setu_logo.svg' %}" alt="Nagara Setu logo" class="w-9 h-9 object-contain rounded-full bg-white p-0.5"/>
+        <h1 class="font-extrabold text-xl tracking-tight leading-tight">Nagara Setu</h1>
     </header>
-
-    <!-- Top App Navigation -->
-    <nav aria-label="Primary navigation" class="flex justify-between items-center px-4 py-3 bg-white border-b border-outline-variant max-w-4xl w-full mx-auto civix-glass">
-        <div class="flex items-center gap-2">
-            <img src="{% static 'nagara_setu_logo.svg' %}" alt="Nagara Setu logo" class="w-10 h-10 object-contain rounded-full bg-white p-0.5"/>
-            <h1 class="font-extrabold text-2xl tracking-tight text-primary">Nagara Setu</h1>
-            <span class="text-xs bg-primary/10 text-primary font-bold px-2 py-0.5 rounded-full" id="role-pill" data-i18n="citizen">Citizen</span>
-        </div>
-        <div class="flex items-center gap-3">
-            <div class="relative">
-                <button id="btn-notifications" type="button" aria-label="Open notifications" aria-expanded="false" class="relative p-2 rounded-lg text-primary hover:bg-surface-container flex items-center justify-center">
-                    <span class="material-symbols-outlined text-xl">notifications</span>
-                    <span id="notification-count" class="hidden absolute -right-1 -top-1 min-w-4 h-4 px-1 rounded-full bg-red-600 text-white text-[10px] leading-4 font-bold">0</span>
-                </button>
-                <div id="notification-panel" class="notification-panel hidden bg-white border border-outline-variant rounded-xl shadow-lg" role="region" aria-label="Notifications">
-                    <div class="px-3 py-2 border-b border-outline-variant flex items-center justify-between">
-                        <span class="text-xs font-bold text-on-surface">Notifications</span>
-                        <span id="notification-summary" class="text-[10px] text-on-surface-variant">No new notifications</span>
-                    </div>
-                    <div id="notification-list"></div>
-                </div>
+    <div class="accessibility-bar relative bg-white border-b border-outline-variant px-3 py-2 flex items-center justify-between gap-2 text-xs z-40">
+        <button id="btn-accessibility-menu" type="button" class="p-1.5 rounded hover:bg-surface-container text-on-surface" aria-label="Open accessibility menu" aria-expanded="false" aria-controls="accessibility-controls">
+            <span class="material-symbols-outlined text-lg">menu</span>
+        </button>
+        <div id="accessibility-controls" class="a11y-panel" role="menu">
+            <button id="btn-contrast" type="button" class="px-2 py-1 rounded hover:bg-surface-container" aria-pressed="false" aria-label="Toggle high contrast mode">
+                <span id="txt-contrast">Contrast</span>
+            </button>
+            <button id="btn-easy-read" type="button" class="px-2 py-1 rounded hover:bg-surface-container" aria-pressed="false" aria-label="Toggle Easy Read mode">
+                <span id="txt-easy-read" data-i18n="easyRead">Easy Read</span>
+            </button>
+            <div class="flex gap-1">
+                <button type="button" onclick="setFontSize('100%')" class="flex-1 px-2 py-1 rounded hover:bg-surface-container" aria-label="Use normal text size">A</button>
+                <button type="button" onclick="setFontSize('115%')" class="flex-1 px-2 py-1 rounded hover:bg-surface-container font-bold" aria-label="Increase text size">A+</button>
+                <button type="button" onclick="setFontSize('130%')" class="flex-1 px-2 py-1 rounded hover:bg-surface-container text-sm font-black" aria-label="Use largest text size">A++</button>
             </div>
-            <!-- Read Aloud Text-to-Speech Trigger -->
-            <button id="btn-read-aloud" type="button" title="Read Aloud Instructions (TTS)" aria-label="Read reporting instructions aloud" aria-pressed="false" class="px-2 py-1 rounded hover:bg-surface-container text-primary flex items-center justify-center gap-1">
-                <span id="read-aloud-icon" class="material-symbols-outlined text-2xl">volume_up</span>
+            <button id="btn-read-aloud" type="button" title="Read Aloud Instructions (TTS)" aria-label="Read reporting instructions aloud" aria-pressed="false" class="px-2 py-1 rounded hover:bg-surface-container text-primary flex items-center gap-1">
+                <span id="read-aloud-icon" class="material-symbols-outlined text-lg">volume_up</span>
                 <span data-i18n="readAloud">Read aloud</span>
             </button>
         </div>
-    </nav>
+        <div class="relative ml-auto flex items-center gap-2">
+            <button id="btn-language" type="button" class="p-1.5 rounded hover:bg-surface-container text-primary" aria-label="Switch interface language to Tamil" title="Switch language">
+                <span class="material-symbols-outlined text-lg">language</span>
+            </button>
+            <button id="btn-notifications" type="button" aria-label="Open notifications" aria-expanded="false" class="relative p-1.5 rounded hover:bg-surface-container flex items-center justify-center">
+                <span class="material-symbols-outlined text-xl">notifications</span>
+                <span id="notification-count" class="hidden absolute -right-1 -top-1 min-w-4 h-4 px-1 rounded-full bg-red-600 text-white text-[10px] leading-4 font-bold">0</span>
+            </button>
+            <div id="notification-panel" class="notification-panel hidden bg-white border border-outline-variant rounded-xl shadow-lg text-on-surface" role="region" aria-label="Notifications">
+                <div class="px-3 py-2 border-b border-outline-variant flex items-center justify-between">
+                    <span class="text-xs font-bold" data-i18n="notifications">Notifications</span>
+                    <span id="notification-summary" class="text-[10px] text-on-surface-variant">No new notifications</span>
+                </div>
+                <div id="notification-list"></div>
+            </div>
+            <a href="/api/users/logout/" class="text-xs font-bold underline px-2" data-i18n="logout">Logout</a>
+        </div>
+    </div>
 
     <!-- Main Mobile Container -->
     <main id="main-content" tabindex="-1" class="flex-1 w-full max-w-4xl mx-auto px-4 py-4">
@@ -221,15 +203,15 @@
         <div class="flex border-b border-outline-variant mb-5">
             <button class="tab-btn active flex-1 py-2.5 font-bold text-sm border-b-2 border-primary text-primary flex items-center justify-center gap-1.5" data-target="tab-nearby">
                 <span class="material-symbols-outlined text-lg">near_me</span>
-                <span id="txt-tab-nearby">Nearby & Upvote</span>
+                <span id="txt-tab-nearby" data-i18n="tabNearby">Nearby & Upvote</span>
             </button>
             <button class="tab-btn flex-1 py-2.5 font-bold text-sm border-b-2 border-transparent text-on-surface-variant hover:text-primary flex items-center justify-center gap-1.5" data-target="tab-report">
                 <span class="material-symbols-outlined text-lg">photo_camera</span>
-                <span id="txt-tab-report">Report Issue</span>
+                <span id="txt-tab-report" data-i18n="tabReport">Report Issue</span>
             </button>
             <button class="tab-btn flex-1 py-2.5 font-bold text-sm border-b-2 border-transparent text-on-surface-variant hover:text-primary flex items-center justify-center gap-1.5" data-target="tab-impact">
                 <span class="material-symbols-outlined text-lg">military_tech</span>
-                <span id="txt-tab-impact">My Impact</span>
+                <span id="txt-tab-impact" data-i18n="tabImpact">My Impact</span>
             </button>
         </div>
 
@@ -305,7 +287,7 @@
             <!-- Submit Button -->
             <button id="btn-submit-report" type="button" disabled aria-disabled="true" class="w-full bg-primary text-white py-3.5 rounded-xl font-bold text-sm shadow-md hover:bg-primary-container active:scale-98 transition-all flex items-center justify-center gap-2 opacity-50 cursor-not-allowed">
                 <span class="material-symbols-outlined text-lg">send</span>
-                <span id="btn-submit-text">Submit Report</span>
+                <span id="btn-submit-text" data-i18n="submitBtn">Submit Report</span>
             </button>
         </section>
 
@@ -331,7 +313,7 @@
         <section id="tab-impact" class="tab-content flex-col gap-4">
             <!-- Points Card -->
             <div class="bg-gradient-to-r from-primary to-primary-container text-white p-4 rounded-2xl shadow-lg relative overflow-hidden">
-                <div class="text-xs uppercase font-bold tracking-wider opacity-80" id="txt-impact-rank">Your Civic Standing</div>
+                <div class="text-xs uppercase font-bold tracking-wider opacity-80" id="txt-impact-rank" data-i18n="civicStanding">Your Civic Standing</div>
                 <div class="flex items-center gap-3 my-2">
                     <span class="material-symbols-outlined text-3xl text-amber-300">stars</span>
                     <span id="impact-points" class="font-mono text-2xl font-black">0</span>
@@ -347,10 +329,10 @@
             </div>
 
             <div class="grid grid-cols-2 gap-3" aria-label="Contribution summary">
-                <div class="bg-white border border-outline-variant rounded-xl p-3"><span class="material-symbols-outlined text-primary text-lg">assignment</span><strong id="impact-report-count" class="block text-xl mt-1">0</strong><span class="text-[10px] text-on-surface-variant">Reports submitted</span></div>
-                <div class="bg-white border border-outline-variant rounded-xl p-3"><span class="material-symbols-outlined text-secondary text-lg">verified</span><strong id="impact-verification-count" class="block text-xl mt-1">0</strong><span class="text-[10px] text-on-surface-variant">Reports confirmed</span></div>
-                <div class="bg-white border border-outline-variant rounded-xl p-3"><span class="material-symbols-outlined text-emerald-600 text-lg">task_alt</span><strong id="impact-resolved-count" class="block text-xl mt-1">0</strong><span class="text-[10px] text-on-surface-variant">Issues resolved</span></div>
-                <div class="bg-white border border-outline-variant rounded-xl p-3"><span class="material-symbols-outlined text-primary text-lg">thumb_up</span><strong id="impact-upvote-count" class="block text-xl mt-1">0</strong><span class="text-[10px] text-on-surface-variant">Genuine issues upvoted</span></div>
+                <div class="bg-white border border-outline-variant rounded-xl p-3"><span class="material-symbols-outlined text-primary text-lg">assignment</span><strong id="impact-report-count" class="block text-xl mt-1">0</strong><span class="text-[10px] text-on-surface-variant" data-i18n="reportsSubmitted">Reports submitted</span></div>
+                <div class="bg-white border border-outline-variant rounded-xl p-3"><span class="material-symbols-outlined text-secondary text-lg">verified</span><strong id="impact-verification-count" class="block text-xl mt-1">0</strong><span class="text-[10px] text-on-surface-variant" data-i18n="reportsConfirmed">Reports confirmed</span></div>
+                <div class="bg-white border border-outline-variant rounded-xl p-3"><span class="material-symbols-outlined text-emerald-600 text-lg">task_alt</span><strong id="impact-resolved-count" class="block text-xl mt-1">0</strong><span class="text-[10px] text-on-surface-variant" data-i18n="issuesResolved">Issues resolved</span></div>
+                <div class="bg-white border border-outline-variant rounded-xl p-3"><span class="material-symbols-outlined text-primary text-lg">thumb_up</span><strong id="impact-upvote-count" class="block text-xl mt-1">0</strong><span class="text-[10px] text-on-surface-variant" data-i18n="genuineUpvoted">Genuine issues upvoted</span></div>
             </div>
 
             <section aria-labelledby="my-reports-heading" class="flex flex-col gap-3">
@@ -368,6 +350,18 @@
 
     <div id="status-live-region" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
     {% csrf_token %}
+    <div id="duplicate-modal" class="hidden fixed inset-0 z-[80] bg-black/60 flex items-end sm:items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="duplicate-title">
+        <div class="bg-white rounded-2xl w-full max-w-md p-4 shadow-2xl flex flex-col gap-3">
+            <h2 id="duplicate-title" class="font-bold text-base text-on-surface" data-i18n="dupTitle">Is this the same issue?</h2>
+            <p id="duplicate-message" class="text-sm text-on-surface-variant"></p>
+            <img id="duplicate-photo" alt="Existing issue photo" class="hidden w-full h-44 object-cover rounded-xl border border-outline-variant"/>
+            <p id="duplicate-meta" class="text-xs text-on-surface-variant"></p>
+            <div class="flex gap-2">
+                <button id="duplicate-yes" type="button" class="flex-1 bg-primary text-white py-3 rounded-xl font-bold text-sm" data-i18n="dupYes">Yes, same issue</button>
+                <button id="duplicate-no" type="button" class="flex-1 border border-outline-variant py-3 rounded-xl font-bold text-sm" data-i18n="dupNo">No, create new report</button>
+            </div>
+        </div>
+    </div>
 
     <!-- ================================================================= -->
     <!-- CLIENT JAVASCRIPT: CAMERA + GPS + AI PREVIEW + WEB SPEECH         -->
@@ -411,8 +405,8 @@
         }
 
         const translations = {
-            en: { tabReport: 'Report Issue', tabNearby: 'Nearby & Upvote', tabImpact: 'My Impact', categoryLbl: 'Category', roadOption: 'Roads & Pavements (Potholes, Footpath)', waterOption: 'Water Supply (Pipe Leaks, Contamination)', wasteOption: 'Waste Management (Garbage, Dumps)', electricityOption: 'Electricity (Streetlights, Transformers)', drainageOption: 'Drainage & Sewage (Waterlogging, Flooding)', safetyOption: 'Public Safety (Open Manholes, Signals)', environmentOption: 'Environment & Parks', otherOption: 'Other Civic Issues', descLbl: 'Voice / Text Description', submitBtn: 'Submit Report', contrast: 'Contrast', micStatus: 'Tap mic to speak (EN/TA)', nearbyHeader: 'Nearby Issues', earnedBadges: 'Earned Civic Badges', citizen: 'Citizen', cameraReady: 'Live Viewfinder', worker: 'Worker', command: 'Command', logout: 'Logout', readAloud: 'Read aloud', stopReadAloud: 'Stop reading', retake: 'Retake', speak: 'Speak', takePhoto: 'Take photo', descriptionPlaceholder: 'Describe the civic issue...' , gps: 'GPS', accuracy: 'Acc:', listening: 'Listening...', transcribed: 'Transcribed!', ready: 'Tap mic to speak (EN/TA)', speechUnavailable: 'Voice input is unavailable; type your description.', speechPrompt: 'Welcome to Nagara Setu. Point your camera at the civic issue, capture a photo, and confirm your live location.' },
-            ta: { tabReport: 'புகார் பதிவு', tabNearby: 'அருகிலுள்ள புகார்கள்', tabImpact: 'எனது பங்களிப்பு', categoryLbl: 'புகார் வகை', roadOption: 'சாலைகள் மற்றும் நடைபாதைகள் (குழிகள், நடைபாதை)', waterOption: 'குடிநீர் வழங்கல் (குழாய் கசிவு, மாசுபாடு)', wasteOption: 'கழிவு மேலாண்மை (குப்பை, குப்பைக் குவியல்)', electricityOption: 'மின்சாரம் (தெருவிளக்குகள், மின்மாற்றிகள்)', drainageOption: 'வடிகால் மற்றும் கழிவுநீர் (நீர்த்தேக்கம், வெள்ளம்)', safetyOption: 'பொது பாதுகாப்பு (திறந்த கழிவுநீர் குழிகள், சிக்னல்கள்)', environmentOption: 'சுற்றுச்சூழல் மற்றும் பூங்காக்கள்', otherOption: 'பிற குடிமைப் பிரச்சினைகள்', descLbl: 'குரல் / உரை விளக்கம்', submitBtn: 'புகாரை சமர்ப்பிக்கவும்', contrast: 'மாறுபாடு', micStatus: 'பேச மைக் பொத்தானை அழுத்தவும்', nearbyHeader: 'அருகிலுள்ள புகார்கள்', earnedBadges: 'பெற்ற பேட்ஜ்கள்', citizen: 'குடிமகன்', cameraReady: 'நேரடி காட்சி', worker: 'பணியாளர்', command: 'கட்டுப்பாடு', logout: 'வெளியேறு', readAloud: 'வாசிக்கவும்', stopReadAloud: 'வாசிப்பை நிறுத்தவும்', retake: 'மீண்டும் எடுக்கவும்', speak: 'பேசவும்', takePhoto: 'புகைப்படம் எடுக்கவும்', descriptionPlaceholder: 'குடிமைப் பிரச்சினையை விவரிக்கவும்...', gps: 'ஜிபிஎஸ்', accuracy: 'துல்லியம்:', listening: 'கேட்கிறது...', transcribed: 'உரையாக மாற்றப்பட்டது!', ready: 'பேச மைக் பொத்தானை அழுத்தவும்', speechUnavailable: 'குரல் உள்ளீடு கிடைக்கவில்லை; தட்டச்சு செய்யவும்.', speechPrompt: 'நகரப் பிரச்சினையை நோக்கி கேமராவைத் திருப்பி புகைப்படம் எடுக்கவும்.' }
+            en: { tabReport: 'Report Issue', tabNearby: 'Nearby & Upvote', tabImpact: 'My Impact', categoryLbl: 'Category', roadOption: 'Roads & Pavements (Potholes, Footpath)', waterOption: 'Water Supply (Pipe Leaks, Contamination)', wasteOption: 'Waste Management (Garbage, Dumps)', electricityOption: 'Electricity (Streetlights, Transformers)', drainageOption: 'Drainage & Sewage (Waterlogging, Flooding)', safetyOption: 'Public Safety (Open Manholes, Signals)', environmentOption: 'Environment & Parks', otherOption: 'Other Civic Issues', descLbl: 'Voice / Text Description', submitBtn: 'Submit Report', contrast: 'Contrast', micStatus: 'Tap mic to speak (EN/TA)', nearbyHeader: 'Nearby Issues', earnedBadges: 'Earned Civic Badges', citizen: 'Citizen', cameraReady: 'Live Viewfinder', worker: 'Worker', command: 'Command', logout: 'Logout', notifications: 'Notifications', nearbyIssues: 'Nearby Issues', resolvedIssues: 'Resolved Issues', dupTitle: 'Is this the same issue?', dupYes: 'Yes, same issue', dupNo: 'No, create new report', rateWorker: 'Rate this worker', thanksRating: 'Thanks for rating this worker', reportsSubmitted: 'Reports submitted', noNearby: 'No nearby issues found.', noResolved: 'No resolved issues yet.', resolvedBy: 'Resolved by', quality: 'Quality', readAloud: 'Read aloud', stopReadAloud: 'Stop reading', retake: 'Retake', speak: 'Speak', takePhoto: 'Take photo', descriptionPlaceholder: 'Describe the civic issue...' , gps: 'GPS', accuracy: 'Acc:', listening: 'Listening...', transcribed: 'Transcribed!', ready: 'Tap mic to speak (EN/TA)', speechUnavailable: 'Voice input is unavailable; type your description.', speechPrompt: 'Welcome to Nagara Setu. Point your camera at the civic issue, capture a photo, and confirm your live location.', easyRead: 'Easy Read', civicStanding: 'Your Civic Standing', reportsConfirmed: 'Reports confirmed', issuesResolved: 'Issues resolved', upvotedGenuine: 'Genuine issues upvoted', myReports: 'Issues reported by you', noReports: 'No reports submitted yet.', noBadges: 'No badges earned yet.', earned: 'Earned', publicStatus: 'Public status', evidence: 'Evidence', reported: 'Reported', location: 'Location', upvotes: 'upvotes', noImage: 'No image', gpsAcquiring: 'Acquiring live location...', cameraReadyTap: 'Camera Ready - Tap to Capture', capturing: 'Capturing photo...', waitingGps: 'Waiting for GPS', creditsAdded: '+20 civic credits added to My Impact.', sameIssueSupport: 'You supported the existing issue. No new report was created.', dupMessage: 'An existing report was found nearby. Is this the same issue?', noNewNotifs: 'No new notifications', captureFirst: 'Capture a photo and allow location access first.', highestLevel: 'Highest level reached', ptsToLevel: 'pts to Level', levelWord: 'Level', progress: 'Progress' },
+            ta: { tabReport: 'புகார் பதிவு', tabNearby: 'அருகிலுள்ள புகார்கள்', tabImpact: 'எனது பங்களிப்பு', categoryLbl: 'புகார் வகை', roadOption: 'சாலைகள் மற்றும் நடைபாதைகள் (குழிகள், நடைபாதை)', waterOption: 'குடிநீர் வழங்கல் (குழாய் கசிவு, மாசுபாடு)', wasteOption: 'கழிவு மேலாண்மை (குப்பை, குப்பைக் குவியல்)', electricityOption: 'மின்சாரம் (தெருவிளக்குகள், மின்மாற்றிகள்)', drainageOption: 'வடிகால் மற்றும் கழிவுநீர் (நீர்த்தேக்கம், வெள்ளம்)', safetyOption: 'பொது பாதுகாப்பு (திறந்த கழிவுநீர் குழிகள், சிக்னல்கள்)', environmentOption: 'சுற்றுச்சூழல் மற்றும் பூங்காக்கள்', otherOption: 'பிற குடிமைப் பிரச்சினைகள்', descLbl: 'குரல் / உரை விளக்கம்', submitBtn: 'புகாரை சமர்ப்பிக்கவும்', contrast: 'மாறுபாடு', micStatus: 'பேச மைக் பொத்தானை அழுத்தவும்', nearbyHeader: 'அருகிலுள்ள புகார்கள்', earnedBadges: 'பெற்ற பேட்ஜ்கள்', citizen: 'குடிமகன்', cameraReady: 'நேரடி காட்சி', worker: 'பணியாளர்', command: 'கட்டுப்பாடு', logout: 'வெளியேறு', notifications: 'அறிவிப்புகள்', nearbyIssues: 'அருகிலுள்ள புகார்கள்', resolvedIssues: 'தீர்க்கப்பட்ட புகார்கள்', dupTitle: 'இது அதே புகாரா?', dupYes: 'ஆம், அதே புகார்', dupNo: 'இல்லை, புதிய புகார்', rateWorker: 'பணியாளரை மதிப்பிடுக', thanksRating: 'மதிப்பீட்டிற்கு நன்றி', reportsSubmitted: 'சமர்ப்பிக்கப்பட்ட புகார்கள்', noNearby: 'அருகில் புகார்கள் இல்லை.', noResolved: 'தீர்க்கப்பட்ட புகார்கள் இல்லை.', resolvedBy: 'தீர்த்தவர்', quality: 'தரம்', readAloud: 'வாசிக்கவும்', stopReadAloud: 'வாசிப்பை நிறுத்தவும்', retake: 'மீண்டும் எடுக்கவும்', speak: 'பேசவும்', takePhoto: 'புகைப்படம் எடுக்கவும்', descriptionPlaceholder: 'குடிமைப் பிரச்சினையை விவரிக்கவும்...', gps: 'ஜிபிஎஸ்', accuracy: 'துல்லியம்:', listening: 'கேட்கிறது...', transcribed: 'உரையாக மாற்றப்பட்டது!', ready: 'பேச மைக் பொத்தானை அழுத்தவும்', speechUnavailable: 'குரல் உள்ளீடு கிடைக்கவில்லை; தட்டச்சு செய்யவும்.', speechPrompt: 'நகர சேது. குடிமைப் பிரச்சினையை நோக்கி கேமராவைத் திருப்பி புகைப்படம் எடுக்கவும், இருப்பிடத்தை உறுதிப்படுத்தவும்.', easyRead: 'எளிய வாசிப்பு', civicStanding: 'உங்கள் குடிமை நிலை', reportsConfirmed: 'உறுதிப்படுத்தப்பட்ட புகார்கள்', issuesResolved: 'தீர்க்கப்பட்டவை', upvotedGenuine: 'ஆதரிக்கப்பட்ட புகார்கள்', myReports: 'நீங்கள் பதிவு செய்த புகார்கள்', noReports: 'இன்னும் புகார்கள் இல்லை.', noBadges: 'பேட்ஜ்கள் இல்லை.', earned: 'பெற்றது', publicStatus: 'பொது நிலை', evidence: 'சான்று', reported: 'புகார் நாள்', location: 'இடம்', upvotes: 'வாக்குகள்', noImage: 'படம் இல்லை', gpsAcquiring: 'நேரடி இருப்பிடம் பெறப்படுகிறது...', cameraReadyTap: 'கேமரா தயார் - படம் எடுக்க அழுத்தவும்', capturing: 'புகைப்படம் எடுக்கப்படுகிறது...', waitingGps: 'ஜிபிஎஸுக்காக காத்திருக்கிறது', creditsAdded: 'எனது பங்களிப்பில் +20 குடிமைப் புள்ளிகள் சேர்க்கப்பட்டன.', sameIssueSupport: 'இருக்கும் புகாருக்கு வாக்களிக்கப்பட்டது. புதிய புகார் உருவாக்கப்படவில்லை.', dupMessage: 'அருகில் ஏற்கனவே ஒரு புகார் உள்ளது. இது அதே புகாரா?', noNewNotifs: 'புதிய அறிவிப்புகள் இல்லை', captureFirst: 'முதலில் புகைப்படம் எடுத்து இருப்பிடத்தை அனுமதிக்கவும்.', highestLevel: 'உயர் நிலை அடைந்தது', ptsToLevel: 'புள்ளிகள் அடுத்த நிலைக்கு', levelWord: 'நிலை', progress: 'முன்னேற்றம்' }
         };
 
         const localizedStatus = (status) => {
@@ -426,14 +420,28 @@
             const t = translations[language];
             if (recognition) recognition.lang = language === 'ta' ? 'ta-IN' : 'en-IN';
             document.querySelectorAll('[data-i18n]').forEach((element) => { if (t[element.dataset.i18n]) element.textContent = t[element.dataset.i18n]; });
-            document.getElementById('lbl-category').textContent = t.categoryLbl;
-            document.getElementById('lbl-description').textContent = t.descLbl;
-            document.getElementById('txt-contrast').textContent = t.contrast;
-            document.getElementById('mic-status-label').textContent = t.micStatus;
-            btnSpeech.setAttribute('aria-label', language === 'ta' ? 'தமிழில் விளக்கத்தைப் பேசவும்' : 'Speak the description in English');
-            btnSpeech.title = language === 'ta' ? 'தமிழில் பேசவும்' : 'Speak in English';
-            document.getElementById('nearby-view-button').innerHTML = `${t.nearbyHeader} (<span id="nearby-issue-count">${document.getElementById('nearby-issue-count')?.textContent || 0}</span>)`;
-            document.getElementById('txt-earned-badges').textContent = t.earnedBadges;
+            document.querySelectorAll('#issue-category-select option').forEach((option) => {
+                const key = option.getAttribute('data-i18n');
+                if (key && t[key]) option.textContent = t[key];
+            });
+            const setText = (id, value) => { const node = document.getElementById(id); if (node) node.textContent = value; };
+            setText('txt-tab-nearby', t.tabNearby);
+            setText('txt-tab-report', t.tabReport);
+            setText('txt-tab-impact', t.tabImpact);
+            setText('btn-submit-text', t.submitBtn);
+            setText('lbl-category', t.categoryLbl);
+            setText('lbl-description', t.descLbl);
+            setText('txt-contrast', t.contrast);
+            setText('mic-status-label', t.micStatus);
+            if (typeof btnSpeech !== 'undefined' && btnSpeech) {
+                btnSpeech.setAttribute('aria-label', language === 'ta' ? 'தமிழில் விளக்கத்தைப் பேசவும்' : 'Speak the description in English');
+                btnSpeech.title = language === 'ta' ? 'தமிழில் பேசவும்' : 'Speak in English';
+            }
+            const nearbyButton = document.getElementById('nearby-view-button');
+            if (nearbyButton) nearbyButton.innerHTML = `${t.nearbyIssues} (<span id="nearby-issue-count">${document.getElementById('nearby-issue-count')?.textContent || 0}</span>)`;
+            const resolvedButton = document.getElementById('resolved-view-button');
+            if (resolvedButton) resolvedButton.innerHTML = `${t.resolvedIssues} (<span id="resolved-issue-count">${document.getElementById('resolved-issue-count')?.textContent || 0}</span>)`;
+            setText('txt-earned-badges', t.earnedBadges);
             document.getElementById('issue-description').placeholder = t.descriptionPlaceholder;
             const languageButton = document.getElementById('btn-language');
             const nextLanguage = language === 'ta' ? 'English' : 'Tamil';
@@ -538,6 +546,7 @@
                     currentLng = capturedLocation.longitude;
                     updateGpsLabels(capturedLocation.accuracy);
                     updateSubmitButton();
+                    checkDuplicateIssues();
                 }).catch(() => {
                     document.getElementById('gps-accuracy-badge').textContent = 'Location unavailable';
                     document.getElementById('gps-pulse').className = 'w-2.5 h-2.5 rounded-full bg-red-500';
@@ -667,6 +676,20 @@
         }
 
         document.getElementById('btn-notifications').addEventListener('click', toggleCitizenNotifications);
+        document.getElementById('btn-accessibility-menu').addEventListener('click', (event) => {
+            event.stopPropagation();
+            const panel = document.getElementById('accessibility-controls');
+            const open = panel.classList.toggle('is-open');
+            document.getElementById('btn-accessibility-menu').setAttribute('aria-expanded', String(open));
+        });
+        document.addEventListener('click', (event) => {
+            const panel = document.getElementById('accessibility-controls');
+            const toggle = document.getElementById('btn-accessibility-menu');
+            if (!panel || !toggle) return;
+            if (panel.contains(event.target) || toggle.contains(event.target)) return;
+            panel.classList.remove('is-open');
+            toggle.setAttribute('aria-expanded', 'false');
+        });
         document.getElementById('notification-list').addEventListener('click', (event) => {
             const item = event.target.closest('[data-notification-id]');
             if (item) markCitizenNotificationRead(item.dataset.notificationId);
@@ -727,6 +750,70 @@
             };
 
         // 5. Submit Report
+        let allowNewDuplicateReport = false;
+        let pendingDuplicateIssue = null;
+
+        function t(key, fallback) {
+            return translations[currentLang]?.[key] || fallback || key;
+        }
+
+        function showDuplicateModal(issue, message) {
+            pendingDuplicateIssue = issue;
+            document.getElementById('duplicate-title').textContent = t('dupTitle');
+            document.getElementById('duplicate-yes').textContent = t('dupYes');
+            document.getElementById('duplicate-no').textContent = t('dupNo');
+            document.getElementById('duplicate-message').textContent = message || t('dupTitle');
+            document.getElementById('duplicate-meta').textContent = `${localizedCategory(issue.category || '')} · ${escapeHtml(issue.title || '')} · ${escapeHtml(issue.address || '')}`;
+            const photo = document.getElementById('duplicate-photo');
+            const photoUrl = issue.photo_urls?.[0] || '';
+            if (photoUrl) {
+                photo.src = photoUrl;
+                photo.classList.remove('hidden');
+            } else {
+                photo.classList.add('hidden');
+            }
+            document.getElementById('duplicate-modal').classList.remove('hidden');
+        }
+
+        function closeDuplicateModal() {
+            document.getElementById('duplicate-modal').classList.add('hidden');
+        }
+
+        async function checkDuplicateIssues() {
+            if (allowNewDuplicateReport || !capturedLocation) return;
+            const category = document.getElementById('issue-category-select').value;
+            try {
+                const params = new URLSearchParams({
+                    latitude: capturedLocation.latitude,
+                    longitude: capturedLocation.longitude,
+                    category,
+                    radius: '50',
+                });
+                const response = await fetch(`/api/issues/nearby/?${params.toString()}`);
+                const data = await response.json();
+                const matches = Array.isArray(data) ? data.filter((issue) => !['resolved', 'citizen_verified', 'closed', 'dismissed'].includes(issue.status)) : [];
+                if (matches.length) showDuplicateModal(matches[0], t('dupTitle'));
+            } catch (error) {
+                /* submit still re-checks */
+            }
+        }
+
+        document.getElementById('issue-category-select').addEventListener('change', () => {
+            if (capturedPhotoBlob && capturedLocation) checkDuplicateIssues();
+        });
+        document.getElementById('duplicate-yes').addEventListener('click', async () => {
+            const issue = pendingDuplicateIssue;
+            closeDuplicateModal();
+            if (issue?.id) {
+                await upvoteIssue(issue.id);
+                alert(currentLang === 'ta' ? 'இருக்கும் புகாருக்கு வாக்களிக்கப்பட்டது. புதிய புகார் உருவாக்கப்படவில்லை.' : 'You supported the existing issue. No new report was created.');
+            }
+        });
+        document.getElementById('duplicate-no').addEventListener('click', () => {
+            allowNewDuplicateReport = true;
+            closeDuplicateModal();
+        });
+
         async function submitReport(forceSubmit = false) {
             if (!capturedPhotoBlob || !capturedLocation) {
                 alert('Capture a photo and allow location access first.');
@@ -740,22 +827,24 @@
             formData.append('input_method', inputMethod);
             formData.append('photo', capturedPhotoBlob, 'camera_snap.jpg');
             if (forceSubmit) formData.append('force_submit', 'true');
+            if (allowNewDuplicateReport) formData.append('force_submit', 'true');
             try {
                 submitReportButton.disabled = true;
                 submitReportButton.setAttribute('aria-disabled', 'true');
                 const response = await fetch('/api/issues/report/', { method: 'POST', headers: { 'X-CSRFToken': csrfToken() }, body: formData });
                 const data = await response.json();
-                if (data.duplicate_detected) {
-                    const submitAnyway = window.confirm(`${data.message || 'A similar issue already exists nearby.'}\n\nPress OK to submit this report anyway.`);
-                    if (submitAnyway) await submitReport(true);
-                    else {
+                if (data.duplicate_detected && !allowNewDuplicateReport) {
+                    const existing = (data.nearby_issues || [])[0];
+                    if (existing) {
+                        showDuplicateModal(existing, data.message);
                         submitReportButton.disabled = false;
                         submitReportButton.setAttribute('aria-disabled', 'false');
+                        return;
                     }
-                    return;
                 }
                 if (!response.ok || !data.success) throw new Error(data.error || 'Could not submit the report.');
-                alert(currentSubmissionMessage());
+                const points = data.issue ? '' : '';
+                alert(`${currentSubmissionMessage()}\n\n${currentLang === 'ta' ? 'குடிமைப் புள்ளிகள் வழங்கப்பட்டன.' : '+20 civic credits added to My Impact.'}`);
                 location.reload();
             } catch (error) {
                 submitReportButton.disabled = false;
@@ -831,9 +920,24 @@
                 card.querySelectorAll('.vote-button').forEach((button) => button.remove());
                 [...card.querySelectorAll('span')].filter((span) => /upvotes|Voted/i.test(span.textContent)).forEach((span) => span.remove());
                 const worker = document.createElement('div');
-                worker.className = 'mt-2 border-t border-outline-variant pt-2 text-[10px] text-on-surface-variant';
-                worker.innerHTML = `<span class="font-bold text-emerald-700">Resolved by:</span> ${escapeHtml(issue.resolved_by_name || 'Municipal worker')}`;
+                worker.className = 'mt-2 border-t border-outline-variant pt-2 text-[10px] text-on-surface-variant space-y-2';
+                const quality = issue.worker_quality || {};
+                const rated = Number(issue.citizen_worker_rating || 0);
+                const stars = [1,2,3,4,5].map((star) => `<button type="button" class="star-rate text-lg leading-none ${star <= rated ? 'text-amber-500' : 'text-outline'}" data-stars="${star}" aria-label="${star} stars">★</button>`).join('');
+                worker.innerHTML = `<div><span class="font-bold text-emerald-700">${t('resolvedBy', 'Resolved by')}:</span> ${escapeHtml(issue.resolved_by_name || 'Municipal worker')}${quality.count ? ` · ${t('quality', 'Quality')} ${quality.average}/5 (${quality.count})` : ''}</div><div class="flex items-center gap-1"><span class="font-bold text-on-surface">${t('rateWorker', 'Rate this worker')}</span>${stars}</div>`;
                 card.appendChild(worker);
+                worker.querySelectorAll('.star-rate').forEach((starButton) => {
+                    starButton.addEventListener('click', async () => {
+                        const starsValue = Number(starButton.dataset.stars);
+                        const response = await fetch(`/api/issues/${issue.id}/rate-worker/`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken() }, body: JSON.stringify({ stars: starsValue }) });
+                        const data = await response.json();
+                        if (!response.ok) { alert(data.error || 'Could not save rating.'); return; }
+                        announce(t('thanksRating', 'Thanks for rating this worker'));
+                        issue.citizen_worker_rating = starsValue;
+                        issue.worker_quality = data.worker_quality;
+                        renderResolvedCards(nearbyIssuesCache);
+                    });
+                });
             });
         }
 
@@ -961,10 +1065,10 @@
         }
 
         async function upvoteIssue(id, button) {
-            if (!button || button.dataset.upvoting === 'true') return;
-            const countNode = button.querySelector('.vote-count');
+            if (button?.dataset.upvoting === 'true') return;
+            const countNode = button?.querySelector?.('.vote-count');
             const oldValue = Number(countNode?.dataset.currentValue || countNode?.textContent || 0);
-            button.dataset.upvoting = 'true';
+            if (button) button.dataset.upvoting = 'true';
             try {
                 const res = await fetch(`/api/issues/${id}/upvote/`, { method: "POST", headers: { "X-CSRFToken": csrfToken() } });
                 const data = await res.json();
@@ -987,17 +1091,19 @@
                     animateVoteCount(countNode, nextCount);
                 }
                 const isAlreadyVoted = Boolean(data.already_voted);
-                button.classList.add('animating');
-                button.disabled = isAlreadyVoted;
-                button.classList.toggle('opacity-60', isAlreadyVoted);
-                button.classList.toggle('border-emerald-400', isAlreadyVoted);
-                button.classList.toggle('bg-emerald-50', isAlreadyVoted);
-                button.classList.toggle('text-emerald-700', isAlreadyVoted);
-                button.setAttribute('aria-label', isAlreadyVoted ? 'You already voted for this issue' : 'You voted for this issue');
-                if (isAlreadyVoted) {
-                    button.classList.remove('border-primary/30', 'bg-primary/5', 'text-primary');
+                if (button) {
+                    button.classList.add('animating');
+                    button.disabled = isAlreadyVoted;
+                    button.classList.toggle('opacity-60', isAlreadyVoted);
+                    button.classList.toggle('border-emerald-400', isAlreadyVoted);
+                    button.classList.toggle('bg-emerald-50', isAlreadyVoted);
+                    button.classList.toggle('text-emerald-700', isAlreadyVoted);
+                    button.setAttribute('aria-label', isAlreadyVoted ? 'You already voted for this issue' : 'You voted for this issue');
+                    if (isAlreadyVoted) {
+                        button.classList.remove('border-primary/30', 'bg-primary/5', 'text-primary');
+                    }
+                    setTimeout(() => button.classList.remove('animating'), 260);
                 }
-                setTimeout(() => button.classList.remove('animating'), 260);
                 announce(isAlreadyVoted ? 'You already voted for this issue.' : `Vote recorded. ${nextCount} total votes.`);
                 if (!isAlreadyVoted && oldValue !== nextCount) {
                     const allMatches = document.querySelectorAll(`[data-issue-id="${id}"]`);
@@ -1010,7 +1116,7 @@
                 console.error('Upvote failed', err);
                 alert('Network error while recording vote. Please try again.');
             } finally {
-                button.dataset.upvoting = 'false';
+                if (button) button.dataset.upvoting = 'false';
             }
         }
 
@@ -1050,19 +1156,21 @@
             const reports = await reportsRes.json();
             if (profileData.user) {
                 const user = profileData.user;
+                const reportCount = Array.isArray(reports) ? reports.length : Number(user.reports_submitted || 0);
                 const points = Number(user.civic_points || 0);
                 const level = Number(user.level || 1);
                 const thresholds = [0, 50, 150, 300, 500, 800, 1200, 2000];
                 const currentThreshold = thresholds[Math.min(level - 1, thresholds.length - 1)] || 0;
                 const nextThreshold = thresholds[level] || currentThreshold;
                 const progress = nextThreshold > currentThreshold ? Math.min(100, Math.max(0, ((points - currentThreshold) / (nextThreshold - currentThreshold)) * 100)) : 100;
-                document.getElementById('user-points-pill').textContent = `${points.toLocaleString()} Pts`;
+                const pointsPill = document.getElementById('user-points-pill');
+                if (pointsPill) pointsPill.textContent = `${points.toLocaleString()} Pts`;
                 document.getElementById('impact-points').textContent = points.toLocaleString();
                 document.getElementById('impact-level').textContent = `Level ${level}`;
                 document.getElementById('impact-progress-bar').style.width = `${progress}%`;
-                document.getElementById('impact-standing').textContent = `${user.reports_submitted || 0} reports · ${user.upvotes_given || 0} upvotes`;
+                document.getElementById('impact-standing').textContent = `${reportCount} ${t('reportsSubmitted', 'reports')} · ${user.upvotes_given || 0} upvotes`;
                 document.getElementById('impact-next-level').textContent = nextThreshold > points ? `${nextThreshold - points} pts to Level ${level + 1}` : 'Highest level reached';
-                document.getElementById('impact-report-count').textContent = Number(user.reports_submitted || 0).toLocaleString();
+                document.getElementById('impact-report-count').textContent = reportCount.toLocaleString();
                 document.getElementById('impact-upvote-count').textContent = Number(user.upvotes_given || 0).toLocaleString();
                 document.getElementById('impact-resolved-count').textContent = Number(user.issues_resolved || 0).toLocaleString();
                 document.getElementById('impact-verification-count').textContent = Number(user.verifications_done || 0).toLocaleString();
@@ -1074,15 +1182,26 @@
                 const resolved = ['resolved', 'citizen_verified', 'closed'].includes(issue.status);
                 const image = issue.photo_urls?.[0] || '';
                 const proof = issue.resolution_proof?.photo_url || '';
-                return `<article class="impact-report-card bg-white border border-outline-variant rounded-xl p-3">
-                    <div class="flex gap-3">${image ? `<img src="${escapeHtml(image)}" alt="Original report: ${escapeHtml(issue.title)}" class="impact-report-image rounded-lg border border-outline-variant">` : '<div class="impact-report-image rounded-lg bg-surface-container-low flex items-center justify-center text-[9px] text-on-surface-variant">No image</div>'}
-                        <div class="min-w-0 flex-1"><div class="flex justify-between items-start gap-2"><div class="min-w-0"><p class="text-[9px] font-bold uppercase tracking-wide text-primary">${escapeHtml(issue.category || 'Issue')}</p><strong class="block text-sm leading-snug truncate">${escapeHtml(issue.title || 'Civic issue')}</strong></div><span class="text-[9px] font-bold px-1.5 py-0.5 rounded-full ${resolved ? 'bg-emerald-100 text-emerald-800' : 'bg-primary/10 text-primary'} whitespace-nowrap">${escapeHtml(statusLabel)}</span></div><p class="text-[11px] leading-4 text-on-surface-variant mt-1 line-clamp-2">${escapeHtml(issue.description || 'No description provided.')}</p></div>
-                    </div>
-                    <div class="impact-meta mt-2 grid grid-cols-2 gap-x-3 gap-y-1 text-on-surface-variant"><span><strong class="text-on-surface">Location:</strong> ${escapeHtml(location)}</span><span><strong class="text-on-surface">Reported:</strong> ${new Date(issue.created_at || Date.now()).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</span><span><strong class="text-on-surface">Status:</strong> ${escapeHtml(statusLabel)}</span><span><strong class="text-on-surface">Resolved:</strong> ${resolved ? 'Yes' : 'Not yet'}</span></div>
-                    <div class="mt-2 border-t border-outline-variant pt-2"><p class="text-[9px] font-bold uppercase tracking-wide text-on-surface-variant mb-1.5">Progress</p>${renderImpactProgress(issue)}</div>
-                    ${proof ? `<div class="mt-2 border-t border-outline-variant pt-2"><p class="text-[9px] font-bold uppercase tracking-wide text-emerald-700 mb-1.5">Completion proof</p><img src="${escapeHtml(proof)}" alt="Completion proof for ${escapeHtml(issue.title)}" class="w-full h-24 object-cover rounded-lg border border-outline-variant"><p class="mt-1 impact-meta text-on-surface-variant">Completion location: ${escapeHtml(issue.resolution_proof?.worker_location ? `${Number(issue.resolution_proof.worker_location.latitude).toFixed(6)}, ${Number(issue.resolution_proof.worker_location.longitude).toFixed(6)}` : 'Unavailable')} · ${issue.resolution_proof?.submitted_at ? `Submitted ${new Date(issue.resolution_proof.submitted_at).toLocaleString()}` : 'Timestamp unavailable'}</p></div>` : ''}
+                const categoryText = escapeHtml(localizedCategory(issue.category || 'Issue'));
+                return `<article class="impact-report-card review-card bg-white border-2 border-outline-variant rounded-xl p-3 shadow-sm">
+                    <details class="w-full">
+                        <summary class="cursor-pointer list-none flex items-center justify-between gap-2">
+                            <span class="text-sm font-bold uppercase text-primary">${categoryText}</span>
+                            <span class="text-[9px] font-bold px-1.5 py-0.5 rounded-full ${resolved ? 'bg-emerald-100 text-emerald-800' : 'bg-primary/10 text-primary'} whitespace-nowrap">${escapeHtml(statusLabel)}</span>
+                        </summary>
+                        <div class="mt-3 space-y-2">
+                            ${image ? `<img src="${escapeHtml(image)}" alt="Original report: ${escapeHtml(issue.title)}" class="w-full h-36 object-cover rounded-lg border border-outline-variant">` : '<div class="h-24 rounded-lg bg-surface-container-low flex items-center justify-center text-xs text-on-surface-variant">No image</div>'}
+                            <div class="flex justify-between items-start gap-2">
+                                <strong class="block text-sm leading-snug">${escapeHtml(issue.title || 'Civic issue')}</strong>
+                            </div>
+                            <p class="text-xs text-on-surface-variant">${escapeHtml(issue.description || 'No description provided.')}</p>
+                            <div class="impact-meta grid grid-cols-2 gap-x-3 gap-y-1 text-on-surface-variant"><span><strong class="text-on-surface">Location:</strong> ${escapeHtml(location)}</span><span><strong class="text-on-surface">Reported:</strong> ${new Date(issue.created_at || Date.now()).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</span><span><strong class="text-on-surface">Status:</strong> ${escapeHtml(statusLabel)}</span><span><strong class="text-on-surface">Resolved:</strong> ${resolved ? 'Yes' : 'Not yet'}</span></div>
+                            <div class="border-t border-outline-variant pt-2"><p class="text-[9px] font-bold uppercase tracking-wide text-on-surface-variant mb-1.5">Progress</p>${renderImpactProgress(issue)}</div>
+                            ${proof ? `<div class="border-t border-outline-variant pt-2"><p class="text-[9px] font-bold uppercase tracking-wide text-emerald-700 mb-1.5">Completion proof</p><img src="${escapeHtml(proof)}" alt="Completion proof for ${escapeHtml(issue.title)}" class="w-full h-24 object-cover rounded-lg border border-outline-variant"><p class="mt-1 impact-meta text-on-surface-variant">Completion location: ${escapeHtml(issue.resolution_proof?.worker_location ? `${Number(issue.resolution_proof.worker_location.latitude).toFixed(6)}, ${Number(issue.resolution_proof.worker_location.longitude).toFixed(6)}` : 'Unavailable')}</p></div>` : ''}
+                        </div>
+                    </details>
                 </article>`;
-            }).join('') : '<p class="text-sm text-on-surface-variant">No reports submitted yet.</p>';
+            }).join('') : `<p class="text-sm text-on-surface-variant">${t('noReports', 'No reports submitted yet.')}</p>`;
             const badgesList = document.getElementById('badges-grid');
             badgesList.innerHTML = '';
             const earnedBadges = profileData.user?.badges || [];
@@ -1152,15 +1271,6 @@
             setLanguage(currentLang === 'ta' ? 'en' : 'ta');
         });
 
-        const accessibilityMenuButton = document.getElementById('btn-accessibility-menu');
-        const accessibilityControls = document.getElementById('accessibility-controls');
-        accessibilityMenuButton.addEventListener('click', () => {
-            const expanded = accessibilityMenuButton.getAttribute('aria-expanded') === 'true';
-            accessibilityMenuButton.setAttribute('aria-expanded', String(!expanded));
-            accessibilityMenuButton.setAttribute('aria-label', expanded ? 'Open accessibility options' : 'Close accessibility options');
-            accessibilityControls.classList.toggle('hidden', expanded);
-        });
-
         document.getElementById('btn-contrast').addEventListener('click', () => {
             const enabled = document.body.classList.toggle('high-contrast');
             localStorage.setItem('civix-contrast', enabled ? 'on' : 'off');
@@ -1173,14 +1283,6 @@
             localStorage.setItem('civix-easy-read', easyRead ? 'on' : 'off');
             updateEasyRead();
             announce(easyRead ? (currentLang === 'ta' ? 'எளிய வாசிப்பு இயக்கப்பட்டது' : 'Easy Read enabled') : (currentLang === 'ta' ? 'எளிய வாசிப்பு முடக்கப்பட்டது' : 'Easy Read disabled'));
-        });
-
-        document.querySelectorAll('#accessibility-controls button').forEach((button) => {
-            button.addEventListener('click', () => {
-                accessibilityMenuButton.setAttribute('aria-expanded', 'false');
-                accessibilityMenuButton.setAttribute('aria-label', 'Open accessibility options');
-                accessibilityControls.classList.add('hidden');
-            });
         });
 
         function setFontSize(scale) {

@@ -1,0 +1,3 @@
+speechPrompt: 'Welcome to Nagara Setu. Point your camera at the civic issue, capture a photo, and confirm your live location.', easyRead: 'Easy Read', civicStanding: 'Your Civic Standing', reportsConfirmed: 'Reports confirmed', issuesResolved: 'Issue
+---
+speechPrompt: 'நகர சேது. குடிமைப் பிரச்சினையை நோக்கி கேமராவைத் திருப்பி புகைப்படம் எடுக்கவும், இருப்பிடத்தை உறுதிப்படுத்தவும்.', easyRead: 'எளிய வாசிப்பு', civicStanding: 'உங்கள் குடிமை நிலை', reportsConfirmed: 'உறுதிப்படுத்தப்பட்ட புகார்கள்', issues

@@ -59,7 +59,7 @@ class RoleAccessMiddleware:
         if path.startswith("/api/issues/report/"):
             return {"citizen"}
         if path.startswith("/api/issues/") and (method in {"POST", "PATCH", "DELETE"}):
-            if path.endswith("/upvote/") or path.endswith("/verify/"):
+            if path.endswith("/upvote/") or path.endswith("/verify/") or path.endswith("/rate-worker/"):
                 return {"citizen"}
             if path.endswith("/resolve/") or path.endswith("/status/"):
                 return {"field_worker"}

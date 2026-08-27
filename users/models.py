@@ -128,6 +128,8 @@ class CivixUser(Document):
     upvotes_given = IntField(default=0, min_value=0)
     verifications_done = IntField(default=0, min_value=0)
     issues_resolved = IntField(default=0, min_value=0)
+    rating_total = IntField(default=0, min_value=0)
+    rating_count = IntField(default=0, min_value=0)
 
     accessibility = EmbeddedDocumentField(
         AccessibilityPreferences,
@@ -161,9 +163,15 @@ class CivixUser(Document):
         return self.level
 
     def add_points(self, points, reason=None):
-        self.civic_points += points
+        self.civic_points += max(0, int(points or 0))
         self.calculate_level()
         self.updated_at = datetime.datetime.utcnow()
+
+    @property
+    def average_rating(self):
+        if not self.rating_count:
+            return 0.0
+        return round(self.rating_total / self.rating_count, 1)
 
     def award_badge(self, badge_doc):
         existing_slugs = [b.badge_slug for b in self.badges]
@@ -215,6 +223,7 @@ class SystemConfig(Document):
     key = StringField(required=True, unique=True, default="default")
     sla_deadlines = DictField(default=dict)
     priority_weights = DictField(default=dict)
+    category_priority_points = DictField(default=dict)
     updated_at = DateTimeField(default=datetime.datetime.utcnow)
 
     meta = {"collection": "system_config", "strict": False}

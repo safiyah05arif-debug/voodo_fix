@@ -15,8 +15,7 @@ from issues.views import (
 )
 from users.views import (
     UserProfileView, AdminAnalyticsView, AdminUsersView, AdminAuditLogsView,
-    AdminCreateUserView, AdminConfigView, AdminDeactivateUserView,
-)
+    AdminCreateUserView, AdminConfigView, AdminDeactivateUserView, AdminIssueExportView,)
 
 def login_view(request):
     return render(request, "login.html")
@@ -64,6 +63,7 @@ urlpatterns = [
     path("api/sla/<str:issue_id>/escalate/", EscalateIssueView.as_view()),
     path("api/admin/analytics/", AdminAnalyticsView.as_view()),
     path("api/admin/users/", AdminUsersView.as_view()),
+    path("api/admin/issues/export/", AdminIssueExportView.as_view()),
     path("api/admin/audit-logs/", AdminAuditLogsView.as_view()),
     path("api/admin/users/create/", AdminCreateUserView.as_view()),
     path("api/admin/users/<str:user_id>/deactivate/", AdminDeactivateUserView.as_view()),

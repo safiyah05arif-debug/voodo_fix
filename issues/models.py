@@ -41,6 +41,22 @@ from mongoengine import (
 from django.conf import settings
 
 
+def category_priority_value(category):
+    """Return the configured priority points for a civic category (higher = more urgent)."""
+    defaults = getattr(settings, "CATEGORY_PRIORITY_POINTS", {})
+    try:
+        from users.models import SystemConfig
+        config = SystemConfig.objects(key="default").first()
+        stored = (config.category_priority_points or {}) if config else {}
+    except Exception:
+        stored = {}
+    points = stored.get(category, defaults.get(category, defaults.get("other", 20)))
+    try:
+        return float(points)
+    except (TypeError, ValueError):
+        return 20.0
+
+
 # =============================================================================
 # EMBEDDED DOCUMENTS (nested sub-documents within Issue)
 # =============================================================================
@@ -412,8 +428,9 @@ class Issue(Document):
         """
         severity_map = {"critical": 4, "high": 3, "medium": 2, "low": 1}
         weights = getattr(settings, "PRIORITY_WEIGHTS", {
-            "severity": 40, "upvotes": 20, "hours_pending": 10, "location_risk": 30,
+            "severity": 40, "upvotes": 20, "hours_pending": 10, "location_risk": 30, "category": 1,
         })
+        category_points = category_priority_value(self.category)
 
         severity_weight = severity_map.get(self.severity, 1)
         hours_pending = 0
@@ -422,10 +439,11 @@ class Issue(Document):
             hours_pending = delta.total_seconds() / 3600
 
         self.priority_score = (
-            (severity_weight * weights["severity"])
-            + (self.upvote_count * weights["upvotes"])
-            + (hours_pending * weights["hours_pending"])
-            + (self.location_risk_factor * weights["location_risk"])
+            (severity_weight * weights.get("severity", 40))
+            + (self.upvote_count * weights.get("upvotes", 20))
+            + (hours_pending * weights.get("hours_pending", 10))
+            + (self.location_risk_factor * weights.get("location_risk", 30))
+            + (category_points * weights.get("category", 1))
         )
         return self.priority_score
 
@@ -543,6 +561,25 @@ class IssueUpvote(Document):
 # =============================================================================
 # CITIZEN VERIFICATION OF RESOLVED ISSUES
 # =============================================================================
+
+class WorkerRating(Document):
+    """Citizen star rating (1–5) of the field worker who resolved an issue."""
+    issue_id = StringField(required=True)
+    user_id = StringField(required=True)
+    worker_id = StringField(required=True)
+    stars = IntField(required=True, min_value=1, max_value=5)
+    comment = StringField(max_length=500)
+    created_at = DateTimeField(default=datetime.datetime.utcnow)
+
+    meta = {
+        "collection": "worker_ratings",
+        "indexes": [
+            {"fields": ["issue_id", "user_id"], "unique": True},
+            "worker_id",
+        ],
+        "strict": False,
+    }
+
 
 class IssueVerification(Document):
     """

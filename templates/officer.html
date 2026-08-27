@@ -62,6 +62,9 @@
         .officer-calendar-grid button:hover { background: #dff3ef; }
         .officer-calendar-grid button.selected { background: #0f7a72; color: #fff; font-weight: 800; }
         .officer-calendar-grid button.today { border: 1px solid #0f7a72; }
+        .a11y-panel { display: none; position: absolute; left: .5rem; top: calc(100% + .35rem); z-index: 80; min-width: 14rem; flex-direction: column; align-items: stretch; gap: .25rem; padding: .5rem; border-radius: .75rem; background: #fff; border: 1px solid #d9d9e0; box-shadow: 0 12px 32px rgba(18,33,51,.16); }
+        .a11y-panel.is-open { display: flex; }
+        .a11y-panel button { width: 100%; min-height: 2.25rem; }
         .officer-compact .ticket-description, .officer-compact .review-evidence-image, .officer-compact .review-comparison-image, .officer-compact .officer-progress, .officer-compact .ticket-meta-grid, .officer-compact .officer-compact-detail { display: none; }
         .officer-compact > details { display: block; }
         .officer-compact > details[open] .review-evidence-image { display: block; }
@@ -151,41 +154,34 @@
 <body class="bg-surface text-on-surface h-full font-sans overflow-hidden flex flex-col civix-enter">
     <a href="#main-content" class="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:bg-white focus:px-4 focus:py-2 focus:text-primary focus:font-bold focus:shadow-lg">Skip to main content</a>
 
-    <!-- Top Command Navigation Bar -->
-    <header class="bg-primary text-white border-b border-primary-container px-6 py-3 flex justify-between items-center z-40 shrink-0 shadow-md">
-        <div class="flex items-center gap-4">
-            <img src="{% static 'nagara_setu_logo.svg' %}" alt="Nagara Setu logo" class="w-9 h-9 object-contain rounded-full bg-white/10 p-0.5 border border-white/30"/>
-            <div class="font-black text-2xl tracking-wider text-white" id="officer-title">NAGARA SETU</div>
-        </div>
-        <div class="flex items-center gap-2 md:gap-4 text-xs">
-            <button onclick="openWorkerModal()" class="bg-secondary text-white px-3.5 py-1.5 rounded-xl font-bold flex items-center gap-1.5 shadow-sm hover:bg-secondary-container hover:text-on-secondary-container transition-all text-[11px] md:text-xs max-md:hidden">
-                <span class="material-symbols-outlined text-sm">person_add</span>
-                <span>+ Provision Field Worker</span>
-            </button>
-            <button id="officer-menu-toggle" type="button" class="hidden md:hidden bg-white/10 border border-white/20 rounded-lg p-2 text-white" aria-label="Toggle accessibility menu" aria-expanded="false">
-                <span class="material-symbols-outlined text-lg">menu</span>
-            </button>
-            <div id="officer-accessibility-panel" class="flex items-center gap-3 border-l border-white/20 pl-4 max-md:pl-0 max-md:border-l-0">
-                <button onclick="openWorkerModal()" class="bg-secondary text-white px-3.5 py-1.5 rounded-xl font-bold flex items-center gap-1.5 shadow-sm hover:bg-secondary-container hover:text-on-secondary-container transition-all text-[11px] md:text-xs md:hidden">
-                    <span class="material-symbols-outlined text-sm">person_add</span>
-                    <span>New Worker</span>
-                </button>
-                <button id="officer-lang-en" type="button" aria-label="Switch interface language to English" class="underline">EN</button>
-                <button id="officer-lang-ta" type="button" aria-label="தமிழில் இடைமுகத்தை மாற்றவும்">தமிழ்</button>
-                <button id="officer-contrast" type="button" aria-pressed="false" aria-label="Toggle high contrast mode"><span class="material-symbols-outlined text-sm">contrast</span></button>
-                <button type="button" onclick="setOfficerFontSize('100%')" aria-label="Use normal text size">A</button>
-                <button type="button" onclick="setOfficerFontSize('115%')" aria-label="Increase text size">A+</button>
-                <button type="button" onclick="setOfficerFontSize('130%')" aria-label="Use largest text size">A++</button>
-                <button id="officer-read-aloud" type="button" aria-pressed="false" aria-label="Read command center aloud">🔊 <span id="officer-read-label">Read aloud</span></button>
-                <nav aria-label="Portal navigation">
-                    <a id="officer-logout" href="/api/users/logout/" class="flex items-center justify-center gap-2 underline hover:text-secondary-container" aria-label="Log out">
-                        <span class="material-symbols-outlined text-sm">logout</span>
-                        <span>Logout</span>
-                    </a>
-                </nav>
-            </div>
-        </div>
+    <header class="app-name-bar bg-primary text-white border-b border-primary-container px-4 py-3 flex items-center gap-3 z-40 shrink-0 shadow-md">
+        <img src="{% static 'nagara_setu_logo.svg' %}" alt="Nagara Setu logo" class="w-9 h-9 object-contain rounded-full bg-white/10 p-0.5 border border-white/30"/>
+        <div class="font-black text-xl tracking-wider text-white truncate" id="officer-title">NAGARA SETU</div>
     </header>
+    <div class="accessibility-bar relative bg-white border-b border-outline-variant px-3 py-2 flex items-center justify-between gap-2 text-xs z-30">
+        <button id="officer-menu-toggle" type="button" class="p-1.5 rounded hover:bg-surface-container" aria-label="Open accessibility menu" aria-expanded="false" aria-controls="officer-accessibility-panel">
+            <span class="material-symbols-outlined text-lg">menu</span>
+        </button>
+        <div id="officer-accessibility-panel" class="a11y-panel">
+            <button id="officer-contrast" type="button" aria-pressed="false" aria-label="Toggle high contrast mode" class="px-2 py-1 rounded hover:bg-surface-container"><span id="officer-contrast-label">Contrast</span></button>
+            <div class="flex gap-1">
+                <button type="button" onclick="setOfficerFontSize('100%')" aria-label="Use normal text size" class="flex-1 px-2 py-1 rounded">A</button>
+                <button type="button" onclick="setOfficerFontSize('115%')" aria-label="Increase text size" class="flex-1 px-2 py-1 rounded font-bold">A+</button>
+                <button type="button" onclick="setOfficerFontSize('130%')" aria-label="Use largest text size" class="flex-1 px-2 py-1 rounded font-black">A++</button>
+            </div>
+            <button id="officer-read-aloud" type="button" aria-pressed="false" aria-label="Read command center aloud" class="px-2 py-1 rounded hover:bg-surface-container">🔊 <span id="officer-read-label">Read aloud</span></button>
+        </div>
+        <div class="ml-auto flex items-center gap-2">
+            <button id="officer-language" type="button" class="p-1.5 rounded hover:bg-surface-container text-primary" aria-label="Switch language">
+                <span class="material-symbols-outlined text-lg">language</span>
+            </button>
+            <button onclick="openWorkerModal()" class="bg-secondary text-white px-3 py-1.5 rounded-xl font-bold flex items-center gap-1.5 shadow-sm">
+                <span class="material-symbols-outlined text-sm">person_add</span>
+                <span id="officer-add-worker-label">New Worker</span>
+            </button>
+            <a id="officer-logout" href="/api/users/logout/" class="underline font-bold px-2" data-i18n-officer="logout">Logout</a>
+        </div>
+    </div>
 
     <section class="officer-status-tabs w-full px-4 pt-3" aria-label="Officer workflow selector">
         <button id="officer-not-assigned" type="button" class="selected border border-outline-variant bg-white px-3 py-2 rounded-lg text-xs font-bold text-on-surface" aria-pressed="true">Not assigned</button>
@@ -198,11 +194,11 @@
                 <button id="officer-calendar-prev" type="button" class="p-2 rounded-lg text-on-surface-variant hover:bg-surface-container" aria-label="Previous month">&lt;</button>
                 <div class="text-center">
                     <strong id="officer-calendar-month" class="block text-sm text-on-surface"></strong>
-                    <span class="text-[10px] text-on-surface-variant">Selected: <span id="officer-selected-date">26-08-2026</span></span>
+                    <span class="text-[10px] text-on-surface-variant"><span id="officer-selected-prefix">Selected</span>: <span id="officer-selected-date">26-08-2026</span></span>
                 </div>
                 <button id="officer-calendar-next" type="button" class="p-2 rounded-lg text-on-surface-variant hover:bg-surface-container" aria-label="Next month">&gt;</button>
             </div>
-            <div class="officer-calendar-grid text-center text-[10px] font-bold text-on-surface-variant mb-1" aria-hidden="true"><span>Sun</span><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span></div>
+            <div id="officer-weekdays" class="officer-calendar-grid text-center text-[10px] font-bold text-on-surface-variant mb-1" aria-hidden="true"><span>Sun</span><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span></div>
             <div id="officer-calendar-days" class="officer-calendar-grid"></div>
         </div>
     </section>
@@ -308,11 +304,11 @@
         const officerTranslations = {
             en: {
                     title: 'NAGARA SETU', total: 'Total Active Issues', critical: '🔴 Critical Urgency', sla: '⚠️ SLA Breached', resolved: '✅ Resolved Today', heatmap: 'Severity Heatmap Layers', queue: 'Master Ticket Queue',
-                read: 'Read aloud', stop: 'Stop reading', prompt: 'Command center. Review the severity heatmap and assign workers to the highest priority tickets.', started: 'Read aloud started', stopped: 'Read aloud stopped', priority: 'Priority Score', slaStatus: 'SLA Status', breached: 'BREACHED', onTrack: 'ON TRACK', assign: 'Assign Worker...'
+                read: 'Read aloud', stop: 'Stop reading', prompt: 'Command center. Review tickets and assign workers to the highest priority issues.', started: 'Read aloud started', stopped: 'Read aloud stopped', priority: 'Priority Score', slaStatus: 'SLA Status', breached: 'BREACHED', onTrack: 'ON TRACK', assign: 'Assign Worker...', notAssigned: 'Not assigned', assigned: 'Assigned', completed: 'Completed', addWorker: 'New Worker', logout: 'Logout', contrast: 'Contrast', selected: 'Selected', review: 'Review Issues', assignedTitle: 'Assigned', completedTitle: 'Completed', notAssignedTitle: 'Not Assigned', categoryPts: 'Category points', workerQuality: 'Worker quality', noRatings: 'No ratings yet', upvotes: 'Upvotes', reported: 'Reported', openTicket: 'Open full ticket'
             },
             ta: {
-                title: 'நாகரா சேது கட்டுப்பாட்டு மையம்', total: 'செயலில் உள்ள மொத்த புகார்கள்', critical: '🔴 மிக அவசரம்', sla: '⚠️ SLA மீறப்பட்டது', resolved: '✅ இன்று தீர்க்கப்பட்டவை', heatmap: 'தீவிர வரைபட அடுக்குகள்', queue: 'முக்கிய புகார் வரிசை',
-                read: 'வாசிக்கவும்', stop: 'வாசிப்பை நிறுத்தவும்', prompt: 'கட்டுப்பாட்டு மையம். தீவிர வரைபடத்தைப் பார்த்து, அதிக முன்னுரிமை புகார்களுக்கு பணியாளர்களை ஒதுக்கவும்.', started: 'குரல் வாசிப்பு தொடங்கியது', stopped: 'குரல் வாசிப்பு நிறுத்தப்பட்டது', priority: 'முன்னுரிமை மதிப்பெண்', slaStatus: 'SLA நிலை', breached: 'மீறப்பட்டது', onTrack: 'சரியான நிலையில்', assign: 'பணியாளரை ஒதுக்கவும்...'
+                title: 'நாகரா சேது', total: 'செயலில் உள்ள மொத்த புகார்கள்', critical: '🔴 மிக அவசரம்', sla: '⚠️ SLA மீறப்பட்டது', resolved: '✅ இன்று தீர்க்கப்பட்டவை', heatmap: 'தீவிர வரைபட அடுக்குகள்', queue: 'முக்கிய புகார் வரிசை',
+                read: 'வாசிக்கவும்', stop: 'வாசிப்பை நிறுத்தவும்', prompt: 'கட்டுப்பாட்டு மையம். அதிக முன்னுரிமை புகார்களுக்கு பணியாளர்களை ஒதுக்கவும்.', started: 'குரல் வாசிப்பு தொடங்கியது', stopped: 'குரல் வாசிப்பு நிறுத்தப்பட்டது', priority: 'முன்னுரிமை மதிப்பெண்', slaStatus: 'SLA நிலை', breached: 'மீறப்பட்டது', onTrack: 'சரியான நிலையில்', assign: 'பணியாளரை ஒதுக்கவும்...', notAssigned: 'ஒதுக்கப்படவில்லை', assigned: 'ஒதுக்கப்பட்டது', completed: 'முடிந்தது', addWorker: 'புதிய பணியாளர்', logout: 'வெளியேறு', contrast: 'மாறுபாடு', selected: 'தேர்வு', review: 'புகார்களை ஆய்வு செய்', assignedTitle: 'ஒதுக்கப்பட்டது', completedTitle: 'முடிந்தது', notAssignedTitle: 'ஒதுக்கப்படவில்லை', categoryPts: 'வகை புள்ளிகள்', workerQuality: 'பணியாளர் தரம்', noRatings: 'மதிப்பீடு இல்லை', upvotes: 'வாக்குகள்', reported: 'புகார் நாள்', openTicket: 'முழு புகாரைத் திற'
             }
         };
 
@@ -360,15 +356,19 @@
             const today = officerDateKey(new Date());
             for (let day = 1; day <= new Date(year, month + 1, 0).getDate(); day += 1) {
                 const key = officerDateKey(new Date(year, month, day));
+                const isFuture = key > today;
                 const button = document.createElement('button');
-                button.type = 'button'; button.textContent = day; button.className = `${key === officerPendingDate ? 'selected ' : ''}${key === today ? 'today ' : ''}text-on-surface`; button.setAttribute('aria-label', officerDateLabel(key)); button.setAttribute('aria-pressed', String(key === officerPendingDate));
-                button.addEventListener('click', () => {
-                    officerSelectedDate = key;
-                    officerPendingDate = key;
-                    updateOfficerDateSelector();
-                    renderOfficerCalendar();
-                    initOfficerCommand();
-                });
+                button.type = 'button'; button.textContent = day; button.className = `${key === officerPendingDate ? 'selected ' : ''}${key === today ? 'today ' : ''}${isFuture ? 'opacity-30 cursor-not-allowed ' : ''}text-on-surface`; button.setAttribute('aria-label', officerDateLabel(key)); button.setAttribute('aria-pressed', String(key === officerPendingDate));
+                button.disabled = isFuture;
+                if (!isFuture) {
+                    button.addEventListener('click', () => {
+                        officerSelectedDate = key;
+                        officerPendingDate = key;
+                        updateOfficerDateSelector();
+                        renderOfficerCalendar();
+                        initOfficerCommand();
+                    });
+                }
                 days.appendChild(button);
             }
         }
@@ -378,6 +378,10 @@
             officerShowActive = false; officerShowCritical = false; officerShowResolved = false; officerShowStalled = false;
             updateOfficerDateSelector();
             initOfficerCommand();
+        }
+
+        function ol(en, ta) {
+            return officerLanguage === 'ta' ? ta : en;
         }
 
         function setOfficerLanguage(language) {
@@ -393,9 +397,15 @@
                 if (element) element.textContent = text;
             });
             document.documentElement.lang = language === 'ta' ? 'ta' : 'en';
+            document.getElementById('officer-not-assigned').textContent = t.notAssigned;
+            document.getElementById('officer-assigned').textContent = t.assigned;
+            document.getElementById('officer-completed').textContent = t.completed;
+            document.getElementById('officer-add-worker-label').textContent = t.addWorker;
+            document.getElementById('officer-logout').textContent = t.logout;
+            document.getElementById('officer-contrast-label').textContent = t.contrast;
+            document.getElementById('officer-selected-prefix').textContent = t.selected;
+            document.getElementById('officer-weekdays').innerHTML = (language === 'ta' ? ['ஞா','தி','செ','பு','வி','வெ','ச'] : ['Sun','Mon','Tue','Wed','Thu','Fri','Sat']).map((day) => `<span>${day}</span>`).join('');
             initOfficerCommand();
-            document.getElementById('officer-lang-en').className = language === 'en' ? 'underline font-bold' : '';
-            document.getElementById('officer-lang-ta').className = language === 'ta' ? 'underline font-bold' : '';
             updateOfficerReadButton('speechSynthesis' in window && window.speechSynthesis.speaking);
         }
 
@@ -444,24 +454,37 @@
             window.speechSynthesis.speak(utterance);
         }
 
-        document.getElementById('officer-lang-en').addEventListener('click', () => setOfficerLanguage('en'));
-        document.getElementById('officer-lang-ta').addEventListener('click', () => setOfficerLanguage('ta'));
+        document.getElementById('officer-language').addEventListener('click', () => setOfficerLanguage(officerLanguage === 'ta' ? 'en' : 'ta'));
+        document.getElementById('officer-menu-toggle').addEventListener('click', (event) => {
+            event.stopPropagation();
+            const panel = document.getElementById('officer-accessibility-panel');
+            const open = panel.classList.toggle('is-open');
+            document.getElementById('officer-menu-toggle').setAttribute('aria-expanded', String(open));
+        });
+        document.addEventListener('click', (event) => {
+            const panel = document.getElementById('officer-accessibility-panel');
+            const toggle = document.getElementById('officer-menu-toggle');
+            if (!panel || !toggle) return;
+            if (panel.contains(event.target) || toggle.contains(event.target)) return;
+            panel.classList.remove('is-open');
+            toggle.setAttribute('aria-expanded', 'false');
+        });
         document.getElementById('officer-contrast').addEventListener('click', () => {
             const enabled = document.body.classList.toggle('high-contrast');
             localStorage.setItem('civix-contrast', enabled ? 'on' : 'off');
             document.getElementById('officer-contrast').setAttribute('aria-pressed', String(enabled));
         });
         document.getElementById('officer-read-aloud').addEventListener('click', readOfficerQueue);
-        document.getElementById('officer-menu-toggle').addEventListener('click', () => {
-            const panel = document.getElementById('officer-accessibility-panel');
-            const expanded = panel.classList.toggle('is-open');
-            document.getElementById('officer-menu-toggle').setAttribute('aria-expanded', String(expanded));
-        });
         document.getElementById('officer-not-assigned').addEventListener('click', () => selectOfficerWorkflow('not_assigned'));
         document.getElementById('officer-assigned').addEventListener('click', () => selectOfficerWorkflow('assigned'));
         document.getElementById('officer-completed').addEventListener('click', () => selectOfficerWorkflow('completed'));
         document.getElementById('officer-calendar-prev').addEventListener('click', () => { officerCalendarDate.setMonth(officerCalendarDate.getMonth() - 1); renderOfficerCalendar(); });
-        document.getElementById('officer-calendar-next').addEventListener('click', () => { officerCalendarDate.setMonth(officerCalendarDate.getMonth() + 1); renderOfficerCalendar(); });
+        document.getElementById('officer-calendar-next').addEventListener('click', () => {
+            const next = new Date(officerCalendarDate.getFullYear(), officerCalendarDate.getMonth() + 1, 1);
+            if (officerDateKey(next) > officerDateKey(new Date())) return;
+            officerCalendarDate = next;
+            renderOfficerCalendar();
+        });
 
         function openWorkerModal() {
             document.getElementById('add-worker-modal').classList.remove('hidden');
@@ -542,7 +565,7 @@
                 const criticalIssues = allActiveIssues.filter(issue => issue.severity === 'critical' || Number(issue.priority_score || 0) >= 200);
                 const activeIssues = issues;
                 const today = new Date().toDateString();
-                document.getElementById('officer-queue-title').textContent = officerWorkflow === 'not_assigned' ? 'Not Assigned' : officerWorkflow === 'assigned' ? 'Assigned' : 'Completed';
+                document.getElementById('officer-queue-title').textContent = officerWorkflow === 'not_assigned' ? officerTranslations[officerLanguage].notAssignedTitle : officerWorkflow === 'assigned' ? officerTranslations[officerLanguage].assignedTitle : officerTranslations[officerLanguage].completedTitle;
 
                 const escapeHtml = (value) => String(value ?? '').replace(/[&<>\'"]/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[character]));
 
@@ -565,7 +588,7 @@
                         workerOptionsHtml += `<option value="${escapeHtml(w.name)}" ${selected}>${escapeHtml(w.name)} (${escapeHtml(w.department)})</option>`;
                     });
 
-                    let assignedDisplay = 'Awaiting assignment';
+                    let assignedDisplay = ol('Awaiting assignment', 'ஒதுக்கீட்டுக்காக காத்திருக்கிறது');
                     if (iss.assigned_to) {
                         const match = workerOptionsList.find(w => (w.name === iss.assigned_to) || (w.phone === iss.assigned_to) || (w.id === iss.assigned_to));
                         assignedDisplay = match ? match.name : iss.assigned_to;
@@ -579,7 +602,7 @@
                     const reportDate = iss.created_at ? new Date(iss.created_at).toLocaleString() : 'Unavailable';
                     const assignmentDate = iss.assigned_at ? new Date(iss.assigned_at).toLocaleString() : 'Not assigned';
                     const startedDate = iss.started_at ? new Date(iss.started_at).toLocaleString() : 'Not started';
-                    const fullTicket = `<details class="border-t border-outline-variant pt-2"><summary class="cursor-pointer text-xs font-bold text-primary">Open full ticket</summary><div class="mt-2 space-y-1 text-[10px] text-on-surface-variant">${beforeImage ? `<img src="${escapeHtml(beforeImage)}" alt="Original citizen report" class="review-evidence-image rounded-lg border border-outline-variant mb-2">` : ''}<p><strong class="text-on-surface">Citizen report:</strong> ${escapeHtml(iss.category)} · ${escapeHtml(iss.description || 'No description provided.')}</p><p><strong class="text-on-surface">Reported:</strong> ${escapeHtml(reportDate)}</p><p><strong class="text-on-surface">Original location:</strong> ${escapeHtml(iss.address || `${lat.toFixed(6)}, ${lng.toFixed(6)}`)}</p><p><strong class="text-on-surface">Assigned worker:</strong> ${escapeHtml(assignedDisplay)}</p><p><strong class="text-on-surface">Assigned:</strong> ${escapeHtml(assignmentDate)}</p><p><strong class="text-on-surface">Work started:</strong> ${escapeHtml(startedDate)}</p><p><strong class="text-on-surface">Resolved:</strong> ${iss.resolved_at ? escapeHtml(new Date(iss.resolved_at).toLocaleString()) : 'Not resolved'}</p><p><strong class="text-on-surface">Upvotes:</strong> ${Number(iss.upvote_count || 0)} · <strong class="text-on-surface">Priority:</strong> ${escapeHtml(iss.priority_score)}</p>${afterImage ? `<p><strong class="text-on-surface">Completion evidence:</strong> ${escapeHtml(proof.submitted_at ? new Date(proof.submitted_at).toLocaleString() : 'Submitted')}</p>` : ''}</div></details>`;
+                    const fullTicket = `<details class="border-t border-outline-variant pt-2"><summary class="cursor-pointer text-xs font-bold text-primary">${officerTranslations[officerLanguage].openTicket}</summary><div class="mt-2 space-y-1 text-[10px] text-on-surface-variant">${beforeImage ? `<img src="${escapeHtml(beforeImage)}" alt="Original citizen report" class="review-evidence-image rounded-lg border border-outline-variant mb-2">` : ''}<p><strong class="text-on-surface">Citizen report:</strong> ${escapeHtml(iss.category)} · ${escapeHtml(iss.description || 'No description provided.')}</p><p><strong class="text-on-surface">Reported:</strong> ${escapeHtml(reportDate)}</p><p><strong class="text-on-surface">Original location:</strong> ${escapeHtml(iss.address || `${lat.toFixed(6)}, ${lng.toFixed(6)}`)}</p><p><strong class="text-on-surface">Assigned worker:</strong> ${escapeHtml(assignedDisplay)}</p><p><strong class="text-on-surface">Assigned:</strong> ${escapeHtml(assignmentDate)}</p><p><strong class="text-on-surface">Work started:</strong> ${escapeHtml(startedDate)}</p><p><strong class="text-on-surface">Resolved:</strong> ${iss.resolved_at ? escapeHtml(new Date(iss.resolved_at).toLocaleString()) : 'Not resolved'}</p><p><strong class="text-on-surface">Upvotes:</strong> ${Number(iss.upvote_count || 0)} · <strong class="text-on-surface">Priority:</strong> ${escapeHtml(iss.priority_score)}</p>${afterImage ? `<p><strong class="text-on-surface">Completion evidence:</strong> ${escapeHtml(proof.submitted_at ? new Date(proof.submitted_at).toLocaleString() : 'Submitted')}</p>` : ''}</div></details>`;
                     const completionLocation = proof.worker_location ? `${Number(proof.worker_location.latitude).toFixed(6)}, ${Number(proof.worker_location.longitude).toFixed(6)}` : 'Location unavailable';
                     const locationWarning = iss.location_verification?.warning ? `<div class="mt-2 rounded-lg border border-amber-400 bg-amber-100 px-2.5 py-2 text-[10px] font-bold text-amber-900">Location differs by ${Number(iss.location_verification.distance_meters || proof.distance_from_issue || 0).toFixed(1)}m. Review manually; GPS is supporting evidence, not proof of completion.</div>` : '<p class="mt-2 text-[10px] text-on-surface-variant">GPS location is supporting evidence, not absolute proof of completion.</p>';
                     const completionComparison = (iss.status === 'awaiting_verification' || resolvedIssues.includes(iss)) ? `<section class="border-2 border-emerald-300 rounded-xl p-3 bg-emerald-50"><h5 class="text-xs font-black uppercase tracking-wide text-emerald-900 mb-2">BEFORE | AFTER</h5><div class="grid grid-cols-2 gap-2"><div><p class="text-[10px] font-bold text-on-surface-variant mb-1">Citizen report</p>${beforeImage ? `<img src="${escapeHtml(beforeImage)}" alt="Original citizen report" class="review-comparison-image rounded-md border border-outline-variant">` : '<div class="review-comparison-image rounded-md bg-white flex items-center justify-center text-[10px] text-on-surface-variant">No original image</div>'}<p class="text-[10px] mt-1 text-on-surface-variant">${escapeHtml(iss.address || `${lat.toFixed(6)}, ${lng.toFixed(6)}`)}</p><p class="text-[10px] text-on-surface-variant">${escapeHtml(iss.category)} · ${escapeHtml(iss.description || 'No description')}</p></div><div><p class="text-[10px] font-bold text-on-surface-variant mb-1">Worker completion</p>${afterImage ? `<img src="${escapeHtml(afterImage)}" alt="Worker completion evidence" class="review-comparison-image rounded-md border border-outline-variant">` : '<div class="review-comparison-image rounded-md bg-white flex items-center justify-center text-[10px] text-on-surface-variant">No completion image</div>'}<p class="text-[10px] mt-1 text-on-surface-variant">${escapeHtml(completionLocation)}</p><p class="text-[10px] text-on-surface-variant">${proof.submitted_at ? `Submitted ${new Date(proof.submitted_at).toLocaleString()}` : 'Timestamp unavailable'}</p><p class="text-[10px] text-on-surface-variant">Worker: ${escapeHtml(proof.worker_id || assignedDisplay)}</p></div></div>${locationWarning}</section>` : '';
@@ -607,11 +630,11 @@
                         </div>
                         <p class="ticket-description text-on-surface-variant line-clamp-2">${escapeHtml(iss.description || 'No description provided.')}</p>
                         <p class="officer-compact-detail text-[11px] text-on-surface-variant flex items-center gap-1 truncate" title="${escapeHtml(iss.address || 'Location unavailable')}"><span class="material-symbols-outlined text-xs">location_on</span> ${escapeHtml(iss.address || 'Location unavailable')}</p>
-                        <div class="ticket-meta-grid officer-compact-detail text-[10px] text-on-surface-variant"><span><strong class="text-on-surface">Assigned:</strong> ${escapeHtml(assignedDisplay)}</span><span><strong class="text-on-surface">Upvotes:</strong> <strong class="text-primary">${Number(iss.upvote_count || 0)}</strong></span><span><strong class="text-on-surface">Reported:</strong> ${iss.created_at ? new Date(iss.created_at).toLocaleString() : 'Unavailable'}</span><span><strong class="text-on-surface">Priority score:</strong> ${escapeHtml(iss.priority_score)}</span></div>
+                        <div class="ticket-meta-grid officer-compact-detail text-[10px] text-on-surface-variant"><span><strong class="text-on-surface">${officerTranslations[officerLanguage].assigned}:</strong> ${escapeHtml(assignedDisplay)}</span><span><strong class="text-on-surface">${officerTranslations[officerLanguage].upvotes}:</strong> <strong class="text-primary">${Number(iss.upvote_count || 0)}</strong></span><span><strong class="text-on-surface">${officerTranslations[officerLanguage].reported}:</strong> ${iss.created_at ? new Date(iss.created_at).toLocaleString() : 'Unavailable'}</span><span><strong class="text-on-surface">${officerTranslations[officerLanguage].priority}:</strong> ${escapeHtml(iss.priority_score)}</span><span><strong class="text-on-surface">${officerTranslations[officerLanguage].categoryPts}:</strong> ${escapeHtml(iss.category_priority_points ?? '')}</span><span><strong class="text-on-surface">${officerTranslations[officerLanguage].workerQuality}:</strong> ${iss.worker_quality?.count ? `${iss.worker_quality.average}/5 (${iss.worker_quality.count})` : officerTranslations[officerLanguage].noRatings}</span></div>
                         ${progressHtml}
                         ${completionComparison}
                         <div class="officer-compact-detail bg-surface-container-low p-2 rounded-lg text-xs">
-                            <div><span class="text-[10px] uppercase text-outline block">Priority score</span><span class="font-mono font-bold text-primary">${iss.priority_score}</span></div>
+                            <div><span class="text-[10px] uppercase text-outline block">${officerTranslations[officerLanguage].priority}</span><span class="font-mono font-bold text-primary">${iss.priority_score}</span></div>
                         </div>
                         ${fullTicket}
                         ${verificationControls}`}</div></details>`;

@@ -1,0 +1,522 @@
+{
+  "results": [
+    {
+      "name": "login: brand visible",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "login: sign-in form visible",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "login: show password toggle",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "login: password becomes text",
+      "ok": true,
+      "detail": "type=text"
+    },
+    {
+      "name": "login: hide password toggle",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "login: New Citizen Register tab",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "login: register form shown",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "login: sign-in form hidden on register tab",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "login: Sign In tab",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "login: sign-in form restored",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "login: bad credentials show error",
+      "ok": true,
+      "detail": "No account found for username or phone number: nobody"
+    },
+    {
+      "name": "citizen: landed on portal",
+      "ok": true,
+      "detail": "http://127.0.0.1:8000/citizen/"
+    },
+    {
+      "name": "citizen: notifications button",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "citizen: notification panel opened",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "citizen: close notifications",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "citizen: accessibility menu",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "citizen: contrast toggle",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "citizen: high contrast applied",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "citizen: contrast off",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "citizen: easy read toggle",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "citizen: font A+",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "citizen: font A++",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "citizen: font A",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "citizen: language switch",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "citizen: Tamil labels after language toggle",
+      "ok": true,
+      "detail": "\u0b85\u0bb0\u0bc1\u0b95\u0bbf\u0bb2\u0bc1\u0bb3\u0bcd\u0bb3 \u0baa\u0bc1\u0b95\u0bbe\u0bb0\u0bcd\u0b95\u0bb3\u0bcd"
+    },
+    {
+      "name": "citizen: language back to English",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "citizen: Report Issue tab",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "citizen: camera capture button",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "citizen: GPS status",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "citizen: GPS acquired or waiting",
+      "ok": true,
+      "detail": "GPS: 13.0827\u00b0 N, 80.2707\u00b0 E"
+    },
+    {
+      "name": "citizen: take photo shutter",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "citizen: mic / speech button",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "citizen: submit stays gated until photo+GPS ready (or enabled after capture)",
+      "ok": true,
+      "detail": "disabled=False"
+    },
+    {
+      "name": "citizen: Nearby tab",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "citizen: Resolved Issues filter",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "citizen: Nearby Issues filter",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "citizen: nearby issue count loaded",
+      "ok": true,
+      "detail": "5"
+    },
+    {
+      "name": "citizen: upvote button clickable",
+      "ok": true,
+      "detail": "2->2"
+    },
+    {
+      "name": "citizen: category filter click",
+      "ok": true,
+      "detail": "Public Safety"
+    },
+    {
+      "name": "citizen: My Impact tab",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "citizen: civic points visible",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "citizen: impact report expands",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "citizen: reopen accessibility for read aloud",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "citizen: read aloud",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "citizen: stop read aloud",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "worker: landed on portal",
+      "ok": true,
+      "detail": "http://127.0.0.1:8000/worker/"
+    },
+    {
+      "name": "worker: task list",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "worker: accessibility menu",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "worker: contrast",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "worker: easy read",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "worker: language",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "worker: language restore",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "worker: Today date chip",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "worker: Yesterday date chip",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "worker: open date picker",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "worker: date picker dialog",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "worker: calendar next month",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "worker: calendar prev month",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "worker: date picker cancel",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "worker: reopen accessibility for read aloud",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "worker: read aloud",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "worker: Start Work skipped (already in progress)",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "worker: proof modal",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "worker: close proof modal",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "officer: landed on portal",
+      "ok": true,
+      "detail": "http://127.0.0.1:8000/officer/"
+    },
+    {
+      "name": "officer: Assigned tab",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "officer: Completed tab",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "officer: Not assigned tab",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "officer: next month",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "officer: prev month",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "officer: open accessibility menu",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "officer: contrast",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "officer: Tamil",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "officer: English",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "officer: New Worker",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "officer: provision worker modal",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "officer: close worker modal",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "officer: reopen accessibility for read aloud",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "officer: read aloud",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "officer: ticket queue has content",
+      "ok": true,
+      "detail": "ROAD ROAD"
+    },
+    {
+      "name": "officer: expand ROAD group",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "officer: ticket detail/assign control",
+      "ok": true,
+      "detail": "no assign control on current queue (data-dependent)"
+    },
+    {
+      "name": "admin: landed on portal",
+      "ok": true,
+      "detail": "http://127.0.0.1:8000/system-admin/"
+    },
+    {
+      "name": "admin: metrics grid",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "admin: create user form",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "admin: user table",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "admin: accessibility menu",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "admin: contrast",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "admin: users loaded",
+      "ok": true,
+      "detail": "\t\t\t\nCitizen\nField Worker\nOfficer\nZone Officer\nAdmin\n\t\t\t\nActive\n\t\nUpdate\nReset ac"
+    },
+    {
+      "name": "admin: metrics populated",
+      "ok": true,
+      "detail": "TOTAL ISSUES\n\n9\n\nRESOLVED\n\n4\n\nRESOLUTION RATE\n\n44.4%\n\nAVG TURNAROUND (H)\n\n0.5\n\nA"
+    },
+    {
+      "name": "admin: Save Configuration",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "admin: config save feedback",
+      "ok": true,
+      "detail": "Configuration saved."
+    },
+    {
+      "name": "admin: Update user",
+      "ok": true,
+      "detail": "User updated."
+    },
+    {
+      "name": "guard: citizen cannot open officer portal",
+      "ok": true,
+      "detail": "http://127.0.0.1:8000/citizen/?error=Unauthorized+access."
+    },
+    {
+      "name": "guard: citizen cannot open worker portal",
+      "ok": true,
+      "detail": "http://127.0.0.1:8000/citizen/?error=Unauthorized+access."
+    },
+    {
+      "name": "guard: citizen cannot open admin portal",
+      "ok": true,
+      "detail": "http://127.0.0.1:8000/citizen/?error=Unauthorized+access."
+    },
+    {
+      "name": "api: citizen profile",
+      "ok": true,
+      "detail": "HTTP 200"
+    },
+    {
+      "name": "api: nearby issues",
+      "ok": true,
+      "detail": "HTTP 200"
+    },
+    {
+      "name": "api: my reports",
+      "ok": true,
+      "detail": "HTTP 200"
+    },
+    {
+      "name": "api: leaderboard",
+      "ok": true,
+      "detail": "HTTP 200"
+    },
+    {
+      "name": "api: notifications",
+      "ok": true,
+      "detail": "HTTP 200"
+    },
+    {
+      "name": "api: heatmap blocked for citizen",
+      "ok": true,
+      "detail": "HTTP 403"
+    },
+    {
+      "name": "api: admin analytics blocked for citizen",
+      "ok": true,
+      "detail": "HTTP 403"
+    }
+  ],
+  "console": [
+    "http://127.0.0.1:8000/ :: Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+  ]
+}

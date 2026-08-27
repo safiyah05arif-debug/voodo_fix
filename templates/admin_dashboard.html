@@ -43,16 +43,19 @@
 </head>
 <body class="min-h-screen bg-surface text-on-surface font-sans civix-enter">
     <a href="#main-content" class="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:bg-white focus:px-4 focus:py-2 focus:text-primary focus:font-bold focus:shadow-lg">Skip to main content</a>
-    <header class="bg-primary text-white px-6 py-4 flex flex-wrap gap-4 items-center justify-between">
-        <div class="flex items-center gap-3">
-            <img src="{% static 'nagara_setu_logo.svg' %}" alt="Nagara Setu logo" class="w-10 h-10 object-contain rounded-full bg-white/10 p-0.5"/>
-            <div>
-                <p class="text-xs uppercase tracking-widest text-secondary-container">Nagara Setu</p>
-                <h1 class="text-xl font-bold">System Administration</h1>
-            </div>
-        </div>
-        <nav aria-label="Portal navigation" class="flex gap-4 text-sm"><button id="admin-contrast" type="button" aria-pressed="false" aria-label="Toggle high contrast mode">Contrast</button><a href="/api/users/logout/" class="underline">Logout</a></nav>
+    <header class="app-name-bar bg-primary text-white px-6 py-4 flex items-center gap-3">
+        <img src="{% static 'nagara_setu_logo.svg' %}" alt="Nagara Setu logo" class="w-10 h-10 object-contain rounded-full bg-white/10 p-0.5"/>
+        <h1 class="text-xl font-bold">Nagara Setu</h1>
     </header>
+    <div class="app-action-bar relative bg-white border-b border-outline-variant px-3 py-2 flex items-center justify-between gap-2 text-xs">
+        <button id="admin-menu-toggle" type="button" class="p-1.5 rounded hover:bg-surface-container" aria-label="Open accessibility menu" aria-expanded="false" aria-controls="admin-accessibility-panel">☰</button>
+        <div id="admin-accessibility-panel" class="hidden absolute left-3 top-full mt-1 z-50 bg-white border border-outline-variant rounded-xl shadow-lg p-2 min-w-[10rem]">
+            <button id="admin-contrast" type="button" aria-pressed="false" aria-label="Toggle high contrast mode" class="w-full px-2 py-1 rounded hover:bg-surface-container">Contrast</button>
+        </div>
+        <div class="ml-auto flex items-center gap-3">
+            <a href="/api/users/logout/" class="underline">Logout</a>
+        </div>
+    </div>
     <main id="main-content" tabindex="-1" class="max-w-6xl mx-auto p-6 space-y-6">
         <section id="metric-grid" class="grid grid-cols-2 md:grid-cols-5 gap-3" aria-label="Platform health metrics"></section>
         <section class="grid lg:grid-cols-2 gap-6">
@@ -65,7 +68,9 @@
                 <label class="block text-sm font-semibold">Critical SLA hours<input id="critical-sla" type="number" min="1" class="mt-1 w-full border rounded p-2"></label>
                 <label class="block text-sm font-semibold">High SLA hours<input id="high-sla" type="number" min="1" class="mt-1 w-full border rounded p-2"></label>
                 <label class="block text-sm font-semibold">Upvote priority weight<input id="upvote-weight" type="number" min="0" class="mt-1 w-full border rounded p-2"></label>
-                <button class="bg-primary text-white px-4 py-2 rounded font-bold" type="submit">Save Configuration</button>
+                <p class="text-sm font-semibold">Category priority points <span class="font-normal text-on-surface-variant">(higher = more urgent, hidden from citizens)</span></p>
+                <div id="category-priority-grid" class="grid grid-cols-2 gap-2 text-sm"></div>
+                <button type="submit" class="bg-primary text-white px-4 py-2 rounded font-bold text-sm">Save configuration</button>
                 <p id="config-status" class="text-sm" role="status"></p>
             </form>
         </section>
@@ -108,12 +113,23 @@
         function csrfToken() {
             return document.cookie.split('; ').find((row) => row.startsWith('csrftoken='))?.split('=')[1] || '';
         }
+        const categoryKeys = ['public_safety', 'electricity', 'water', 'drainage', 'road', 'waste', 'environment', 'other'];
+        const categoryLabels = {public_safety: 'Public safety', electricity: 'Electricity', water: 'Water', drainage: 'Drainage', road: 'Roads', waste: 'Waste', environment: 'Environment', other: 'Other'};
         const metricLabels = [['total_issues', 'Total Issues'], ['resolved_count', 'Resolved'], ['resolution_rate', 'Resolution Rate'], ['average_turnaround_hours', 'Avg Turnaround (h)'], ['active_field_workers', 'Active Workers']];
         let adminUsers = [];
         const escapeHtml = (value) => String(value ?? '').replace(/[&<>'"]/g, (character) => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'}[character]));
         const adminContrast = document.getElementById('admin-contrast');
         if (localStorage.getItem('civix-contrast') === 'on') { document.body.classList.add('high-contrast'); adminContrast.setAttribute('aria-pressed', 'true'); }
         adminContrast.addEventListener('click', () => { const enabled = document.body.classList.toggle('high-contrast'); localStorage.setItem('civix-contrast', enabled ? 'on' : 'off'); adminContrast.setAttribute('aria-pressed', String(enabled)); });
+        document.getElementById('admin-menu-toggle').addEventListener('click', (event) => {
+            event.stopPropagation();
+            document.getElementById('admin-accessibility-panel').classList.toggle('hidden');
+        });
+        document.addEventListener('click', (event) => {
+            const panel = document.getElementById('admin-accessibility-panel');
+            const toggle = document.getElementById('admin-menu-toggle');
+            if (!panel.contains(event.target) && !toggle.contains(event.target)) panel.classList.add('hidden');
+        });
 
         function renderUsers() {
             document.getElementById('user-list').innerHTML = adminUsers.map((user) => `<tr class="border-b align-top">
@@ -185,10 +201,13 @@
             document.getElementById('critical-sla').value = config.sla_deadlines.critical || 24;
             document.getElementById('high-sla').value = config.sla_deadlines.high || 48;
             document.getElementById('upvote-weight').value = config.priority_weights.upvotes || 20;
+            const points = config.category_priority_points || {};
+            document.getElementById('category-priority-grid').innerHTML = categoryKeys.map((key) => `<label class="block font-medium">${categoryLabels[key]}<input id="cat-pt-${key}" type="number" min="0" class="mt-1 w-full border rounded p-2" value="${Number(points[key] || 0)}"></label>`).join('');
         }
         document.getElementById('config-form').addEventListener('submit', async (event) => {
             event.preventDefault();
-            const response = await fetch('/api/users/admin/config/', { method: 'PATCH', headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrfToken()}, body: JSON.stringify({ sla_deadlines: {critical: Number(document.getElementById('critical-sla').value), high: Number(document.getElementById('high-sla').value)}, priority_weights: {upvotes: Number(document.getElementById('upvote-weight').value)} }) });
+            const category_priority_points = Object.fromEntries(categoryKeys.map((key) => [key, Number(document.getElementById(`cat-pt-${key}`).value)]));
+            const response = await fetch('/api/users/admin/config/', { method: 'PATCH', headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrfToken()}, body: JSON.stringify({ sla_deadlines: {critical: Number(document.getElementById('critical-sla').value), high: Number(document.getElementById('high-sla').value)}, priority_weights: {upvotes: Number(document.getElementById('upvote-weight').value)}, category_priority_points }) });
             const data = await response.json();
             document.getElementById('config-status').textContent = response.ok ? 'Configuration saved.' : (data.error || 'Could not save configuration.');
         });

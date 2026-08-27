@@ -157,3 +157,13 @@ class IssueLogicTests(SimpleTestCase):
 		details = stalled_issue_details(issue)
 		self.assertTrue(details["is_stalled"])
 		self.assertEqual(details["reason"], "This ticket has been unassigned")
+
+	def test_public_safety_outranks_other_in_category_points(self):
+		from issues.models import category_priority_value
+		self.assertGreater(category_priority_value("public_safety"), category_priority_value("other"))
+		self.assertGreater(category_priority_value("electricity"), category_priority_value("waste"))
+
+	def test_category_points_raise_priority_score(self):
+		road = Issue(title="Road", reported_by="c", location=[80.27, 13.08], category="road", severity="medium", upvote_count=0)
+		safety = Issue(title="Manhole", reported_by="c", location=[80.27, 13.08], category="public_safety", severity="medium", upvote_count=0)
+		self.assertGreater(safety.calculate_priority_score(), road.calculate_priority_score())

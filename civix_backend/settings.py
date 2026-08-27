@@ -224,7 +224,24 @@ PRIORITY_WEIGHTS = {
     "upvotes": 20,
     "hours_pending": 10,
     "location_risk": 30,
+    "category": 1,
 }
+
+# Higher number = higher dispatch priority. Hidden from citizens.
+CATEGORY_PRIORITY_POINTS = {
+    "public_safety": 100,
+    "electricity": 85,
+    "water": 80,
+    "drainage": 75,
+    "road": 60,
+    "waste": 45,
+    "environment": 35,
+    "other": 20,
+}
+
+REPORT_CIVIC_POINTS = 20
+UPVOTE_CIVIC_POINTS = 5
+VERIFY_CIVIC_POINTS = 10
 
 # ── Spatial Deduplication Radius (meters) ─────────────────────────────────────
 DEDUP_RADIUS_METERS = 50

@@ -39,6 +39,9 @@
         #worker-tasks-list button, #worker-tasks-list a { min-height: var(--civix-control-height); border-radius: .5rem; }
         .proof-upload-shell label { min-height: 180px; }
         .proof-modal-inline { position: static; background: transparent; padding: 0; }
+        .a11y-panel { display: none; position: absolute; left: .5rem; top: calc(100% + .25rem); z-index: 80; min-width: 14rem; flex-direction: column; align-items: stretch; gap: .25rem; padding: .5rem; border-radius: .75rem; background: #fff; border: 1px solid #d9d9e0; box-shadow: 0 12px 32px rgba(18,33,51,.16); }
+        .a11y-panel.is-open { display: flex; }
+        .a11y-panel button { width: 100%; min-height: 2.25rem; }
         #worker-accessibility-controls { min-width: 12rem; }
         #worker-accessibility-controls #worker-contrast, #worker-accessibility-controls #worker-easy-read { width: 100% !important; flex-basis: auto !important; display: flex !important; }
         .worker-accessibility-menu { position: absolute; right: 0; top: 100%; z-index: 100; margin-top: .5rem; }
@@ -103,33 +106,30 @@
 <body class="bg-surface text-on-surface min-h-screen flex flex-col font-sans pb-24 civix-enter">
     <a href="#main-content" class="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:bg-white focus:px-4 focus:py-2 focus:text-primary focus:font-bold focus:shadow-lg">Skip to main content</a>
 
-    <!-- Worker Accessibility Header -->
-    <div class="bg-primary text-on-primary px-4 py-2 flex justify-between items-center text-xs font-bold relative" role="banner">
-        <div class="flex items-center gap-2">
-            <span class="material-symbols-outlined text-sm">engineering</span>
-            <span id="worker-portal-title">FIELD WORKER PORTAL</span>
-        </div>
-        <div class="flex items-center gap-3">
-            <span id="worker-gps-tag">GPS: Waiting for location</span>
-            <button id="worker-language" type="button" class="p-1 rounded hover:bg-white/20" aria-label="Switch interface language to Tamil" title="Switch language">
-                <span class="material-symbols-outlined text-sm">language</span>
-            </button>
-            <div class="relative">
-                <button id="worker-accessibility-menu" type="button" class="p-1 rounded hover:bg-white/20" aria-expanded="false" aria-controls="worker-accessibility-controls" aria-label="Open accessibility options">
-                    <span class="material-symbols-outlined text-sm">menu</span>
-                </button>
-                <div id="worker-accessibility-controls" class="worker-accessibility-menu hidden p-2 bg-white text-on-surface border border-outline-variant rounded-lg shadow-xl">
-                    <button id="worker-contrast" type="button" class="w-full flex items-center gap-2 px-2 py-1.5 rounded hover:bg-surface-container transition-colors" aria-pressed="false" aria-label="Toggle high contrast mode"><span class="material-symbols-outlined text-sm text-primary">contrast</span><span id="worker-contrast-label">Contrast</span></button>
-                    <button id="worker-easy-read" type="button" class="w-full flex items-center gap-2 px-2 py-1.5 rounded hover:bg-surface-container transition-colors" aria-pressed="false" aria-label="Toggle Easy Read mode"><span class="material-symbols-outlined text-sm text-primary">text_fields</span><span id="worker-easy-read-label">Easy Read</span></button>
-                    <div class="flex items-center justify-between gap-1 border-t border-outline-variant mt-1 pt-1">
-                        <button type="button" onclick="setWorkerFontSize('100%')" class="px-2 py-1 rounded hover:bg-surface-container" aria-label="Use normal text size">A</button>
-                        <button type="button" onclick="setWorkerFontSize('115%')" class="px-2 py-1 rounded hover:bg-surface-container font-bold" aria-label="Increase text size">A+</button>
-                        <button type="button" onclick="setWorkerFontSize('130%')" class="px-2 py-1 rounded hover:bg-surface-container text-sm font-black" aria-label="Use largest text size">A++</button>
-                    </div>
-                </div>
+    <header class="app-name-bar bg-primary text-white px-4 py-3 flex items-center gap-3 shadow-sm">
+        <img src="{% static 'nagara_setu_logo.svg' %}" alt="Nagara Setu logo" class="w-9 h-9 object-contain rounded-full bg-white p-0.5"/>
+        <h1 class="font-black text-lg leading-tight" id="worker-heading">Nagara Setu</h1>
+    </header>
+    <div class="app-action-bar relative bg-white border-b border-outline-variant px-3 py-2 flex items-center justify-between gap-2 text-xs">
+        <button id="worker-accessibility-menu" type="button" class="p-1.5 rounded hover:bg-surface-container" aria-label="Open accessibility menu" aria-expanded="false" aria-controls="worker-accessibility-controls">
+            <span class="material-symbols-outlined text-lg">menu</span>
+        </button>
+        <div id="worker-accessibility-controls" class="a11y-panel">
+            <button id="worker-contrast" type="button" class="px-2 py-1 rounded hover:bg-surface-container" aria-pressed="false"><span id="worker-contrast-label">Contrast</span></button>
+            <button id="worker-easy-read" type="button" class="px-2 py-1 rounded hover:bg-surface-container" aria-pressed="false"><span id="worker-easy-read-label">Easy Read</span></button>
+            <div class="flex gap-1">
+                <button type="button" onclick="setWorkerFontSize('100%')" class="flex-1 px-2 py-1 rounded" aria-label="Use normal text size">A</button>
+                <button type="button" onclick="setWorkerFontSize('115%')" class="flex-1 px-2 py-1 rounded font-bold" aria-label="Increase text size">A+</button>
+                <button type="button" onclick="setWorkerFontSize('130%')" class="flex-1 px-2 py-1 rounded font-black" aria-label="Use largest text size">A++</button>
             </div>
-            <button id="worker-read-aloud" type="button" aria-pressed="false" aria-label="Read worker tasks aloud"><span class="material-symbols-outlined text-sm">volume_up</span><span id="worker-read-label">Read aloud</span></button>
-            <nav aria-label="Portal navigation"><a href="/api/users/logout/" class="underline text-white">Logout</a></nav>
+            <button id="worker-read-aloud" type="button" aria-pressed="false" class="px-2 py-1 rounded hover:bg-surface-container"><span id="worker-read-label">Read aloud</span></button>
+        </div>
+        <div class="ml-auto flex items-center gap-2">
+            <span id="worker-gps-tag" class="hidden sm:inline text-[10px] text-on-surface-variant">GPS: Waiting for location</span>
+            <button id="worker-language" type="button" class="p-1.5 rounded hover:bg-surface-container text-primary" aria-label="Switch interface language to Tamil">
+                <span class="material-symbols-outlined text-lg">language</span>
+            </button>
+            <a href="/api/users/logout/" class="underline text-xs font-bold" data-i18n-worker="logout">Logout</a>
         </div>
     </div>
 
@@ -139,20 +139,16 @@
         <button id="worker-today" type="button" class="rounded-r-xl border border-outline-variant bg-white px-2 py-2 text-xs font-bold text-on-surface-variant hover:bg-surface-container">Today</button>
     </section>
 
-    <!-- App Header -->
-    <header class="bg-white border-b border-outline-variant flex justify-between items-center w-full px-4 py-3 max-w-4xl mx-auto civix-glass">
-        <div class="flex items-center gap-3">
-            <img src="{% static 'nagara_setu_logo.svg' %}" alt="Nagara Setu logo" class="w-10 h-10 object-contain rounded-full bg-white p-0.5 shadow-sm"/>
-            <div>
-                <h1 class="font-black text-xl text-primary leading-tight" id="worker-heading">Nagara Setu Worker</h1>
-                <p id="worker-profile-summary" class="text-xs text-on-surface-variant">Field worker account</p>
-            </div>
-        </div>
+    <!-- Duty status -->
+    <div class="bg-white border-b border-outline-variant flex justify-between items-center w-full px-4 py-2 max-w-4xl mx-auto">
+        <span class="text-xs font-bold text-on-surface-variant" id="worker-portal-title">FIELD WORKER PORTAL</span>
+        <p id="worker-profile-summary" class="hidden">Field worker account</p>
         <div class="flex items-center gap-2 bg-secondary-container/50 text-secondary px-3 py-1 rounded-full text-xs font-bold border border-secondary/30">
             <span class="w-2 h-2 rounded-full bg-secondary animate-ping"></span>
-                <span id="worker-duty">On Duty</span>
+            <span id="worker-duty">On Duty</span>
+            <span id="worker-quality-pill" class="text-[10px] text-on-surface"></span>
         </div>
-    </header>
+    </div>
 
     <!-- Main Canvas -->
     <main id="main-content" tabindex="-1" class="flex-1 w-full max-w-4xl mx-auto px-4 py-4 flex flex-col gap-5">
@@ -176,7 +172,7 @@
                 <span class="material-symbols-outlined text-primary">route</span>
                 <span id="worker-tasks-heading">Assigned Tasks (Sorted by Urgency & Distance)</span>
             </h3>
-            <span class="text-xs text-primary font-bold">Live GPS Auto-Sort</span>
+            <span class="text-xs text-primary font-bold" id="worker-live-gps">Live GPS Auto-Sort</span>
         </div>
 
         <!-- Task List -->
@@ -297,14 +293,14 @@
             };
         const workerTranslations = {
             en: {
-                portal: 'FIELD WORKER PORTAL', citizen: 'Citizen View', heading: 'Nagara Setu Worker', duty: 'On Duty', assigned: 'Assigned Tasks', closed: 'Closed Today',
+                portal: 'FIELD WORKER PORTAL', citizen: 'Citizen View', heading: 'Nagara Setu', duty: 'On Duty', assigned: 'Assigned Tasks', closed: 'Closed Today',
                 tasks: 'Assigned Tasks (Sorted by Urgency & Distance)', photoTitle: "Capture Mandatory 'After' Photo", photoHelp: 'Tap to take photo of completed repair', notes: 'Field Notes', submit: 'SUBMIT CLOSURE PROOF',
-                read: 'Read aloud', stop: 'Stop reading', prompt: 'Worker portal. Review assigned tasks, navigate to the incident, and submit a completion photo with your field notes.', started: 'Read aloud started', stopped: 'Read aloud stopped'
+                read: 'Read aloud', stop: 'Stop reading', prompt: 'Worker portal. Review assigned tasks, navigate to the incident, and submit a completion photo with your field notes.', started: 'Read aloud started', stopped: 'Read aloud stopped', yesterday: 'Yesterday', today: 'Today', logout: 'Logout', contrast: 'Contrast', easyRead: 'Easy Read', navigate: 'Navigate', startWork: 'Start Work', complete: 'Complete / Close Ticket', liveGps: 'Live GPS Auto-Sort', gpsWaiting: 'GPS: Waiting for location', tasksWord: 'Tasks', doneWord: 'Done', selected: 'Selected', noTasks: 'No tasks for the selected date.', gpsActive: 'GPS: Active', gpsUnavailable: 'GPS: Unavailable'
             },
             ta: {
-                portal: 'களப் பணியாளர் தளம்', citizen: 'குடிமகன் பார்வை', heading: 'நாகரா சேது பணியாளர்', duty: 'பணியில்', assigned: 'ஒதுக்கப்பட்ட பணிகள்', closed: 'இன்று முடித்தவை',
+                portal: 'களப் பணியாளர் தளம்', citizen: 'குடிமகன் பார்வை', heading: 'நாகரா சேது', duty: 'பணியில்', assigned: 'ஒதுக்கப்பட்ட பணிகள்', closed: 'இன்று முடித்தவை',
                 tasks: 'அவசரம் மற்றும் தூரத்தின் அடிப்படையில் ஒதுக்கப்பட்ட பணிகள்', photoTitle: 'கட்டாய முடிப்பு புகைப்படத்தை எடுக்கவும்', photoHelp: 'முடிக்கப்பட்ட பணியின் புகைப்படத்தை எடுக்க அழுத்தவும்', notes: 'களக் குறிப்புகள்', submit: 'முடிப்பு சான்றை சமர்ப்பிக்கவும்',
-                read: 'வாசிக்கவும்', stop: 'வாசிப்பை நிறுத்தவும்', prompt: 'பணியாளர் தளம். ஒதுக்கப்பட்ட பணிகளைப் பார்த்து, சம்பவ இடத்திற்குச் சென்று, முடிப்பு புகைப்படத்தையும் களக் குறிப்புகளையும் சமர்ப்பிக்கவும்.', started: 'குரல் வாசிப்பு தொடங்கியது', stopped: 'குரல் வாசிப்பு நிறுத்தப்பட்டது'
+                read: 'வாசிக்கவும்', stop: 'வாசிப்பை நிறுத்தவும்', prompt: 'பணியாளர் தளம். ஒதுக்கப்பட்ட பணிகளைப் பார்த்து, சம்பவ இடத்திற்குச் சென்று, முடிப்பு புகைப்படத்தையும் களக் குறிப்புகளையும் சமர்ப்பிக்கவும்.', started: 'குரல் வாசிப்பு தொடங்கியது', stopped: 'குரல் வாசிப்பு நிறுத்தப்பட்டது', yesterday: 'நேற்று', today: 'இன்று', logout: 'வெளியேறு', contrast: 'மாறுபாடு', easyRead: 'எளிய வாசிப்பு', navigate: 'வழிசெலுத்து', startWork: 'பணியைத் தொடங்கு', complete: 'முடித்து மூடு', liveGps: 'நேரடி ஜிபிஎஸ் வரிசை', gpsWaiting: 'ஜிபிஎஸ்: இடம் காத்திருக்கிறது', tasksWord: 'பணிகள்', doneWord: 'முடிந்தது', selected: 'தேர்வு', noTasks: 'தேர்ந்தெடுத்த தேதிக்கு பணிகள் இல்லை.', gpsActive: 'ஜிபிஎஸ்: செயலில்', gpsUnavailable: 'ஜிபிஎஸ்: கிடைக்கவில்லை'
             }
         };
 
@@ -357,20 +353,24 @@
                 const button = document.createElement('button');
                 button.type = 'button';
                 button.textContent = day;
-                button.className = `${dateKey === workerPendingDate ? 'selected ' : ''}${dateKey === today ? 'today ' : ''}text-on-surface`;
+                button.className = `${dateKey === workerPendingDate ? 'selected ' : ''}${dateKey === today ? 'today ' : ''}${dateKey > today ? 'opacity-30 cursor-not-allowed ' : ''}text-on-surface`;
                 button.setAttribute('aria-label', workerDateLabel(dateKey));
                 button.setAttribute('aria-pressed', String(dateKey === workerPendingDate));
-                button.addEventListener('click', () => {
-                    workerPendingDate = dateKey;
-                    document.getElementById('worker-calendar-selected-label').textContent = workerDateLabel(dateKey);
-                    renderWorkerCalendar();
-                });
+                button.disabled = dateKey > today;
+                if (dateKey <= today) {
+                    button.addEventListener('click', () => {
+                        workerPendingDate = dateKey;
+                        document.getElementById('worker-calendar-selected-label').textContent = workerDateLabel(dateKey);
+                        renderWorkerCalendar();
+                    });
+                }
                 days.appendChild(button);
             }
         }
 
         function selectWorkerDate(dateKey) {
             if (!/^\d{4}-\d{2}-\d{2}$/.test(dateKey)) return;
+            if (dateKey > workerDateKey(new Date())) return;
             workerSelectedDate = dateKey;
             updateWorkerDateSelector();
             closeWorkerDatePicker();
@@ -401,9 +401,15 @@
                 if (el) el.textContent = text;
             });
             document.documentElement.lang = language === 'ta' ? 'ta' : 'en';
+            document.getElementById('worker-contrast-label').textContent = t.contrast;
+            document.getElementById('worker-easy-read-label').textContent = t.easyRead;
+            document.getElementById('worker-yesterday').textContent = t.yesterday;
+            document.getElementById('worker-today').textContent = t.today;
+            const logoutLink = document.querySelector('a[href="/api/users/logout/"]');
+            if (logoutLink) logoutLink.textContent = t.logout;
+            document.getElementById('worker-live-gps').textContent = t.liveGps;
+            document.getElementById('worker-gps-tag').textContent = t.gpsWaiting;
             loadWorkerTasks();
-            document.getElementById('worker-contrast-label').textContent = language === 'ta' ? 'மாறுபாடு' : 'Contrast';
-            document.getElementById('worker-easy-read-label').textContent = language === 'ta' ? 'எளிய வாசிப்பு' : 'Easy Read';
             const languageButton = document.getElementById('worker-language');
             const nextLanguage = language === 'ta' ? 'English' : 'Tamil';
             languageButton.setAttribute('aria-label', `Switch interface language to ${nextLanguage}`);
@@ -456,13 +462,19 @@
         }
 
         document.getElementById('worker-language').addEventListener('click', () => setWorkerLanguage(workerLanguage === 'ta' ? 'en' : 'ta'));
-        const workerAccessibilityMenuButton = document.getElementById('worker-accessibility-menu');
-        const workerAccessibilityControls = document.getElementById('worker-accessibility-controls');
-        workerAccessibilityMenuButton.addEventListener('click', () => {
-            const expanded = workerAccessibilityMenuButton.getAttribute('aria-expanded') === 'true';
-            workerAccessibilityMenuButton.setAttribute('aria-expanded', String(!expanded));
-            workerAccessibilityMenuButton.setAttribute('aria-label', expanded ? 'Open accessibility options' : 'Close accessibility options');
-            workerAccessibilityControls.classList.toggle('hidden', expanded);
+        document.getElementById('worker-accessibility-menu').addEventListener('click', (event) => {
+            event.stopPropagation();
+            const panel = document.getElementById('worker-accessibility-controls');
+            const open = panel.classList.toggle('is-open');
+            document.getElementById('worker-accessibility-menu').setAttribute('aria-expanded', String(open));
+        });
+        document.addEventListener('click', (event) => {
+            const panel = document.getElementById('worker-accessibility-controls');
+            const toggle = document.getElementById('worker-accessibility-menu');
+            if (!panel.contains(event.target) && !toggle.contains(event.target)) {
+                panel.classList.remove('is-open');
+                toggle.setAttribute('aria-expanded', 'false');
+            }
         });
         document.getElementById('worker-contrast').addEventListener('click', () => {
             const enabled = document.body.classList.toggle('high-contrast');
@@ -475,13 +487,6 @@
             document.getElementById('worker-easy-read').setAttribute('aria-pressed', String(workerEasyRead));
             document.getElementById('worker-easy-read').classList.toggle('font-bold', workerEasyRead);
             announceWorker(workerEasyRead ? (workerLanguage === 'ta' ? 'எளிய வாசிப்பு இயக்கப்பட்டது' : 'Easy Read enabled') : (workerLanguage === 'ta' ? 'எளிய வாசிப்பு முடக்கப்பட்டது' : 'Easy Read disabled'));
-        });
-        document.querySelectorAll('#worker-accessibility-controls button').forEach((button) => {
-            button.addEventListener('click', () => {
-                workerAccessibilityMenuButton.setAttribute('aria-expanded', 'false');
-                workerAccessibilityMenuButton.setAttribute('aria-label', 'Open accessibility options');
-                workerAccessibilityControls.classList.add('hidden');
-            });
         });
         document.getElementById('worker-read-aloud').addEventListener('click', readWorkerTasks);
         document.getElementById('worker-yesterday').addEventListener('click', () => {
@@ -512,7 +517,9 @@
             renderWorkerCalendar();
         });
         document.getElementById('worker-calendar-next').addEventListener('click', () => {
-            workerCalendarDate.setMonth(workerCalendarDate.getMonth() + 1);
+            const next = new Date(workerCalendarDate.getFullYear(), workerCalendarDate.getMonth() + 1, 1);
+            if (workerDateKey(next) > workerDateKey(new Date())) return;
+            workerCalendarDate = next;
             renderWorkerCalendar();
         });
         document.getElementById('worker-date-picker-confirm').addEventListener('click', () => selectWorkerDate(workerPendingDate));
@@ -558,8 +565,9 @@
                     if (!resolvedStatuses.includes(issue.status) || !issue.resolved_at) return false;
                     return new Date(issue.resolved_at).toDateString() === new Date().toDateString();
                 }).length;
-                document.getElementById('worker-assigned-count').textContent = `${issues.length} Tasks`;
-                document.getElementById('worker-closed-count').textContent = `${closedToday} Done`;
+                const wt = workerTranslations[workerLanguage];
+                document.getElementById('worker-assigned-count').textContent = `${issues.length} ${wt.tasksWord}`;
+                document.getElementById('worker-closed-count').textContent = `${closedToday} ${wt.doneWord}`;
 
                 issues.slice(0, 10).forEach((iss, index) => {
                     assignedWorkerByIssue[iss.id] = iss.assigned_to || '';
@@ -597,15 +605,15 @@
                         </div>
                         <div class="flex gap-2 pt-1">
                             <a href="${googleMapsUrl(iss.location)}" target="_blank" rel="noopener noreferrer" aria-label="Navigate to reported location for ${escapeHtml(iss.title)}" class="flex-1 bg-surface-container text-on-surface py-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 border hover:bg-surface-variant">
-                                <span class="material-symbols-outlined text-sm">navigation</span> Navigate
+                                <span class="material-symbols-outlined text-sm">navigation</span> ${wt.navigate}
                             </a>
-                            ${iss.status === 'assigned' ? `<button onclick="updateWorkerStatus('${iss.id}', 'in_progress')" class="flex-1 bg-primary text-white py-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 shadow-sm hover:opacity-95"><span class="material-symbols-outlined text-sm">play_arrow</span> Start Work</button>` : ''}
-                            ${iss.status === 'in_progress' ? `<button onclick="openProofModal('${iss.id}')" class="worker-complete-button flex-1 bg-secondary text-white py-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 shadow-sm hover:opacity-95"><span class="material-symbols-outlined">camera_alt</span><span>Complete / Close Ticket</span></button>` : ''}
+                            ${iss.status === 'assigned' ? `<button onclick="updateWorkerStatus('${iss.id}', 'in_progress')" class="flex-1 bg-primary text-white py-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 shadow-sm hover:opacity-95"><span class="material-symbols-outlined text-sm">play_arrow</span> ${wt.startWork}</button>` : ''}
+                            ${iss.status === 'in_progress' ? `<button onclick="openProofModal('${iss.id}')" class="worker-complete-button flex-1 bg-secondary text-white py-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 shadow-sm hover:opacity-95"><span class="material-symbols-outlined">camera_alt</span><span>${wt.complete}</span></button>` : ''}
                         </div>
                     `;
                     container.appendChild(card);
                 });
-                if (!issues.length) container.innerHTML = '<p class="text-sm text-on-surface-variant p-3 text-center">No tasks for the selected date.</p>';
+                if (!issues.length) container.innerHTML = `<p class="text-sm text-on-surface-variant p-3 text-center">${wt.noTasks || 'No tasks for the selected date.'}</p>`;
             } catch (e) {
                 console.error(e);
             } finally {
@@ -732,7 +740,11 @@
                 document.getElementById('worker-profile-summary').textContent = `${storedUser.full_name} (${storedUser.department || 'Municipal Works'})`;
             }
                 fetch('/api/users/profile/', { credentials: 'same-origin' }).then((response) => response.json()).then((data) => {
-                if (data.user) document.getElementById('worker-profile-summary').textContent = `${data.user.full_name} (${data.user.department || 'Municipal Works'})`;
+                if (data.user) {
+                    document.getElementById('worker-profile-summary').textContent = `${data.user.full_name} (${data.user.department || 'Municipal Works'})`;
+                    const quality = document.getElementById('worker-quality-pill');
+                    if (quality && data.user.rating_count) quality.textContent = `★ ${data.user.average_rating}/5`;
+                }
             }).catch(() => {});
             if (localStorage.getItem('civix-contrast') === 'on') {
                 document.body.classList.add('high-contrast');
@@ -745,15 +757,15 @@
             if ('geolocation' in navigator) {
                 navigator.geolocation.watchPosition((position) => {
                     workerCurrentPosition = position;
-                    document.getElementById('worker-gps-tag').textContent = `GPS: Active (±${Math.round(position.coords.accuracy)}m)`;
+                    document.getElementById('worker-gps-tag').textContent = `${workerTranslations[workerLanguage].gpsActive} (±${Math.round(position.coords.accuracy)}m)`;
                     updateProofGpsStatus();
                 }, () => {
                     workerCurrentPosition = null;
-                    document.getElementById('worker-gps-tag').textContent = 'GPS: Unavailable';
+                    document.getElementById('worker-gps-tag').textContent = workerTranslations[workerLanguage].gpsUnavailable;
                     updateProofGpsStatus();
                 }, { enableHighAccuracy: true, maximumAge: 0, timeout: 30000 });
             } else {
-                document.getElementById('worker-gps-tag').textContent = 'GPS: Unavailable';
+                document.getElementById('worker-gps-tag').textContent = workerTranslations[workerLanguage].gpsUnavailable;
                 updateProofGpsStatus();
             }
             // No demo login on production worker portal

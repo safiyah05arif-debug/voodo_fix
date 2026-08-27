@@ -16,19 +16,20 @@ import math
 import datetime
 import hashlib
 from bson import ObjectId
+from bson.errors import InvalidId
 from pymongo.errors import PyMongoError
 from rest_framework import status, serializers
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
-from mongoengine.errors import NotUniqueError
+from mongoengine.errors import NotUniqueError, ValidationError
 from mongoengine.queryset.visitor import Q
 from django.conf import settings
 from django.utils import timezone
 
 # (No dev-mode demo fallbacks — rely on real MongoDB for data integrity.)
 
-from issues.models import Issue, AIClassification, ResolutionProof, StatusChange, IssueUpvote, IssueVerification, EscalationLog, EmergencyDispatch, VolunteerDrive
+from issues.models import Issue, AIClassification, ResolutionProof, StatusChange, IssueUpvote, IssueVerification, EscalationLog, EmergencyDispatch, VolunteerDrive, WorkerRating, category_priority_value
 from users.models import Badge, CivixUser, AdminAuditLog, Notification
 from civix_backend.storage import upload_image_bytes
 from civix_backend.ai_vision import classify_issue_image
@@ -60,7 +61,34 @@ def user_has_upvoted(issue, user_id):
     return user_id in upvoted_by
 
 
-def serialize_issue(issue, user_id=None):
+def session_user_id(request, fallback="anonymous"):
+    return request.session.get("civix_user_id", fallback)
+
+
+def include_priority_for(request):
+    return request.session.get("civix_role") in {"officer", "zone_officer", "admin", "field_worker"}
+
+
+def session_user(request):
+    user_id = request.session.get("civix_user_id")
+    if user_id and len(str(user_id)) == 24:
+        user = CivixUser.objects(id=user_id).first()
+        if user:
+            return user
+    return None
+
+
+def worker_quality_payload(worker):
+    if not worker:
+        return {"average": 0, "count": 0}
+    return {
+        "average": worker.average_rating,
+        "count": worker.rating_count or 0,
+        "name": worker.full_name,
+    }
+
+
+def serialize_issue(issue, user_id=None, include_priority=False):
     """Convert MongoEngine Issue document to JSON-friendly dict."""
     coordinates = location_coordinates(issue.location)
     overdue = overdue_issue_details(issue)
@@ -70,7 +98,7 @@ def serialize_issue(issue, user_id=None):
     if proof and proof.worker_id:
         try:
             resolved_worker = CivixUser.objects(id=proof.worker_id).first()
-        except (TypeError, ValueError):
+        except (TypeError, ValueError, ValidationError, InvalidId):
             resolved_worker = None
         if not resolved_worker:
             resolved_worker = CivixUser.objects(full_name=proof.worker_id).first()
@@ -84,7 +112,7 @@ def serialize_issue(issue, user_id=None):
     completion_distance = proof.distance_from_issue if proof else None
     location_warning = completion_distance is not None and completion_distance > 50
     already_voted = user_has_upvoted(issue, user_id)
-    return {
+    payload = {
         "id": str(issue.id),
         "title": issue.title,
         "description": issue.description or "",
@@ -113,7 +141,6 @@ def serialize_issue(issue, user_id=None):
         "ward": issue.ward or "",
         "upvote_count": issue.upvote_count,
         "already_voted": already_voted,
-        "priority_score": round(issue.priority_score, 1),
         "photo_urls": issue.photo_urls or [],
         "ai_classification": {
             "category": issue.ai_classification.category,
@@ -161,10 +188,26 @@ def serialize_issue(issue, user_id=None):
             } for change in (issue.status_history or [])
         ],
     }
-
-
-def session_user_id(request, fallback="anonymous"):
-    return request.session.get("civix_user_id", fallback)
+    rated = None
+    if user_id:
+        rating = WorkerRating.objects(issue_id=str(issue.id), user_id=user_id).first()
+        if rating:
+            rated = rating.stars
+    worker_for_quality = resolved_worker
+    if not worker_for_quality and issue.assigned_to:
+        try:
+            worker_for_quality = CivixUser.objects(id=issue.assigned_to).first()
+        except Exception:
+            worker_for_quality = CivixUser.objects(full_name=issue.assigned_to).first()
+    payload["worker_quality"] = worker_quality_payload(worker_for_quality)
+    payload["citizen_worker_rating"] = rated
+    if include_priority:
+        payload["priority_score"] = round(issue.priority_score or 0, 1)
+        payload["category_priority_points"] = category_priority_value(issue.category)
+    else:
+        payload.pop("priority_score", None)
+        payload.pop("officer_priority", None)
+    return payload
 
 
 def issue_status_label(status):
@@ -299,17 +342,21 @@ class IssueReportView(APIView):
             description = request.data.get("description", "").strip()
             category_override = request.data.get("category", "").strip()
             severity_override = request.data.get("severity", "").strip()
-            force_submit = request.data.get("force_submit", "false").lower() in ("true", "1")
-            user_id = session_user_id(request, "citizen_anonymous")
+            force_submit = str(request.data.get("force_submit", "false")).lower() in ("true", "1")
+            user = session_user(request)
+            user_id = str(user.id) if user else session_user_id(request, "citizen_anonymous")
             input_method = request.data.get("input_method", "text")
 
             # 2. Check 50m Spatial Deduplication FIRST
             if not force_submit:
-                nearby = Issue.objects(
-                    location__near=[longitude, latitude],
-                    location__max_distance=50, # 50 meters
-                    status__in=["submitted", "verified", "assigned", "in_progress"]
-                )[:3]
+                nearby_query = {
+                    "location__near": [longitude, latitude],
+                    "location__max_distance": 50,
+                    "status__in": ["submitted", "verified", "assigned", "in_progress", "reopened", "escalated"],
+                }
+                if category_override:
+                    nearby_query["category"] = category_override
+                nearby = Issue.objects(**nearby_query)[:3]
                 
                 if nearby:
                     duplicate_candidates = [serialize_issue(iss) for iss in nearby]
@@ -376,11 +423,10 @@ class IssueReportView(APIView):
 
             issue.save()
 
-            # Award Civic Points (+20 for verified reporting)
-            user = CivixUser.objects(id=user_id).first() if len(user_id) == 24 else None
+            # Award Civic Points for reporting
             if user:
-                user.add_points(20)
-                user.reports_submitted += 1
+                user.add_points(getattr(settings, "REPORT_CIVIC_POINTS", 20))
+                user.reports_submitted = (user.reports_submitted or 0) + 1
                 first_badge = Badge.objects(slug="first_report").first()
                 if first_badge:
                     user.award_badge(first_badge)
@@ -519,7 +565,7 @@ class IssueListView(APIView):
                                 notification_type=notification_type,
                                 related_issue_id=str(issue.id),
                             ).save()
-            return Response([serialize_issue(i, user_id=user_id) for i in issues], status=status.HTTP_200_OK)
+            return Response([serialize_issue(i, user_id=user_id, include_priority=include_priority_for(request)) for i in issues], status=status.HTTP_200_OK)
         except PyMongoError:
             return Response(
                 {"error": "Issue data is temporarily unavailable. Check the MongoDB connection."},
@@ -553,9 +599,10 @@ class IssueUpvoteView(APIView):
             issue.reload()
             return Response({"success": False, "already_voted": True, "message": "You have already voted for this issue.", "upvote_count": issue.upvote_count}, status=status.HTTP_200_OK)
 
-        user = CivixUser.objects(id=user_id).first() if len(user_id) == 24 else None
+        user = session_user(request)
         if user:
-            user.upvotes_given += 1
+            user.upvotes_given = (user.upvotes_given or 0) + 1
+            user.add_points(getattr(settings, "UPVOTE_CIVIC_POINTS", 5))
             user.save()
 
         return Response({
@@ -683,8 +730,10 @@ class IssueVerifyView(APIView):
         if isinstance(is_fixed, str):
             is_fixed = is_fixed.lower() in ("true", "1", "yes")
 
-        user_id = session_user_id(request, "citizen_verifier")
+        user = session_user(request)
+        user_id = str(user.id) if user else session_user_id(request, "citizen_verifier")
         comment = request.data.get("comment", "")
+        stars = request.data.get("stars")
 
         try:
             IssueVerification(
@@ -696,10 +745,13 @@ class IssueVerifyView(APIView):
         except NotUniqueError:
             return Response({"error": "You have already verified this issue."}, status=status.HTTP_409_CONFLICT)
 
-        user = CivixUser.objects(id=user_id).first() if len(user_id) == 24 else None
         if user:
-            user.verifications_done += 1
+            user.verifications_done = (user.verifications_done or 0) + 1
+            user.add_points(getattr(settings, "VERIFY_CIVIC_POINTS", 10))
             user.save()
+
+        if stars:
+            _apply_worker_rating(issue, user_id, stars, comment)
 
         if is_fixed:
             issue.add_status_change(to_status="citizen_verified", changed_by=user_id, reason="Citizen verified fix")
@@ -720,6 +772,75 @@ class IssueVerifyView(APIView):
             "success": True,
             "status": issue.status,
             "message": "Thank you for verifying your neighborhood repair!"
+        }, status=status.HTTP_200_OK)
+
+
+def _resolve_issue_worker(issue):
+    worker = None
+    worker_id = (issue.resolution_proof.worker_id if issue.resolution_proof else None) or issue.assigned_to
+    if not worker_id:
+        return None
+    try:
+        worker = CivixUser.objects(id=worker_id).first()
+    except Exception:
+        worker = None
+    if not worker:
+        worker = CivixUser.objects(full_name=worker_id).first() or CivixUser.objects(phone=worker_id).first()
+    return worker
+
+
+def _apply_worker_rating(issue, user_id, stars, comment=""):
+    try:
+        stars = int(stars)
+    except (TypeError, ValueError):
+        return None
+    if stars < 1 or stars > 5:
+        return None
+    worker = _resolve_issue_worker(issue)
+    if not worker:
+        return None
+    existing = WorkerRating.objects(issue_id=str(issue.id), user_id=user_id).first()
+    if existing:
+        worker.rating_total = max(0, (worker.rating_total or 0) - existing.stars + stars)
+        existing.stars = stars
+        existing.comment = comment or existing.comment
+        existing.save()
+        worker.save()
+        return existing
+    rating = WorkerRating(
+        issue_id=str(issue.id),
+        user_id=user_id,
+        worker_id=str(worker.id),
+        stars=stars,
+        comment=comment or "",
+    )
+    rating.save()
+    worker.rating_total = (worker.rating_total or 0) + stars
+    worker.rating_count = (worker.rating_count or 0) + 1
+    worker.save()
+    return rating
+
+
+class WorkerRateView(APIView):
+    """POST /api/issues/<id>/rate-worker/ — citizen 1–5 star rating of the resolving worker."""
+
+    def post(self, request, issue_id):
+        issue = Issue.objects(id=issue_id).first()
+        if not issue:
+            return Response({"error": "Issue not found"}, status=status.HTTP_404_NOT_FOUND)
+        if issue.status not in {"resolved", "citizen_verified", "closed", "awaiting_verification"}:
+            return Response({"error": "You can rate the worker after the issue is completed."}, status=status.HTTP_409_CONFLICT)
+        user = session_user(request)
+        if not user:
+            return Response({"error": "Sign in to rate this worker."}, status=status.HTTP_401_UNAUTHORIZED)
+        rating = _apply_worker_rating(issue, str(user.id), request.data.get("stars"), request.data.get("comment", ""))
+        if not rating:
+            return Response({"error": "Choose a rating from 1 to 5 stars."}, status=status.HTTP_400_BAD_REQUEST)
+        worker = CivixUser.objects(id=rating.worker_id).first()
+        return Response({
+            "success": True,
+            "stars": rating.stars,
+            "worker_quality": worker_quality_payload(worker),
         }, status=status.HTTP_200_OK)
 
 
@@ -918,7 +1039,15 @@ class NearbyIssuesView(IssueListView):
             user_id = session_user_id(request, "")
             latitude = float(request.query_params.get("latitude", 13.0067))
             longitude = float(request.query_params.get("longitude", 80.2574))
-            issues = Issue.objects(location__near=[longitude, latitude], location__max_distance=50, status__nin=["closed"])
+            category = (request.query_params.get("category") or "").strip()
+            query = {
+                "location__near": [longitude, latitude],
+                "location__max_distance": int(request.query_params.get("radius", 50)),
+                "status__nin": ["closed", "dismissed"],
+            }
+            if category:
+                query["category"] = category
+            issues = Issue.objects(**query)
             return Response([serialize_issue(i, user_id=user_id) for i in issues[:50]])
         except PyMongoError:
             return Response({"error": "Issue data is temporarily unavailable."}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
@@ -953,7 +1082,7 @@ class TaskAssignedView(IssueListView):
             )
         )
         tasks = tasks[:50]
-        return Response([serialize_issue(i, user_id=user_id) for i in tasks])
+        return Response([serialize_issue(i, user_id=user_id, include_priority=True) for i in tasks])
 
 
 class IssueDetailsView(APIView):
@@ -963,7 +1092,7 @@ class IssueDetailsView(APIView):
         worker = CivixUser.objects(id=user_id).first() if user_id else None
         if worker and worker.role == "field_worker" and issue and issue.assigned_to not in {str(worker.id), worker.full_name, worker.phone}:
             return Response({"error": "You can only view your assigned issues."}, status=status.HTTP_403_FORBIDDEN)
-        return Response(serialize_issue(issue, user_id=user_id), status=status.HTTP_200_OK) if issue else Response({"error": "Issue not found"}, status=status.HTTP_404_NOT_FOUND)
+        return Response(serialize_issue(issue, user_id=user_id, include_priority=include_priority_for(request)), status=status.HTTP_200_OK) if issue else Response({"error": "Issue not found"}, status=status.HTTP_404_NOT_FOUND)
 
 
 class IssueProofView(IssueResolveView):
@@ -978,7 +1107,7 @@ class DepartmentMasterView(IssueListView):
         officer = CivixUser.objects(id=request.session.get("civix_user_id")).first()
         if officer and officer.role == "zone_officer" and officer.zone:
             query["ward"] = officer.zone
-        return Response([serialize_issue(i) for i in Issue.objects(**query).order_by("-priority_score")[:50]])
+        return Response([serialize_issue(i, include_priority=True) for i in Issue.objects(**query).order_by("-priority_score")[:50]])
 
 
 class SLABreachesView(IssueListView):
@@ -1007,7 +1136,7 @@ class SLABreachesView(IssueListView):
             elif issue.sla_breached and issue.status != "escalated":
                 issue.add_status_change(to_status="escalated", changed_by="sla-monitor", reason="Automatic SLA breach escalation")
                 issue.save()
-        return Response([serialize_issue(i) for i in issues[:100]])
+        return Response([serialize_issue(i, include_priority=True) for i in issues[:100]])
 
 
 class OverrideDepartmentView(APIView):
