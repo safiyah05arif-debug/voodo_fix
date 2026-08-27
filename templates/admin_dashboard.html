@@ -53,10 +53,31 @@
                 <h1 class="text-xl font-bold">System Administration</h1>
             </div>
         </div>
-        <nav aria-label="Portal navigation" class="flex gap-4 text-sm"><button id="admin-contrast" type="button" aria-pressed="false" aria-label="Toggle high contrast mode">Contrast</button><a href="/api/users/logout/" class="underline">Logout</a></nav>
+        <nav aria-label="Portal navigation" class="flex gap-4 text-sm"><button id="admin-contrast" type="button" aria-pressed="false" aria-label="Toggle high contrast mode">Contrast</button><button type="button" data-logout class="underline">Logout</button></nav>
     </header>
     <main id="main-content" tabindex="-1" class="max-w-6xl mx-auto p-6 space-y-6">
         <section id="metric-grid" class="grid grid-cols-2 md:grid-cols-5 gap-3" aria-label="Platform health metrics"></section>
+        <section class="bg-white border border-outline-variant p-5 rounded-lg shadow-sm civix-panel space-y-4" aria-labelledby="export-heading">
+            <div>
+                <h2 id="export-heading" class="font-bold text-lg">Download issue report</h2>
+                <p class="text-sm text-on-surface-variant">Export report, resolution, and completion details for a selected month.</p>
+            </div>
+            <form id="issue-export-form" class="grid gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] items-end">
+                <label for="export-month" class="text-sm font-semibold">Month
+                    <input id="export-month" type="month" required class="mt-1 w-full border rounded p-2">
+                </label>
+                <label for="export-scope" class="text-sm font-semibold">Details to download
+                    <select id="export-scope" class="mt-1 w-full border rounded p-2">
+                        <option value="all">All reports and details</option>
+                        <option value="reports">Issue reports</option>
+                        <option value="resolved">Resolved issues</option>
+                        <option value="completion">Completion proof details</option>
+                    </select>
+                </label>
+                <button type="submit" class="bg-secondary text-white px-4 py-2 rounded font-bold">Download Excel</button>
+            </form>
+            <p id="export-status" class="text-sm" role="status" aria-live="polite"></p>
+        </section>
         <section class="grid lg:grid-cols-2 gap-6">
             <div class="bg-white border border-outline-variant p-5 rounded-lg shadow-sm civix-panel">
                 <h2 class="font-bold text-lg mb-4">Issue Status Distribution</h2>
@@ -114,8 +135,38 @@
         let adminUsers = [];
         const escapeHtml = (value) => String(value ?? '').replace(/[&<>'"]/g, (character) => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'}[character]));
         const adminContrast = document.getElementById('admin-contrast');
+        document.querySelectorAll('[data-logout]').forEach((button) => {
+            button.addEventListener('click', () => { window.location.assign('/api/users/logout/'); });
+        });
         if (localStorage.getItem('civix-contrast') === 'on') { document.body.classList.add('high-contrast'); adminContrast.setAttribute('aria-pressed', 'true'); }
         adminContrast.addEventListener('click', () => { const enabled = document.body.classList.toggle('high-contrast'); localStorage.setItem('civix-contrast', enabled ? 'on' : 'off'); adminContrast.setAttribute('aria-pressed', String(enabled)); });
+        document.getElementById('export-month').value = new Date().toISOString().slice(0, 7);
+        document.getElementById('issue-export-form').addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const month = document.getElementById('export-month').value;
+            const scope = document.getElementById('export-scope').value;
+            const status = document.getElementById('export-status');
+            status.textContent = 'Preparing download...';
+            try {
+                const response = await fetch(`/api/admin/issues/export/?month=${encodeURIComponent(month)}&scope=${encodeURIComponent(scope)}`, { credentials: 'same-origin' });
+                if (!response.ok) {
+                    const data = await response.json();
+                    throw new Error(data.error || 'Could not prepare the report.');
+                }
+                const blob = await response.blob();
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = `civix-issues-${month}.csv`;
+                document.body.appendChild(link);
+                link.click();
+                link.remove();
+                URL.revokeObjectURL(url);
+                status.textContent = 'Download started.';
+            } catch (error) {
+                status.textContent = error.message;
+            }
+        });
 
         function renderUsers() {
             document.getElementById('user-list').innerHTML = adminUsers.map((user) => `<tr class="border-b align-top">

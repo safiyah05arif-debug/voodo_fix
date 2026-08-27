@@ -9,7 +9,7 @@ from users.views import (
     WorkerListView,
     AdminMetricsView,
     AdminConfigView,
-    AdminAnalyticsView, AdminUsersView, AdminAuditLogsView, AdminCreateUserView, AdminUpdateUserView, AdminResetPasswordView, NotificationListView,
+    AdminAnalyticsView, AdminIssueExportView, AdminUsersView, AdminAuditLogsView, AdminCreateUserView, AdminUpdateUserView, AdminResetPasswordView, NotificationListView,
         DevLoginView,
 )
 
@@ -26,6 +26,7 @@ urlpatterns = [
     path("admin/metrics/", AdminMetricsView.as_view(), name="admin-metrics"),
     path("admin/config/", AdminConfigView.as_view(), name="admin-config"),
     path("admin/analytics/", AdminAnalyticsView.as_view(), name="admin-analytics"),
+    path("admin/issues/export/", AdminIssueExportView.as_view(), name="admin-issue-export"),
     path("admin/users/", AdminUsersView.as_view(), name="admin-users"),
     path("admin/audit-logs/", AdminAuditLogsView.as_view(), name="admin-audit-logs"),
     path("admin/users/create/", AdminCreateUserView.as_view(), name="admin-create-user"),
