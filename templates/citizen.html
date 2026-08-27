@@ -190,7 +190,7 @@
             </div>
             <!-- Portal Switcher Links -->
             <nav aria-label="Portal navigation" class="flex items-center justify-center gap-1 border-l border-white/30 pl-2">
-                <a href="/api/users/logout/" class="inline-flex items-center justify-center text-center hover:underline opacity-90" data-i18n="logout">Logout</a>
+                <button type="button" class="inline-flex items-center justify-center text-center hover:underline opacity-90" data-logout data-i18n="logout">Logout</button>
             </nav>
         </div>
     </header>
@@ -381,7 +381,7 @@
     {% csrf_token %}
 
     <div id="duplicate-modal" class="duplicate-modal-backdrop hidden fixed inset-0 z-[80] items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="duplicate-modal-title" aria-describedby="duplicate-modal-message">
-        <div class="duplicate-modal-panel w-full max-w-lg rounded-2xl bg-white p-5 shadow-2xl">
+        <div class="duplicate-modal-panel w-full max-w-lg rounded-2xl bg-white p-5 shadow-2xl" data-modal-content>
             <div class="flex items-start justify-between gap-4">
                 <div>
                     <p class="text-xs font-bold uppercase tracking-wide text-primary">Existing issue found</p>
@@ -438,6 +438,10 @@
         function csrfToken() {
             return document.querySelector('input[name="csrfmiddlewaretoken"]')?.value || '';
         }
+
+        document.querySelectorAll('[data-logout]').forEach((button) => {
+            button.addEventListener('click', () => { window.location.assign('/api/users/logout/'); });
+        });
 
         function saveAccessibilityPreference(preference) {
             fetch('/api/users/profile/', { method: 'PATCH', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken() }, credentials: 'same-origin', body: JSON.stringify(preference) }).catch(() => {});
@@ -842,6 +846,7 @@
         document.getElementById('duplicate-modal-yes').addEventListener('click', () => closeDuplicateModal(true));
         document.getElementById('duplicate-modal-no').addEventListener('click', () => closeDuplicateModal(false));
         document.getElementById('duplicate-modal-close').addEventListener('click', () => closeDuplicateModal(false));
+        duplicateModal.querySelector('[data-modal-content]').addEventListener('click', (event) => event.stopPropagation());
         duplicateModal.addEventListener('click', (event) => { if (event.target === duplicateModal) closeDuplicateModal(false); });
 
         async function submitReport(forceSubmit = false) {

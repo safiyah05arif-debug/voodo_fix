@@ -1,8 +1,7 @@
 """
 CIVIX — Mock Data Seed Script
 ===============================
-Generates 25 realistic civic issues across Chennai (or any configurable city)
-and populates MongoDB for instant demo/heatmap visualization.
+Seeds demo role accounts and title-only civic issues in MongoDB.
 
 Usage:
     python seed_data.py
@@ -16,7 +15,7 @@ All coordinates are real locations around Chennai, India.
 import os
 import sys
 import datetime
-import random
+from django.contrib.auth.hashers import make_password
 
 # ── Setup Django environment ──────────────────────────────────────────────────
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "civix_backend.settings")
@@ -26,6 +25,9 @@ django.setup()
 
 from issues.models import Issue, AIClassification, StatusChange
 from users.models import CivixUser, Badge, EarnedBadge, AccessibilityPreferences
+
+
+DEMO_PASSWORD = "demo123"
 
 
 # =============================================================================
@@ -110,16 +112,6 @@ DEMO_USERS = [
         "civic_points": 120,
     },
     {
-        "email": "priya.devi@example.com",
-        "username": "priya-devi",
-        "phone": "+919876543211",
-        "full_name": "Priya Devi",
-        "password_hash": "pbkdf2_sha256$demo$hashed_password_placeholder",
-        "role": "citizen",
-        "zone": "Zone 8 - Anna Nagar",
-        "civic_points": 85,
-    },
-    {
         "email": "murugan.s@example.com",
         "username": "murugan-s",
         "phone": "+919876543212",
@@ -128,17 +120,6 @@ DEMO_USERS = [
         "role": "field_worker",
         "zone": "Zone 5 - Adyar",
         "department": "Roads",
-        "civic_points": 0,
-    },
-    {
-        "email": "lakshmi.n@example.com",
-        "username": "lakshmi-narayanan",
-        "phone": "+919876543213",
-        "full_name": "Lakshmi Narayanan",
-        "password_hash": "pbkdf2_sha256$demo$hashed_password_placeholder",
-        "role": "field_worker",
-        "zone": "Zone 10 - Kodambakkam",
-        "department": "Water & Drainage",
         "civic_points": 0,
     },
     {
@@ -546,7 +527,7 @@ def seed_users():
             username=user_data.get("username"),
             phone=user_data.get("phone"),
             full_name=user_data["full_name"],
-            password_hash=user_data["password_hash"],
+            password_hash=make_password(DEMO_PASSWORD),
             role=user_data["role"],
             zone=user_data.get("zone", ""),
             department=user_data.get("department", ""),
@@ -562,60 +543,24 @@ def seed_users():
 
 
 def seed_issues(user_ids):
-    """Create 25 realistic civic issues around Chennai."""
+    """Create title-only civic issue documents for the demo."""
     print("\n[INFO] Seeding civic issues...")
 
-    citizen_ids = user_ids[:2] if len(user_ids) >= 2 else ["demo_citizen_1"]
-    worker_ids = user_ids[2:4] if len(user_ids) >= 4 else []
-
-    for i, issue_data in enumerate(MOCK_ISSUES):
-        existing = Issue.objects(title=issue_data["title"]).first()
-        if existing:
-            print(f"   [SKIP] Issue '{issue_data['title'][:50]}...' already exists")
-            continue
-
-        hours_ago = random.randint(1, 168)
-        created_at = datetime.datetime.utcnow() - datetime.timedelta(hours=hours_ago)
-
-        ai_class = AIClassification(
-            category=issue_data["category"],
-            issue_type=issue_data["issue_type"],
-            severity=issue_data["severity"],
-            confidence=round(random.uniform(0.78, 0.98), 2),
-            raw_response={"model": "gpt-4o", "simulated": True},
-        )
-
-        issue = Issue(
-            title=issue_data["title"],
-            description=issue_data["description"],
-            reported_by=random.choice(citizen_ids),
-            input_method=random.choice(["text", "voice_en", "voice_ta"]),
-            location=issue_data["location"],
-            address=issue_data["address"],
-            ward=issue_data["ward"],
-            category=issue_data["category"],
-            issue_type=issue_data["issue_type"],
-            severity=issue_data["severity"],
-            ai_classification=ai_class,
-            upvote_count=issue_data["upvote_count"],
-            status=issue_data["status"],
-            location_risk_factor=issue_data["location_risk_factor"],
-            created_at=created_at,
-        )
-
-        if issue_data["status"] in ("assigned", "in_progress") and worker_ids:
-            issue.assigned_to = random.choice(worker_ids)
-            issue.assigned_at = created_at + datetime.timedelta(hours=random.randint(1, 6))
-            issue.add_status_change(
-                to_status=issue_data["status"],
-                changed_by=issue.assigned_to,
-                reason="Auto-assigned by priority queue",
-            )
-
-        issue.save()
-        print(f"   [OK] [{issue.severity.upper():8}] {issue.title[:55]}... (score: {issue.priority_score:.0f})")
+    titles = [{"title": issue_data["title"]} for issue_data in MOCK_ISSUES]
+    Issue._get_collection().insert_many(titles)
+    for document in titles:
+        print(f"   [OK] {document['title']}")
 
     print(f"\n   [TOTAL] Issues in DB: {Issue.objects.count()}")
+
+
+def reset_database():
+    """Remove all existing demo data before seeding a clean database."""
+    from civix_backend.db import get_db
+
+    db = get_db()
+    db.client.drop_database(db.name)
+    print(f"[INFO] Cleared MongoDB database: {db.name}")
 
 
 def print_summary():
@@ -643,9 +588,9 @@ if __name__ == "__main__":
     print(f"   Database: {os.getenv('MONGODB_NAME', 'civix_db')}")
 
     try:
-        seed_badges()
+        reset_database()
         user_ids = seed_users()
-        seed_issues(user_ids)
+        print("\n[INFO] Skipping default civic issues.")
 
         # Ensure indexes exist
         from civix_backend.db import ensure_indexes

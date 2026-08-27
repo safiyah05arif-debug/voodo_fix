@@ -135,7 +135,7 @@
                 </div>
             </div>
             <button id="worker-read-aloud" type="button" aria-pressed="false" aria-label="Read worker tasks aloud"><span class="material-symbols-outlined text-sm">volume_up</span><span id="worker-read-label">Read aloud</span></button>
-            <nav aria-label="Portal navigation"><a href="/api/users/logout/" class="underline text-white">Logout</a></nav>
+            <nav aria-label="Portal navigation"><button type="button" data-logout class="underline text-white">Logout</button></nav>
         </div>
     </div>
 
@@ -218,7 +218,7 @@
 
     <!-- Proof of Work Closing Modal -->
     <div id="proof-modal" class="hidden fixed inset-0 z-50 bg-slate-900/30 flex items-center justify-center p-3 sm:p-4" role="dialog" aria-modal="true" aria-labelledby="proof-modal-title">
-        <div class="relative bg-white rounded-2xl max-w-lg w-full p-5 shadow-2xl flex flex-col gap-4 border border-outline-variant max-h-[90vh] overflow-y-auto z-10">
+        <div class="relative bg-white rounded-2xl max-w-lg w-full p-5 shadow-2xl flex flex-col gap-4 border border-outline-variant max-h-[90vh] overflow-y-auto z-10" data-modal-content>
             {% csrf_token %}
             <div class="flex justify-between items-center border-b pb-2">
                 <h3 class="font-bold text-base text-on-surface flex items-center gap-2">
@@ -544,6 +544,7 @@
         document.getElementById('worker-date-picker-confirm').addEventListener('click', () => selectWorkerDate(workerPendingDate));
         document.getElementById('worker-date-picker-cancel').addEventListener('click', closeWorkerDatePicker);
         document.getElementById('worker-date-picker-close').addEventListener('click', closeWorkerDatePicker);
+        document.querySelector('#worker-date-picker [data-modal-content]')?.addEventListener('click', (event) => event.stopPropagation());
         document.getElementById('worker-date-picker').addEventListener('click', (event) => {
             if (event.target.id === 'worker-date-picker') closeWorkerDatePicker();
         });
@@ -664,6 +665,7 @@
             modal.querySelector(':scope > div').className = 'relative bg-white rounded-2xl max-w-lg w-full p-5 shadow-2xl flex flex-col gap-4 border border-outline-variant max-h-[90vh] overflow-y-auto z-10';
             document.body.appendChild(modal);
         }
+        document.querySelector('#proof-modal [data-modal-content]')?.addEventListener('click', (event) => event.stopPropagation());
 
         function updateProofGpsStatus() {
             const status = document.getElementById('proof-gps-status');
@@ -790,6 +792,10 @@
         function csrfToken() {
             return document.querySelector('input[name="csrfmiddlewaretoken"]')?.value || '';
         }
+
+        document.querySelectorAll('[data-logout]').forEach((button) => {
+            button.addEventListener('click', () => { window.location.assign('/api/users/logout/'); });
+        });
 
     </script>
 </body>

@@ -184,10 +184,10 @@
                 <button type="button" onclick="setOfficerFontSize('130%')" aria-label="Use largest text size">A++</button>
                 <button id="officer-read-aloud" type="button" aria-pressed="false" aria-label="Read command center aloud">🔊 <span id="officer-read-label">Read aloud</span></button>
                 <nav aria-label="Portal navigation">
-                    <a id="officer-logout" href="/api/users/logout/" class="flex items-center justify-center gap-2 underline hover:text-secondary-container" aria-label="Log out">
+                    <button id="officer-logout" type="button" data-logout class="flex items-center justify-center gap-2 underline hover:text-secondary-container" aria-label="Log out">
                         <span class="material-symbols-outlined text-sm">logout</span>
                         <span>Logout</span>
-                    </a>
+                    </button>
                 </nav>
             </div>
         </div>
@@ -225,7 +225,7 @@
 
     <!-- OFFICER MODAL: ADD / PROVISION FIELD WORKER -->
     <div id="add-worker-modal" class="hidden fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="add-worker-title">
-        <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl flex flex-col gap-4 border border-outline-variant">
+        <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl flex flex-col gap-4 border border-outline-variant" data-modal-content>
             <div class="flex justify-between items-center border-b pb-2 gap-2">
                 <h3 id="add-worker-title" class="font-bold text-base text-on-surface flex items-center gap-2 min-w-0">
                     <span class="material-symbols-outlined text-primary shrink-0">person_add</span>
@@ -279,7 +279,7 @@
     </div>
 
     <div id="assign-worker-modal" class="hidden fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="assign-worker-title">
-        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl flex flex-col gap-4 border border-outline-variant">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl flex flex-col gap-4 border border-outline-variant" data-modal-content>
             <div>
                 <h3 id="assign-worker-title" class="font-bold text-base text-on-surface">Assign verified issue</h3>
                 <p class="text-xs text-on-surface-variant mt-1">Choose a field worker to receive the location, image, and description.</p>
@@ -327,6 +327,10 @@
             region.textContent = '';
             window.setTimeout(() => { region.textContent = message; }, 20);
         }
+
+        document.querySelectorAll('[data-logout]').forEach((button) => {
+            button.addEventListener('click', () => { window.location.assign('/api/users/logout/'); });
+        });
 
         function announceOfficerError(message) {
             const region = document.getElementById('officer-live-region');
@@ -491,6 +495,7 @@
             const expanded = panel.classList.toggle('is-open');
             document.getElementById('officer-menu-toggle').setAttribute('aria-expanded', String(expanded));
         });
+        document.querySelectorAll('[data-modal-content]').forEach((panel) => panel.addEventListener('click', (event) => event.stopPropagation()));
         document.getElementById('officer-not-assigned').addEventListener('click', () => selectOfficerWorkflow('not_assigned'));
         document.getElementById('officer-assigned').addEventListener('click', () => selectOfficerWorkflow('assigned'));
         document.getElementById('officer-completed').addEventListener('click', () => selectOfficerWorkflow('completed'));
