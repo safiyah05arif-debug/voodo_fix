@@ -11,18 +11,23 @@
         :root { --civix-radius: .75rem; --civix-control-height: 2.5rem; --civix-card-border: #d9d9e0; --civix-card-shadow: 0 2px 8px rgba(18, 33, 51, .06); }
         @media (max-width: 767px) {
             body { overflow-x: hidden; font-size: .875rem; }
+            .app-action-bar { position: relative; z-index: 50; display: flex; flex: 0 0 3.25rem; height: 3.25rem !important; min-height: 3.25rem; align-items: center; }
+            #admin-menu-toggle { position: relative; z-index: 60; display: inline-flex; align-items: center; justify-content: center; }
             main { padding: .75rem; }
             header { align-items: center; padding: .5rem .625rem; gap: .5rem; white-space: nowrap; }
             header > div { min-width: 0; }
             header h1 { font-size: .875rem; line-height: 1rem; }
             header nav { width: auto; margin-left: auto; justify-content: flex-end; gap: .35rem; }
             header button, header a { min-height: 1.75rem; min-width: 1.75rem; padding: .15rem .25rem; font-size: .625rem; }
+            header nav { overflow-x: auto; }
+            header button, header a { min-height: 44px !important; min-width: 44px !important; }
+            #admin-accessibility-panel { position: fixed; top: 3.5rem; left: .5rem; right: .5rem; min-width: 0; }
             #metric-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .5rem; }
             #metric-grid > article { padding: .75rem; }
             main .civix-panel { padding: .75rem; }
             main h2 { font-size: 1rem; }
             #create-user-form { grid-template-columns: minmax(0, 1fr); }
-            main button, main input, main select { min-height: 2.25rem; }
+            main button, main input, main select { min-height: 44px; }
             .text-sm { font-size: .8125rem; }
             .text-base { font-size: .875rem; }
             .text-lg { font-size: 1rem; }
@@ -55,9 +60,30 @@
         <div class="ml-auto flex items-center gap-3">
             <a href="/api/users/logout/" class="underline">Logout</a>
         </div>
-    </div>
+    </header>
     <main id="main-content" tabindex="-1" class="max-w-6xl mx-auto p-6 space-y-6">
         <section id="metric-grid" class="grid grid-cols-2 md:grid-cols-5 gap-3" aria-label="Platform health metrics"></section>
+        <section class="bg-white border border-outline-variant p-5 rounded-lg shadow-sm civix-panel space-y-4" aria-labelledby="export-heading">
+            <div>
+                <h2 id="export-heading" class="font-bold text-lg">Download issue report</h2>
+                <p class="text-sm text-on-surface-variant">Export report, resolution, and completion details for a selected month.</p>
+            </div>
+            <form id="issue-export-form" class="grid gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] items-end">
+                <label for="export-month" class="text-sm font-semibold">Month
+                    <input id="export-month" type="month" required class="mt-1 w-full border rounded p-2">
+                </label>
+                <label for="export-scope" class="text-sm font-semibold">Details to download
+                    <select id="export-scope" class="mt-1 w-full border rounded p-2">
+                        <option value="all">All reports and details</option>
+                        <option value="reports">Issue reports</option>
+                        <option value="resolved">Resolved issues</option>
+                        <option value="completion">Completion proof details</option>
+                    </select>
+                </label>
+                <button type="submit" class="bg-secondary text-white px-4 py-2 rounded font-bold">Download Excel</button>
+            </form>
+            <p id="export-status" class="text-sm" role="status" aria-live="polite"></p>
+        </section>
         <section class="grid lg:grid-cols-2 gap-6">
             <div class="bg-white border border-outline-variant p-5 rounded-lg shadow-sm civix-panel">
                 <h2 class="font-bold text-lg mb-4">Issue Status Distribution</h2>
@@ -70,7 +96,7 @@
                 <label class="block text-sm font-semibold">Upvote priority weight<input id="upvote-weight" type="number" min="0" class="mt-1 w-full border rounded p-2"></label>
                 <p class="text-sm font-semibold">Category priority points <span class="font-normal text-on-surface-variant">(higher = more urgent, hidden from citizens)</span></p>
                 <div id="category-priority-grid" class="grid grid-cols-2 gap-2 text-sm"></div>
-                <button type="submit" class="bg-primary text-white px-4 py-2 rounded font-bold text-sm">Save configuration</button>
+                <button type="submit" onclick="document.getElementById('config-status').textContent = 'Saving configuration...'" class="bg-primary text-white px-4 py-2 rounded font-bold text-sm">Save configuration</button>
                 <p id="config-status" class="text-sm" role="status"></p>
             </form>
         </section>
@@ -119,17 +145,23 @@
         let adminUsers = [];
         const escapeHtml = (value) => String(value ?? '').replace(/[&<>'"]/g, (character) => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'}[character]));
         const adminContrast = document.getElementById('admin-contrast');
-        if (localStorage.getItem('civix-contrast') === 'on') { document.body.classList.add('high-contrast'); adminContrast.setAttribute('aria-pressed', 'true'); }
-        adminContrast.addEventListener('click', () => { const enabled = document.body.classList.toggle('high-contrast'); localStorage.setItem('civix-contrast', enabled ? 'on' : 'off'); adminContrast.setAttribute('aria-pressed', String(enabled)); });
-        document.getElementById('admin-menu-toggle').addEventListener('click', (event) => {
+        const adminMenu = document.getElementById('admin-menu-toggle');
+        const adminPanel = document.getElementById('admin-accessibility-panel');
+        adminMenu.addEventListener('click', (event) => {
             event.stopPropagation();
-            document.getElementById('admin-accessibility-panel').classList.toggle('hidden');
+            const open = !adminPanel.classList.toggle('hidden');
+            adminMenu.setAttribute('aria-expanded', String(open));
         });
         document.addEventListener('click', (event) => {
-            const panel = document.getElementById('admin-accessibility-panel');
-            const toggle = document.getElementById('admin-menu-toggle');
-            if (!panel.contains(event.target) && !toggle.contains(event.target)) panel.classList.add('hidden');
+            if (adminPanel.contains(event.target) || adminMenu.contains(event.target)) return;
+            adminPanel.classList.add('hidden');
+            adminMenu.setAttribute('aria-expanded', 'false');
         });
+        document.querySelectorAll('[data-logout]').forEach((button) => {
+            button.addEventListener('click', () => { window.location.assign('/api/users/logout/'); });
+        });
+        if (localStorage.getItem('civix-contrast') === 'on') { document.body.classList.add('high-contrast'); adminContrast.setAttribute('aria-pressed', 'true'); }
+        adminContrast.addEventListener('click', () => { const enabled = document.body.classList.toggle('high-contrast'); localStorage.setItem('civix-contrast', enabled ? 'on' : 'off'); adminContrast.setAttribute('aria-pressed', String(enabled)); });
 
         function renderUsers() {
             document.getElementById('user-list').innerHTML = adminUsers.map((user) => `<tr class="border-b align-top">
@@ -204,12 +236,21 @@
             const points = config.category_priority_points || {};
             document.getElementById('category-priority-grid').innerHTML = categoryKeys.map((key) => `<label class="block font-medium">${categoryLabels[key]}<input id="cat-pt-${key}" type="number" min="0" class="mt-1 w-full border rounded p-2" value="${Number(points[key] || 0)}"></label>`).join('');
         }
-        document.getElementById('config-form').addEventListener('submit', async (event) => {
+        const configForm = document.getElementById('config-form');
+        const configStatus = document.getElementById('config-status');
+        configForm.querySelector('button[type="submit"]').addEventListener('click', () => { configStatus.textContent = 'Saving configuration...'; });
+        configForm.addEventListener('submit', async (event) => {
             event.preventDefault();
-            const category_priority_points = Object.fromEntries(categoryKeys.map((key) => [key, Number(document.getElementById(`cat-pt-${key}`).value)]));
-            const response = await fetch('/api/users/admin/config/', { method: 'PATCH', headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrfToken()}, body: JSON.stringify({ sla_deadlines: {critical: Number(document.getElementById('critical-sla').value), high: Number(document.getElementById('high-sla').value)}, priority_weights: {upvotes: Number(document.getElementById('upvote-weight').value)}, category_priority_points }) });
-            const data = await response.json();
-            document.getElementById('config-status').textContent = response.ok ? 'Configuration saved.' : (data.error || 'Could not save configuration.');
+            const status = configStatus;
+            status.textContent = 'Saving configuration...';
+            try {
+                const category_priority_points = Object.fromEntries(categoryKeys.map((key) => [key, Number(document.getElementById(`cat-pt-${key}`)?.value || 0)]));
+                const response = await fetch('/api/users/admin/config/', { method: 'PATCH', headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrfToken()}, body: JSON.stringify({ sla_deadlines: {critical: Number(document.getElementById('critical-sla').value), high: Number(document.getElementById('high-sla').value)}, priority_weights: {upvotes: Number(document.getElementById('upvote-weight').value)}, category_priority_points }) });
+                const data = await response.json();
+                status.textContent = response.ok ? 'Configuration saved.' : (data.error || 'Could not save configuration.');
+            } catch (error) {
+                status.textContent = error.message || 'Could not save configuration.';
+            }
         });
         Promise.all([loadAdmin(), loadUsers()]).catch((error) => { document.getElementById('config-status').textContent = error.message; });
     </script>

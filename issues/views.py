@@ -588,6 +588,24 @@ class IssueUpvoteView(APIView):
         if user_has_upvoted(issue, user_id):
             return Response({"success": False, "already_voted": True, "message": "You have already voted for this issue.", "upvote_count": issue.upvote_count}, status=status.HTTP_200_OK)
 
+        if not issue.reported_by and not issue.location and not issue.category:
+            from civix_backend.db import get_collection
+
+            update_result = get_collection("issues").update_one(
+                {"_id": issue.id, "upvoted_by": {"$ne": user_id}},
+                {"$addToSet": {"upvoted_by": user_id}, "$inc": {"upvote_count": 1}},
+            )
+            if not update_result.modified_count:
+                return Response({"success": False, "already_voted": True, "message": "You have already voted for this issue."}, status=status.HTTP_200_OK)
+
+            upvote_count = (issue.upvote_count or 0) + 1
+            return Response({
+                "success": True,
+                "already_voted": False,
+                "upvote_count": upvote_count,
+                "new_priority_score": round(upvote_count * 20, 1),
+            }, status=status.HTTP_200_OK)
+
         if user_id and user_id not in (issue.upvoted_by or []):
             issue.upvoted_by.append(user_id)
         issue.upvote_count = max(0, (issue.upvote_count or 0) + 1)

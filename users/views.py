@@ -14,6 +14,8 @@ import datetime
 import hashlib
 import re
 import time
+import csv
+from django.http import HttpResponse
 from django.contrib.auth.hashers import check_password, make_password
 from django.shortcuts import redirect
 from rest_framework.views import APIView
@@ -88,6 +90,7 @@ def serialize_user(user):
             "high_contrast": user.accessibility.high_contrast if user.accessibility else False,
             "font_size": user.accessibility.font_size if user.accessibility else "normal",
             "easy_read": user.accessibility.easy_read if user.accessibility else False,
+            "voice_enabled": user.accessibility.voice_enabled if user.accessibility else False,
         }
     }
 
@@ -356,6 +359,33 @@ class UserProfileView(MongoSafeAPIView):
             "available_badges": all_badges
         }, status=status.HTTP_200_OK)
 
+    def patch(self, request):
+        user_id = request.session.get("civix_user_id")
+        user = CivixUser.objects(id=user_id).first() if user_id and len(user_id) == 24 else None
+        if not user:
+            return Response({"error": "No user found or unauthorized"}, status=status.HTTP_404_NOT_FOUND)
+
+        allowed = {
+            "language": {"en", "ta"},
+            "font_size": {"normal", "large", "extra_large"},
+        }
+        preferences = user.accessibility or AccessibilityPreferences()
+        for field, values in allowed.items():
+            if field in request.data:
+                value = request.data[field]
+                if value not in values:
+                    return Response({"error": f"Invalid accessibility value for {field}."}, status=status.HTTP_400_BAD_REQUEST)
+                setattr(preferences, field, value)
+        for field in ("high_contrast", "easy_read", "voice_enabled"):
+            if field in request.data:
+                value = request.data[field]
+                if not isinstance(value, bool):
+                    return Response({"error": f"{field} must be true or false."}, status=status.HTTP_400_BAD_REQUEST)
+                setattr(preferences, field, value)
+        user.accessibility = preferences
+        user.save()
+        return Response({"success": True, "accessibility": serialize_user(user)["accessibility"]}, status=status.HTTP_200_OK)
+
 
 class LeaderboardView(MongoSafeAPIView):
     def get(self, request):
@@ -492,6 +522,71 @@ class AdminAnalyticsView(MongoSafeAPIView):
             bucket["sla_breaches"] += bool(issue.sla_breached)
         data["departments"] = by_department
         return Response(data)
+
+
+class AdminIssueExportView(MongoSafeAPIView):
+    """Download a month of issue, resolution, and completion details for Excel."""
+    def get(self, request):
+        def coordinates_for(value):
+            if isinstance(value, dict):
+                value = value.get("coordinates", [])
+            elif hasattr(value, "coordinates"):
+                value = value.coordinates
+            return list(value or [])
+
+        def coordinate_at(value, index):
+            try:
+                coordinates = coordinates_for(value)
+                return coordinates[index] if len(coordinates) > index else ""
+            except (KeyError, IndexError, TypeError):
+                return ""
+
+        month = request.query_params.get("month", "").strip()
+        scope = request.query_params.get("scope", "all").strip()
+        if scope not in {"all", "reports", "resolved", "completion"}:
+            return Response({"error": "Invalid export scope."}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            selected_month = datetime.date.fromisoformat(f"{month}-01") if month else datetime.date.today().replace(day=1)
+        except ValueError:
+            return Response({"error": "Month must use YYYY-MM format."}, status=status.HTTP_400_BAD_REQUEST)
+
+        next_month = (selected_month.replace(day=28) + datetime.timedelta(days=4)).replace(day=1)
+        issue_query = Issue.objects(
+            created_at__gte=datetime.datetime.combine(selected_month, datetime.time.min),
+            created_at__lt=datetime.datetime.combine(next_month, datetime.time.min),
+        )
+        if scope == "resolved":
+            issue_query = issue_query.filter(status__in=list(RESOLVED_STATUSES))
+        elif scope == "completion":
+            issue_query = issue_query.filter(resolution_proof__exists=True)
+        issues = issue_query.order_by("created_at")
+
+        response = HttpResponse(content_type="text/csv; charset=utf-8")
+        response["Content-Disposition"] = f'attachment; filename="civix-issues-{selected_month:%Y-%m}.csv"'
+        response.write("\ufeff")
+        writer = csv.writer(response)
+        writer.writerow([
+            "Issue ID", "Reported At", "Title", "Description", "Category", "Issue Type", "Severity",
+            "Status", "Officer Decision", "Assigned Worker", "Ward", "Address", "Latitude", "Longitude",
+            "Upvotes", "SLA Deadline", "SLA Breached", "Photo URL", "Resolved At", "Resolved By",
+            "Completion Proof Photo", "Completion Submitted At", "Completion Latitude", "Completion Longitude",
+            "Completion Distance (m)", "Verification Status", "Completion Notes",
+        ])
+        for issue in issues:
+            coordinates = coordinates_for(issue.location)
+            proof = issue.resolution_proof
+            writer.writerow([
+                str(issue.id), issue.created_at.isoformat() if issue.created_at else "", issue.title, issue.description or "",
+                issue.category, issue.issue_type or "", issue.severity, issue.status, issue.officer_decision or "",
+                issue.assigned_to or "", issue.ward or "", issue.address or "", coordinate_at(coordinates, 1),
+                coordinate_at(coordinates, 0), issue.upvote_count or 0, issue.sla_deadline.isoformat() if issue.sla_deadline else "",
+                "Yes" if issue.sla_breached else "No", (issue.photo_urls or [""])[0], issue.resolved_at.isoformat() if issue.resolved_at else "",
+                proof.worker_id if proof else "", proof.photo_url if proof else "", proof.submitted_at.isoformat() if proof and proof.submitted_at else "",
+                coordinate_at(proof.worker_location, 1) if proof else "",
+                coordinate_at(proof.worker_location, 0) if proof else "", proof.distance_from_issue if proof else "",
+                proof.verification_status if proof else "", proof.notes if proof else "",
+            ])
+        return response
 
 
 class AdminUsersView(MongoSafeAPIView):

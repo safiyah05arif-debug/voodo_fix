@@ -14,6 +14,10 @@
         :root { --civix-radius: .75rem; --civix-control-height: 2.5rem; --civix-card-padding: .75rem; --civix-card-border: #d9d9e0; --civix-card-shadow: 0 2px 8px rgba(18, 33, 51, .06); }
         html, body, .proof-modal-inline, #proof-modal > div { scrollbar-width: none; -ms-overflow-style: none; }
         html::-webkit-scrollbar, body::-webkit-scrollbar, .proof-modal-inline::-webkit-scrollbar, #proof-modal > div::-webkit-scrollbar { display: none; }
+        body.easy-read { line-height: 1.7; }
+        body.easy-read .text-xs, body.easy-read .text-\[10px\], body.easy-read .text-\[11px\] { font-size: .8125rem; line-height: 1.35rem; }
+        body.easy-read button, body.easy-read select, body.easy-read input, body.easy-read textarea { min-height: 3rem; }
+        body.easy-read input, body.easy-read textarea { line-height: 1.6; }
         body > header { order: 1; }
         body > div[role="banner"] { order: 2; }
         body > .worker-date-selector { order: 3; }
@@ -87,6 +91,8 @@
             body > header > div:first-child h1 { font-size: 1rem; }
             body > header > div:last-child { align-self: center; flex-shrink: 0; padding: .2rem .35rem; font-size: .625rem; }
             body { overflow-x: hidden; }
+            body > header > div:last-child { overflow-x: auto; }
+            body > header button, body > header a { min-height: 44px !important; min-width: 44px !important; }
             #main-content { padding: .75rem; gap: 1rem; }
             #main-content > section:first-child { padding: .75rem; }
             #main-content > section:first-child { justify-content: space-between; }
@@ -96,7 +102,7 @@
             #worker-tasks-list article h4 { font-size: .9375rem; }
             #worker-tasks-list article > img { height: 8.5rem; }
             .proof-upload-shell label { min-height: 140px; }
-            #worker-tasks-list button, #worker-tasks-list a { min-height: 2.25rem; }
+            #worker-tasks-list button, #worker-tasks-list a { min-height: 44px; }
             .text-sm { font-size: .8125rem; }
             .text-base { font-size: .875rem; }
             .text-lg { font-size: 1rem; }
@@ -111,25 +117,27 @@
         <h1 class="font-black text-lg leading-tight" id="worker-heading">Nagara Setu</h1>
     </header>
     <div class="app-action-bar relative bg-white border-b border-outline-variant px-3 py-2 flex items-center justify-between gap-2 text-xs">
-        <button id="worker-accessibility-menu" type="button" class="p-1.5 rounded hover:bg-surface-container" aria-label="Open accessibility menu" aria-expanded="false" aria-controls="worker-accessibility-controls">
-            <span class="material-symbols-outlined text-lg">menu</span>
-        </button>
-        <div id="worker-accessibility-controls" class="a11y-panel">
-            <button id="worker-contrast" type="button" class="px-2 py-1 rounded hover:bg-surface-container" aria-pressed="false"><span id="worker-contrast-label">Contrast</span></button>
-            <button id="worker-easy-read" type="button" class="px-2 py-1 rounded hover:bg-surface-container" aria-pressed="false"><span id="worker-easy-read-label">Easy Read</span></button>
-            <div class="flex gap-1">
-                <button type="button" onclick="setWorkerFontSize('100%')" class="flex-1 px-2 py-1 rounded" aria-label="Use normal text size">A</button>
-                <button type="button" onclick="setWorkerFontSize('115%')" class="flex-1 px-2 py-1 rounded font-bold" aria-label="Increase text size">A+</button>
-                <button type="button" onclick="setWorkerFontSize('130%')" class="flex-1 px-2 py-1 rounded font-black" aria-label="Use largest text size">A++</button>
-            </div>
-            <button id="worker-read-aloud" type="button" aria-pressed="false" class="px-2 py-1 rounded hover:bg-surface-container"><span id="worker-read-label">Read aloud</span></button>
-        </div>
         <div class="ml-auto flex items-center gap-2">
             <span id="worker-gps-tag" class="hidden sm:inline text-[10px] text-on-surface-variant">GPS: Waiting for location</span>
             <button id="worker-language" type="button" class="p-1.5 rounded hover:bg-surface-container text-primary" aria-label="Switch interface language to Tamil">
                 <span class="material-symbols-outlined text-lg">language</span>
             </button>
-            <a href="/api/users/logout/" class="underline text-xs font-bold" data-i18n-worker="logout">Logout</a>
+            <div class="relative">
+                <button id="worker-accessibility-menu" type="button" class="p-1 rounded hover:bg-white/20" aria-expanded="false" aria-controls="worker-accessibility-controls" aria-label="Open accessibility options">
+                    <span class="material-symbols-outlined text-sm">menu</span>
+                </button>
+                <div id="worker-accessibility-controls" class="a11y-panel p-2 bg-white text-on-surface border border-outline-variant rounded-lg shadow-xl">
+                    <button id="worker-contrast" type="button" class="w-full flex items-center gap-2 px-2 py-1.5 rounded hover:bg-surface-container transition-colors" aria-pressed="false" aria-label="Toggle high contrast mode"><span class="material-symbols-outlined text-sm text-primary">contrast</span><span id="worker-contrast-label">Contrast</span></button>
+                    <button id="worker-easy-read" type="button" class="w-full flex items-center gap-2 px-2 py-1.5 rounded hover:bg-surface-container transition-colors" aria-pressed="false" aria-label="Toggle Easy Read mode"><span class="material-symbols-outlined text-sm text-primary">text_fields</span><span id="worker-easy-read-label">Easy Read</span></button>
+                    <div class="flex items-center justify-between gap-1 border-t border-outline-variant mt-1 pt-1">
+                        <button type="button" onclick="setWorkerFontSize('100%')" class="px-2 py-1 rounded hover:bg-surface-container" aria-label="Use normal text size">A</button>
+                        <button type="button" onclick="setWorkerFontSize('115%')" class="px-2 py-1 rounded hover:bg-surface-container font-bold" aria-label="Increase text size">A+</button>
+                        <button type="button" onclick="setWorkerFontSize('130%')" class="px-2 py-1 rounded hover:bg-surface-container text-sm font-black" aria-label="Use largest text size">A++</button>
+                    </div>
+                </div>
+            </div>
+            <button id="worker-read-aloud" type="button" aria-pressed="false" aria-label="Read worker tasks aloud"><span class="material-symbols-outlined text-sm">volume_up</span><span id="worker-read-label">Read aloud</span></button>
+            <nav aria-label="Portal navigation"><a href="/api/users/logout/" class="underline text-primary">Logout</a></nav>
         </div>
     </div>
 
@@ -208,7 +216,7 @@
 
     <!-- Proof of Work Closing Modal -->
     <div id="proof-modal" class="hidden fixed inset-0 z-50 bg-slate-900/30 flex items-center justify-center p-3 sm:p-4" role="dialog" aria-modal="true" aria-labelledby="proof-modal-title">
-        <div class="relative bg-white rounded-2xl max-w-lg w-full p-5 shadow-2xl flex flex-col gap-4 border border-outline-variant max-h-[90vh] overflow-y-auto z-10">
+        <div class="relative bg-white rounded-2xl max-w-lg w-full p-5 shadow-2xl flex flex-col gap-4 border border-outline-variant max-h-[90vh] overflow-y-auto z-10" data-modal-content>
             {% csrf_token %}
             <div class="flex justify-between items-center border-b pb-2">
                 <h3 class="font-bold text-base text-on-surface flex items-center gap-2">
@@ -229,16 +237,16 @@
 
             <!-- "After" Photo Upload Box -->
             <div class="proof-upload-shell border-2 border-dashed border-primary/60 rounded-2xl bg-gradient-to-br from-white via-surface-container-low to-primary/10 p-3 shadow-inner">
-                <label for="proof-photo-input" class="block w-full cursor-pointer rounded-xl border-2 border-primary/25 bg-white/95 hover:bg-primary/5 focus-within:ring-2 focus-within:ring-primary/40 transition-all shadow-sm">
+                <div class="block w-full rounded-xl border-2 border-primary/25 bg-white/95 transition-all shadow-sm">
                     <input id="proof-photo-input" type="file" accept="image/*" capture="environment" aria-label="Completion photo from camera or device" class="hidden" onchange="previewProof(event)"/>
                     <img id="proof-preview-img" alt="Preview of repair completion photo" class="hidden w-full h-40 object-cover rounded-lg mb-2"/>
                     <div id="proof-placeholder-view" class="flex flex-col items-center justify-center gap-2 py-6 px-3 text-center min-h-[180px]">
                         <span class="material-symbols-outlined text-4xl text-primary mb-1">add_a_photo</span>
                         <span class="font-bold text-xs text-on-surface" id="worker-photo-title">Capture Mandatory 'After' Photo</span>
                         <span class="text-[10px] text-on-surface-variant" id="worker-photo-help">Tap to take photo of completed repair</span>
-                        <span class="mt-1 inline-flex items-center justify-center bg-primary text-white px-3 py-2 rounded-lg font-bold text-[11px] shadow-sm">Choose Photo</span>
+                        <button id="btn-choose-proof-photo" type="button" class="mt-1 inline-flex items-center justify-center bg-primary text-white px-3 py-2 rounded-lg font-bold text-[11px] shadow-sm">Choose Photo</button>
                     </div>
-                </label>
+                </div>
             </div>
 
             <!-- Checklist -->
@@ -260,14 +268,14 @@
             </div>
 
             <!-- Submit Action -->
-            <button id="btn-submit-proof" onclick="submitResolution()" class="w-full bg-secondary text-white py-3.5 rounded-xl font-bold text-sm shadow-md hover:opacity-90 flex items-center justify-center gap-2">
+            <button id="btn-submit-proof" type="button" onclick="submitResolution()" class="w-full bg-secondary text-white py-3.5 rounded-xl font-bold text-sm shadow-md hover:opacity-90 flex items-center justify-center gap-2">
                 <span class="material-symbols-outlined text-lg">check_circle</span>
                 <span id="worker-submit-label">SUBMIT CLOSURE PROOF</span>
             </button>
         </div>
     </div>
 
-    <div id="worker-live-region" class="sr-only" role="status" aria-live="polite"></div>
+    <div id="worker-live-region" tabindex="-1" class="sr-only" role="status" aria-live="polite"></div>
 
     <script>
         let currentActiveIssueId = null;
@@ -283,6 +291,7 @@
         let workerSelectedDate = workerDateKey(new Date());
         let workerCalendarDate = new Date();
         let workerPendingDate = workerSelectedDate;
+        document.getElementById('btn-choose-proof-photo')?.addEventListener('click', () => document.getElementById('proof-photo-input').click());
             const escapeHtml = (value) => String(value ?? '').replace(/[&<>\'"]/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[character]));
             const googleMapsUrl = (location) => {
                 const latitude = Number(location?.latitude);
@@ -305,7 +314,17 @@
         };
 
         function announceWorker(message) {
-            document.getElementById('worker-live-region').textContent = message;
+            const region = document.getElementById('worker-live-region');
+            region.textContent = '';
+            window.setTimeout(() => { region.textContent = message; }, 20);
+        }
+
+        function announceWorkerError(message) {
+            const region = document.getElementById('worker-live-region');
+            region.setAttribute('role', 'alert');
+            announceWorker(message);
+            region.focus();
+            window.setTimeout(() => region.setAttribute('role', 'status'), 1000);
         }
 
         function workerDateKey(date) {
@@ -389,6 +408,7 @@
         function setWorkerLanguage(language) {
             workerLanguage = language;
             localStorage.setItem('civix-language', language);
+            saveWorkerAccessibilityPreference({ language });
             const t = workerTranslations[language];
             const labels = {
                 'worker-portal-title': t.portal, 'worker-citizen-link': t.citizen, 'worker-heading': t.heading,
@@ -420,7 +440,12 @@
         function setWorkerFontSize(scale) {
             document.documentElement.style.fontSize = scale;
             localStorage.setItem('civix-font-size', scale);
+            saveWorkerAccessibilityPreference({ font_size: scale === '130%' ? 'extra_large' : scale === '115%' ? 'large' : 'normal' });
             announceWorker(workerLanguage === 'ta' ? 'எழுத்து அளவு மாற்றப்பட்டது' : 'Text size changed');
+        }
+
+        function saveWorkerAccessibilityPreference(preference) {
+            fetch('/api/users/profile/', { method: 'PATCH', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken() }, credentials: 'same-origin', body: JSON.stringify(preference) }).catch(() => {});
         }
 
         function updateWorkerReadButton(isReading) {
@@ -479,11 +504,14 @@
         document.getElementById('worker-contrast').addEventListener('click', () => {
             const enabled = document.body.classList.toggle('high-contrast');
             localStorage.setItem('civix-contrast', enabled ? 'on' : 'off');
+            saveWorkerAccessibilityPreference({ high_contrast: enabled });
             document.getElementById('worker-contrast').setAttribute('aria-pressed', String(enabled));
         });
         document.getElementById('worker-easy-read').addEventListener('click', () => {
             workerEasyRead = !workerEasyRead;
             localStorage.setItem('civix-easy-read', workerEasyRead ? 'on' : 'off');
+            saveWorkerAccessibilityPreference({ easy_read: workerEasyRead });
+            document.body.classList.toggle('easy-read', workerEasyRead);
             document.getElementById('worker-easy-read').setAttribute('aria-pressed', String(workerEasyRead));
             document.getElementById('worker-easy-read').classList.toggle('font-bold', workerEasyRead);
             announceWorker(workerEasyRead ? (workerLanguage === 'ta' ? 'எளிய வாசிப்பு இயக்கப்பட்டது' : 'Easy Read enabled') : (workerLanguage === 'ta' ? 'எளிய வாசிப்பு முடக்கப்பட்டது' : 'Easy Read disabled'));
@@ -525,6 +553,7 @@
         document.getElementById('worker-date-picker-confirm').addEventListener('click', () => selectWorkerDate(workerPendingDate));
         document.getElementById('worker-date-picker-cancel').addEventListener('click', closeWorkerDatePicker);
         document.getElementById('worker-date-picker-close').addEventListener('click', closeWorkerDatePicker);
+        document.querySelector('#worker-date-picker [data-modal-content]')?.addEventListener('click', (event) => event.stopPropagation());
         document.getElementById('worker-date-picker').addEventListener('click', (event) => {
             if (event.target.id === 'worker-date-picker') closeWorkerDatePicker();
         });
@@ -646,6 +675,7 @@
             modal.querySelector(':scope > div').className = 'relative bg-white rounded-2xl max-w-lg w-full p-5 shadow-2xl flex flex-col gap-4 border border-outline-variant max-h-[90vh] overflow-y-auto z-10';
             document.body.appendChild(modal);
         }
+        document.querySelector('#proof-modal [data-modal-content]')?.addEventListener('click', (event) => event.stopPropagation());
 
         function updateProofGpsStatus() {
             const status = document.getElementById('proof-gps-status');
@@ -673,7 +703,7 @@
             });
             const data = await response.json();
             if (!response.ok) {
-                alert(data.error || 'Could not update task status.');
+                announceWorkerError(data.error || (workerLanguage === 'ta' ? 'பணி நிலையைப் புதுப்பிக்க முடியவில்லை.' : 'Could not update task status.'));
                 return;
             }
             announceWorker(workerLanguage === 'ta' ? 'பணி நிலை மாற்றப்பட்டது' : 'Task status updated');
@@ -696,11 +726,11 @@
         async function submitResolution() {
             if (!currentActiveIssueId) return;
             if (!proofPhotoFile) {
-                alert(workerLanguage === 'ta' ? 'முடிப்பு புகைப்படம் அவசியம்.' : 'An after photo is required before closing the ticket.');
+                announceWorkerError(workerLanguage === 'ta' ? 'முடிப்பு புகைப்படம் அவசியம்.' : 'An after photo is required before closing the ticket.');
                 return;
             }
             if (!workerCurrentPosition) {
-                alert('Current worker location is required before submitting proof. Enable GPS and try again.');
+                announceWorkerError(workerLanguage === 'ta' ? 'ஆதாரத்தைச் சமர்ப்பிக்க தற்போதைய பணியாளர் இருப்பிடம் தேவை. ஜிபிஎஸ்ஸை இயக்கி மீண்டும் முயற்சிக்கவும்.' : 'Current worker location is required before submitting proof. Enable GPS and try again.');
                 return;
             }
             const formData = new FormData();
@@ -721,14 +751,14 @@
                 });
                 const data = await res.json();
                 if (!res.ok) {
-                    alert(data.error || "Could not resolve this ticket.");
+                    announceWorkerError(data.error || (workerLanguage === 'ta' ? 'இந்த பணியைத் தீர்க்க முடியவில்லை.' : 'Could not resolve this ticket.'));
                     return;
                 }
-                alert(data.message || "Ticket successfully resolved and proof stored in Supabase!");
+                announceWorker(workerLanguage === 'ta' ? 'பணி வெற்றிகரமாகத் தீர்க்கப்பட்டது.' : (data.message || 'Ticket successfully resolved and proof stored.'));
                 closeProofModal();
                 loadWorkerTasks();
             } catch (err) {
-                alert("Error submitting resolution: " + err);
+                announceWorkerError((workerLanguage === 'ta' ? 'தீர்வு சமர்ப்பிப்பில் பிழை: ' : 'Error submitting resolution: ') + err.message);
             }
         }
 
@@ -750,7 +780,9 @@
                 document.body.classList.add('high-contrast');
                 document.getElementById('worker-contrast').setAttribute('aria-pressed', 'true');
             }
+            document.body.classList.toggle('easy-read', workerEasyRead);
             document.getElementById('worker-easy-read').setAttribute('aria-pressed', String(workerEasyRead));
+            document.getElementById('worker-easy-read').setAttribute('aria-label', workerEasyRead ? 'Turn off Easy Read mode' : 'Turn on Easy Read mode');
             document.getElementById('worker-easy-read').classList.toggle('font-bold', workerEasyRead);
             if (localStorage.getItem('civix-font-size')) setWorkerFontSize(localStorage.getItem('civix-font-size'));
             loadWorkerTasks();
@@ -774,6 +806,10 @@
         function csrfToken() {
             return document.querySelector('input[name="csrfmiddlewaretoken"]')?.value || '';
         }
+
+        document.querySelectorAll('[data-logout]').forEach((button) => {
+            button.addEventListener('click', () => { window.location.assign('/api/users/logout/'); });
+        });
 
     </script>
 </body>
