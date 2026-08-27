@@ -1157,7 +1157,8 @@
                 const currentThreshold = thresholds[Math.min(level - 1, thresholds.length - 1)] || 0;
                 const nextThreshold = thresholds[level] || currentThreshold;
                 const progress = nextThreshold > currentThreshold ? Math.min(100, Math.max(0, ((points - currentThreshold) / (nextThreshold - currentThreshold)) * 100)) : 100;
-                document.getElementById('user-points-pill').textContent = `${points.toLocaleString()} Pts`;
+                const pointsPill = document.getElementById('user-points-pill');
+                if (pointsPill) pointsPill.textContent = `${points.toLocaleString()} Pts`;
                 document.getElementById('impact-points').textContent = points.toLocaleString();
                 document.getElementById('impact-level').textContent = `Level ${level}`;
                 document.getElementById('impact-progress-bar').style.width = `${progress}%`;
